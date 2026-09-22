@@ -1,7 +1,7 @@
 {
-  "name": "grandswift",
-  "productName": "Grand Swift",
-  "version": "1.6.0",
+  "name": "rainjack",
+  "productName": "Rainjack",
+  "version": "1.9.0",
   "description": "A crime game set in Vancouver",
   "main": "main.js",
   "author": {
@@ -17,7 +17,7 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.jaybulb.grandswift",
+    "appId": "com.jaybulb.rainjack",
     "icon": "../../site/icon.png",
     "win": {
       "target": "nsis"
@@ -34,5 +34,5 @@
       "target": "dmg"
     }
   },
-  "homepage": "https://grandswift.heyitsmejosh.com"
+  "homepage": "https://rainjack.heyitsmejosh.com"
 }

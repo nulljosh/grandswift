@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Grand Swift: Play</title><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
+<title>Rainjack: Play</title><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#111111"><link rel="apple-touch-icon" href="icon.png">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
@@ -365,7 +365,7 @@ function tick(dt) {
 }
 
 // ---- renderer
-let R; try { R = new THREE.WebGLRenderer({ antialias: true }); } catch (e) { document.body.innerHTML = '<div style="padding:40px;font:600 18px Helvetica">Grand Swift needs WebGL. Try Chrome, Safari or Firefox with hardware acceleration on.</div>'; throw e; } R.setPixelRatio(devicePixelRatio); R.setSize(innerWidth, innerHeight); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.outputColorSpace = THREE.SRGBColorSpace; document.body.prepend(R.domElement);
+let R; try { R = new THREE.WebGLRenderer({ antialias: true }); } catch (e) { document.body.innerHTML = '<div style="padding:40px;font:600 18px Helvetica">Rainjack needs WebGL. Try Chrome, Safari or Firefox with hardware acceleration on.</div>'; throw e; } R.setPixelRatio(devicePixelRatio); R.setSize(innerWidth, innerHeight); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.outputColorSpace = THREE.SRGBColorSpace; document.body.prepend(R.domElement);
 const scene = new THREE.Scene(), sky = new THREE.Color(0x9ebddb); scene.background = sky; scene.fog = new THREE.Fog(sky, 900, 3200);
 const cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 1, 6000);
 scene.environment = new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(), .04).texture;

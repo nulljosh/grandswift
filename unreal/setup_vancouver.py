@@ -1,4 +1,4 @@
-"""Grand Swift / Unreal: drop real Vancouver into the open level.
+"""Rainjack / Unreal: drop real Vancouver into the open level.
 
 Run inside Unreal Editor 5.8 (Tools > Execute Python Script, or through the Unreal MCP)
 with the Cesium for Unreal plugin enabled. Untested until UE is installed.

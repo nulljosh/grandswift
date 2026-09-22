@@ -1,5 +1,5 @@
-name = "grandswift"
+name = "rainjack"
 compatibility_date = "2026-09-01"
-routes = [{ pattern = "grandswift.heyitsmejosh.com", custom_domain = true }]
+routes = [{ pattern = "rainjack.heyitsmejosh.com", custom_domain = true }]
 [assets]
 directory = "./site"

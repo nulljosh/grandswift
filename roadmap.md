@@ -1,4 +1,4 @@
-# Grand Swift roadmap
+# Rainjack roadmap
 
 A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully fledged.
 
@@ -25,6 +25,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 - v1.7.0 real models: animated rigged people (walk, run, idle) and real car models (Ferrari 458, CC-BY), shapes as fallback
 
 - v1.8.0 real ocean (reflective animated water), physical sky with a moving sun, Kits Beach with textured and wet sand, foam, driftwood logs, lifeguard towers, volleyball nets, towels and umbrellas; CI web test no longer flaky
+
+- v1.9.0 renamed to Rainjack: repo nulljosh/rainjack, rainjack.heyitsmejosh.com (old domain redirects), apps and docs; Android activity was never committed (gitignore matched it), fixed
 
 ## Next
 - [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)

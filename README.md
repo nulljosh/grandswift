@@ -1,4 +1,4 @@
-# Grand Swift
+# Rainjack
 
 A crime game set in Vancouver and Victoria. It runs in any browser, phones included, and there's a native Mac app too.
 
@@ -6,7 +6,7 @@ You start downtown at Granville and Georgia. A short tutorial covers walking, sh
 
 ## Play
 - Web: open `site/play.html` on a local server (`python3 -m http.server -d site`), or add it to your home screen on iOS or Android.
-- Mac: `./build.sh && open "Grand Swift.app"`
+- Mac: `./build.sh && open "Rainjack.app"`
 
 ## Controls
 W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, F punch, Q fists or pistol, E get in or out of a car, Tab to cycle Joshua, Ben and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
@@ -53,6 +53,6 @@ Two resources make that possible, and neither is set up yet:
 That's a separate project. Unreal needs a large download and disk space, and Epic has to be signed into by hand.
 
 ## QA
-`GS_QA=1 ./grandswift` plays the Mac game with no window and checks 23 things. The web build has a 31-check headless suite (`node tests/web.mjs`) covering the menu, saves, combat, explosions, neighbourhoods, corrupt saves, blocked storage, offline mode and phones. CI runs the Mac checks on every push.
+`GS_QA=1 ./rainjack` plays the Mac game with no window and checks 23 things. The web build has a 31-check headless suite (`node tests/web.mjs`) covering the menu, saves, combat, explosions, neighbourhoods, corrupt saves, blocked storage, offline mode and phones. CI runs the Mac checks on every push.
 
 See roadmap.md for what's next.

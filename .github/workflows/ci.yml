@@ -5,8 +5,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - run: swiftc -O -parse-as-library main.swift -o grandswift
-      - run: GS_QA=1 ./grandswift
+      - run: swiftc -O -parse-as-library main.swift -o rainjack
+      - run: GS_QA=1 ./rainjack
   web:
     runs-on: ubuntu-latest
     steps:

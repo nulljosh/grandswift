@@ -1,4 +1,4 @@
-# Unreal plan (Grand Swift 2)
+# Unreal plan (Rainjack 2)
 
 The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unreal's own MCP.
 

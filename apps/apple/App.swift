@@ -3,7 +3,7 @@ import WebKit
 
 // iOS + macOS shell: the full game is the web build, so every platform plays the same thing.
 // ponytail: loads the live site, needs a connection (the 3D tiles do anyway). Bundle site/ for offline if it matters.
-let gameURL = URL(string: "https://grandswift.heyitsmejosh.com/play.html")!
+let gameURL = URL(string: "https://rainjack.heyitsmejosh.com/play.html")!
 
 #if os(macOS)
 struct Web: NSViewRepresentable {
@@ -21,7 +21,7 @@ struct Web: UIViewRepresentable {
 }
 #endif
 
-@main struct GrandSwiftApp: App {
+@main struct RainjackApp: App {
     var body: some Scene {
         WindowGroup { Web().ignoresSafeArea().background(Color.black)
             #if os(iOS)
