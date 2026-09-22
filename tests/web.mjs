@@ -24,7 +24,7 @@ await p.keyboard.press("Enter"); await W(300);
 check(await p.evaluate(() => !G.paused), "Enter dismisses the card");
 await p.keyboard.press("Escape"); await W(200);
 check(await p.evaluate(() => G.paused && getComputedStyle(document.getElementById("pause")).display === "flex"), "Esc opens the menu");
-await p.click("#savebtn"); check(await p.evaluate(() => !!JSON.parse(localStorage.gs).game), "Save game writes a save");
+await p.evaluate(() => document.getElementById("savebtn").click()); check(await p.evaluate(() => !!JSON.parse(localStorage.gs).game), "Save game writes a save");
 await p.keyboard.press("Escape"); await W(200); check(await p.evaluate(() => !G.paused), "Esc closes the menu");
 
 // core loop

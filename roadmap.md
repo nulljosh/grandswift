@@ -24,6 +24,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.7.0 real models: animated rigged people (walk, run, idle) and real car models (Ferrari 458, CC-BY), shapes as fallback
 
+- v1.8.0 real ocean (reflective animated water), physical sky with a moving sun, Kits Beach with textured and wet sand, foam, driftwood logs, lifeguard towers, volleyball nets, towels and umbrellas; CI web test no longer flaky
+
 ## Next
 - [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)
 - [ ] Detailed CC0 civilian characters with faces and clothes (gap vs GTA 3/4)
