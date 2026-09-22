@@ -2,9 +2,9 @@
 
 The goal: a GTA-style game set in the real Vancouver, good enough that friends play it for real. Measured honestly against GTA 3 through GTA 6.
 
-## Where we are (end of 2026-09-21)
+## Where we are (end of 2026-09-22)
 
-Built in one day. Live at vancouvervice.heyitsmejosh.com, repo nulljosh/vancouvervice (local folder is still `~/Documents/Code/vancouvervice`).
+Unreal engine live: real Vancouver streets stream via Google 3D Tiles and MCP. Live at vancouvervice.heyitsmejosh.com, repo nulljosh/vancouvervice (local folder is still `~/Documents/Code/vancouvervice`).
 
 - **Main game** (`site/play.html`): simplified Vancouver and Victoria. Fists, pistol, shotgun, SMG. Cars that smoke, burn and explode. Five-star cops that shoot back. Five story missions then endless side jobs. Three heroes with perks (Joshua in Gastown, Ben in Kits, Alexandre in Victoria), switched with a GTA V style camera flight. XP, levels, ten achievements, saves, live Vancouver weather, radio stations, neighbourhood crowds, strangers who bump, chat or fight.
 - **Real streets** (`site/city.html`): downtown built from OpenStreetMap. 3,359 real buildings, 8,378 named streets, signs, traffic lights, streetlights, 140 cars in traffic, cop chases, walk-in interiors for 2,609 real places, 7-Eleven robberies, online play for everyone on the page. Victoria (`?area=victoria`, Tab flies there), Kits and Langley data exist. SkyTrain guideway, stations and one moving train are scaffolded.
@@ -17,8 +17,9 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 
 ## Next up, in order
 
-1. **Unreal version.** UE 5.8.2 is installing to `/Volumes/LaCie/UE_5.8` (Epic's launcher is slow and crashed once; press Resume). When `UnrealEditor.app` exists: create a Third Person project, enable the Unreal MCP, Python and Cesium for Unreal plugins, add the Unreal MCP to Claude, run `unreal/setup_vancouver.py` with `CESIUM_ION_TOKEN` from `.env`. See `UNREAL.md`.
-2. **Funny Vancouver chaos** (Joshua asked for all of these, GTA-style satire, nobody vulnerable as the punchline): bike lane rage cyclist, seagulls steal your hot dog at English Bay, SkyTrain surfing, crypto bro in a Patagonia vest, condo presale campout brawl, rain rage road fights, Lululemon sale stampede in Kits, Tesla bros drag racing in Coal Harbour, film crew blocking the street (steal the prop cop car), weed delivery mission, open house real estate agent chasing you, 2011-style hockey riot, wet coast driver doing 30 in the fast lane.
+1. ~~**Unreal version.** UE 5.8.2 installed, MCP server running on 18000, real Vancouver from Google 3D Tiles streams live, player placed at Granville & Georgia, three heroes (Joshua, Ben, Alexandre) ready to play.~~
+2. **Drivable car** (so players can get around, test vehicle physics, cops follow you). Commit and test it headless.
+3. **Funny Vancouver chaos** (Joshua asked for all of these, GTA-style satire, nobody vulnerable as the punchline): bike lane rage cyclist, seagulls steal your hot dog at English Bay, SkyTrain surfing, crypto bro in a Patagonia vest, condo presale campout brawl, rain rage road fights, Lululemon sale stampede in Kits, Tesla bros drag racing in Coal Harbour, film crew blocking the street (steal the prop cop car), weed delivery mission, open house real estate agent chasing you, 2011-style hockey riot, wet coast driver doing 30 in the fast lane.
 3. **Move gameplay onto the real streets.** Missions, heroes, weapons, radio and weather from the main game, running on the OpenStreetMap city. Eventually the real streets become the main game.
 4. **SkyTrain for real.** Ride it (enter at a station, fast travel between stations), trains on every line, underground sections downtown instead of the elevated scaffold, SkyTrain surfing.
 5. **Bigger map.** Join downtown, Kits, Burnaby, Richmond, North Shore, Surrey and Langley into one city with streaming. Bridges and the Sea to Sky.
