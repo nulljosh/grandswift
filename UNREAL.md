@@ -42,3 +42,8 @@ The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unre
 3. Guns (First Person pack) and stealing cars (Vehicle pack).
 4. First mission: rob a 7-Eleven downtown.
 Boot to playable takes a minute or two while tiles stream. Expected.
+
+## Apple Store spawn + QA bridge (2026-09-22)
+- Spawn: "Start: Apple Pacific Centre" at (814, 300, -6350) on the Georgia St sidewalk, facing the store; catch pad follows at z -6700.
+- Real places in Unreal coords (from the georeference): Apple (814, 1614), Art Gallery (-14005, 5010), Waterfront Station (51118, -26606), 7-Eleven 1294 Granville (-63876, 80134). Tile heights change with LOD, so trust the proven street z near spawn.
+- `unreal/qa.py '<python>'` runs full Unreal Python in the editor through Content/Python/init_unreal.py (copy in unreal/Python). It can save the level: `unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)`.
