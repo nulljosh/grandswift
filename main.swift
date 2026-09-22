@@ -44,7 +44,7 @@ func streetName(_ p: CGPoint) -> String {
     return x <= road ? st : ave
 }
 
-struct Car { var p: CGPoint; var a: CGFloat = 0; var v: CGFloat = 0; var color: Color; var cop = false }
+struct Car { var p: CGPoint; var a: CGFloat = 0; var v: CGFloat = 0; var color: Color; var cop = false; var ai = false }
 struct Ped { var p: CGPoint; var a: CGFloat }
 
 final class Game: ObservableObject {
@@ -56,7 +56,7 @@ final class Game: ObservableObject {
 
     init() {
         let colors: [Color] = [.red, .yellow, .orange, .green, .white, .pink]
-        for i in 0..<25 { cars.append(Car(p: roadPoint(), a: CGFloat(i % 4) * .pi / 2, color: colors[i % colors.count])) }
+        for i in 0..<25 { cars.append(Car(p: roadPoint(), a: CGFloat(i % 4) * .pi / 2, color: colors[i % colors.count], ai: i % 3 != 0)) }
         for _ in 0..<60 { peds.append(Ped(p: roadPoint(), a: .random(in: 0...(2 * .pi)))) }
     }
     func roadPoint() -> CGPoint {
@@ -66,7 +66,8 @@ final class Game: ObservableObject {
 
     func toggleCar() {
         if let i = driving { driving = nil; player = CGPoint(x: cars[i].p.x - sin(cars[i].a) * 30, y: cars[i].p.y + cos(cars[i].a) * 30); if solid(player) { player = cars[i].p }; return }
-        if let i = cars.indices.filter({ !cars[$0].cop }).min(by: { dist(cars[$0].p, player) < dist(cars[$1].p, player) }), dist(cars[i].p, player) < 45 { driving = i; wanted = max(wanted, 1) }
+        // ponytail: jacking an AI car just takes it out of traffic
+        if let i = cars.indices.filter({ !cars[$0].cop }).min(by: { dist(cars[$0].p, player) < dist(cars[$1].p, player) }), dist(cars[i].p, player) < 45 { driving = i; cars[i].ai = false; wanted = max(wanted, 1) }
     }
 
     func tick() {
@@ -88,7 +89,17 @@ final class Game: ObservableObject {
             if solid(n) || .random(in: 0...1) < 0.005 { peds[i].a = .random(in: 0...(2 * .pi)) } else { peds[i].p = n }
         }
         // ponytail: O(cars*peds) hit scan, fine at 25x60; grid-bucket it if counts grow
-        for c in cars where abs(c.v) > 120 { peds.removeAll { p in let hit = dist(p.p, c.p) < 20; if hit { score += 10; wanted = min(5, wanted + 1) }; return hit } }
+        // ambient traffic: cruise, turn to a free cardinal heading when blocked
+        for i in cars.indices where cars[i].ai && i != driving {
+            var c = cars[i]; c.v = 150
+            let ahead = CGPoint(x: c.p.x + cos(c.a) * 45, y: c.p.y + sin(c.a) * 45)
+            if solid(ahead) || cars.indices.contains(where: { $0 != i && dist(cars[$0].p, ahead) < 25 }) {
+                let dirs = (0..<4).map { CGFloat($0) * .pi / 2 }.filter { !solid(CGPoint(x: c.p.x + cos($0) * 45, y: c.p.y + sin($0) * 45)) }
+                c.a = dirs.randomElement() ?? c.a + .pi; c.v = 0
+            }
+            move(&c, dt); cars[i] = c
+        }
+        for (ci, c) in cars.enumerated() where ci == driving && abs(c.v) > 120 { peds.removeAll { p in let hit = dist(p.p, c.p) < 20; if hit { score += 10; wanted = min(5, wanted + 1) }; return hit } }
         if peds.count < 40 { peds.append(Ped(p: roadPoint(), a: 0)) }
         let copCount = cars.filter(\.cop).count
         if copCount < wanted { var p = roadPoint(); while dist(p, player) < 500 { p = roadPoint() }; cars.append(Car(p: p, color: .blue, cop: true)) }
@@ -110,45 +121,135 @@ final class Game: ObservableObject {
 }
 func dist(_ a: CGPoint, _ b: CGPoint) -> CGFloat { hypot(a.x - b.x, a.y - b.y) }
 
-struct GameView: View {
-    @StateObject var g = Game()
-    var body: some View {
-        TimelineView(.animation) { t in
-            Canvas { ctx, size in
-                _ = t.date; g.tick()
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(red: 0.1, green: 0.3, blue: 0.5)))
-                ctx.translateBy(x: size.width / 2 - g.player.x, y: size.height / 2 - g.player.y)
-                for by in 0..<rows { for bx in 0..<cols {
-                    let k = vanMap[by][bx], full = CGRect(x: CGFloat(bx) * block, y: CGFloat(by) * block, width: block, height: block)
-                    if k == "W" { continue }
-                    if k == "P" { ctx.fill(Path(full), with: .color(Color(red: 0.15, green: 0.4, blue: 0.18))); continue }
-                    ctx.fill(Path(full), with: .color(Color(white: 0.28)))
-                    if k == "R" { continue }
-                    let r = CGRect(x: full.minX + road, y: full.minY + road, width: block - road, height: block - road)
-                    if let (name, col) = landmarks[k] {
-                        ctx.fill(Path(r), with: .color(col))
-                        ctx.draw(Text(name).font(.system(size: 18, weight: .heavy)).foregroundColor(.black), at: CGPoint(x: r.midX, y: r.midY))
-                    } else {
-                        ctx.fill(Path(r), with: .color((bx * 3 + by) % 7 == 0 ? Color(red: 0.2, green: 0.45, blue: 0.2) : Color(white: 0.5 + CGFloat((bx * 7 + by) % 4) * 0.07)))
-                        ctx.stroke(Path(r.insetBy(dx: 12, dy: 12)), with: .color(.black.opacity(0.2)), lineWidth: 3)
-                    }
-                }}
-                for p in g.peds { ctx.fill(Path(ellipseIn: CGRect(x: p.p.x - 5, y: p.p.y - 5, width: 10, height: 10)), with: .color(.brown)) }
-                for c in g.cars {
-                    var cc = ctx; cc.translateBy(x: c.p.x, y: c.p.y); cc.rotate(by: .radians(c.a))
-                    cc.fill(Path(roundedRect: CGRect(x: -20, y: -10, width: 40, height: 20), cornerRadius: 4), with: .color(c.color))
-                    cc.fill(Path(CGRect(x: 4, y: -8, width: 8, height: 16)), with: .color(.black.opacity(0.5)))
-                    if c.cop { cc.fill(Path(CGRect(x: -4, y: -9, width: 6, height: 18)), with: .color(Int(t.date.timeIntervalSince1970 * 6) % 2 == 0 ? .red : .white)) }
-                }
-                if g.driving == nil {
-                    var pc = ctx; pc.translateBy(x: g.player.x, y: g.player.y); pc.rotate(by: .radians(g.pa))
-                    pc.fill(Path(ellipseIn: CGRect(x: -7, y: -7, width: 14, height: 14)), with: .color(.cyan))
-                    pc.fill(Path(CGRect(x: 4, y: -2, width: 6, height: 4)), with: .color(.black))
+import SceneKit
+
+// ponytail: 2D sim stays the source of truth, SceneKit just renders it first person. x->x, y->z.
+final class World {
+    let scene = SCNScene(), cam = SCNNode()
+    var carNodes: [SCNNode] = [], pedNodes: [SCNNode] = []
+    let sky = NSColor(red: 0.62, green: 0.74, blue: 0.86, alpha: 1)
+
+    init() {
+        let r = scene.rootNode
+        scene.background.contents = sky
+        scene.fogColor = sky; scene.fogStartDistance = 900; scene.fogEndDistance = 3200
+        cam.camera = SCNCamera(); cam.camera!.zNear = 1; cam.camera!.zFar = 6000; cam.camera!.fieldOfView = 75
+        r.addChildNode(cam)
+        let sun = SCNNode(); sun.light = SCNLight(); sun.light!.type = .directional; sun.light!.castsShadow = true
+        sun.eulerAngles = SCNVector3(-1.0, 0.6, 0); r.addChildNode(sun)
+        let amb = SCNNode(); amb.light = SCNLight(); amb.light!.type = .ambient; amb.light!.intensity = 450; r.addChildNode(amb)
+        r.addChildNode(plane(20000, 20000, NSColor(red: 0.12, green: 0.32, blue: 0.48, alpha: 1), CGPoint(x: world.width / 2, y: world.height / 2), -2))
+        // North Shore mountains across the inlet
+        for i in 0..<9 {
+            let m = SCNNode(geometry: SCNCone(topRadius: 0, bottomRadius: CGFloat(500 + i % 3 * 150), height: CGFloat(600 + i % 4 * 180)))
+            m.geometry!.firstMaterial!.diffuse.contents = NSColor(red: 0.25, green: 0.36, blue: 0.3, alpha: 1)
+            m.position = SCNVector3(CGFloat(i) * 520 - 400, CGFloat(300 + i % 4 * 90), -1500 - CGFloat(i % 2) * 300); r.addChildNode(m)
+        }
+        for by in 0..<rows { for bx in 0..<cols {
+            let k = vanMap[by][bx]; if k == "W" { continue }
+            let c = CGPoint(x: (CGFloat(bx) + 0.5) * block, y: (CGFloat(by) + 0.5) * block)
+            r.addChildNode(plane(block, block, k == "P" ? NSColor(red: 0.18, green: 0.42, blue: 0.2, alpha: 1) : NSColor(white: 0.22, alpha: 1), c, 0))
+            if k == "P" {
+                for t in 0..<6 {
+                    let tree = SCNNode(geometry: SCNCone(topRadius: 0, bottomRadius: 22, height: 90))
+                    tree.geometry!.firstMaterial!.diffuse.contents = NSColor(red: 0.08, green: 0.28, blue: 0.12, alpha: 1)
+                    tree.position = SCNVector3(c.x - 100 + CGFloat(t * 41 % 200), 45, c.y - 90 + CGFloat(t * 67 % 180)); r.addChildNode(tree)
                 }
             }
+            if k != "P" {
+                let y = NSColor(red: 0.9, green: 0.75, blue: 0.2, alpha: 1)
+                r.addChildNode(plane(block, 2, y, CGPoint(x: c.x, y: c.y - block / 2 + road / 2), 0.2))
+                r.addChildNode(plane(2, block, y, CGPoint(x: c.x - block / 2 + road / 2, y: c.y), 0.2))
+            }
+            if k == "P" || k == "R" { continue }
+            let lot = CGPoint(x: c.x + road / 2, y: c.y + road / 2), w = block - road - 20
+            r.addChildNode(plane(block - road, block - road, NSColor(white: 0.45, alpha: 1), lot, 0.5))
+            let node: SCNNode
+            switch k {
+            case "C": node = box(w, 60, w, .white); let sail = SCNNode(geometry: SCNCone(topRadius: 0, bottomRadius: 30, height: 70)); sail.geometry!.firstMaterial!.diffuse.contents = NSColor.white
+                for i in 0..<4 { let s2 = sail.clone(); s2.position = SCNVector3(CGFloat(i) * 40 - 60, 65, 0); node.addChildNode(s2) }
+            case "S": node = SCNNode(geometry: SCNSphere(radius: w / 2)); node.scale = SCNVector3(1, 0.4, 1); node.geometry!.firstMaterial!.diffuse.contents = NSColor(white: 0.9, alpha: 1)
+            case "E": node = SCNNode(geometry: SCNSphere(radius: w / 2.4)); node.geometry!.firstMaterial!.diffuse.contents = NSColor(white: 0.8, alpha: 1); node.geometry!.firstMaterial!.metalness.contents = 0.9
+            default:
+                let h = CGFloat(80 + (bx * 37 + by * 91) % 7 * 60 + (by >= 3 && by <= 7 && bx >= 6 && bx <= 12 ? 200 : 0))
+                let tone = 0.45 + CGFloat((bx * 7 + by) % 5) * 0.09
+                node = box(w, h, w, NSColor(red: tone * 0.9, green: tone, blue: tone * 1.1, alpha: 1))
+                node.geometry!.firstMaterial!.diffuse.contents = windows(NSColor(red: tone * 0.9, green: tone, blue: tone * 1.1, alpha: 1))
+                node.geometry!.firstMaterial!.diffuse.contentsTransform = SCNMatrix4MakeScale(1, h / 40, 1)
+                node.geometry!.firstMaterial!.diffuse.wrapT = .repeat
+            }
+            node.position = SCNVector3(lot.x, k == "C" || k == "E" ? w / 2.4 : k == "S" ? 0 : node.boundingBox.max.y, lot.y)
+            if k == "C" { node.position.y = 30 }
+            r.addChildNode(node)
+        }}
+    }
+    func windows(_ c: NSColor) -> NSImage {
+        NSImage(size: NSSize(width: 64, height: 64), flipped: false) { rect in
+            c.setFill(); rect.fill()
+            NSColor(red: 0.2, green: 0.3, blue: 0.4, alpha: 1).setFill()
+            for x in 0..<4 { for y in 0..<2 { NSRect(x: 4 + x * 16, y: 6 + y * 32, width: 10, height: 20).fill() } }
+            return true
         }
+    }
+    func plane(_ w: CGFloat, _ h: CGFloat, _ c: NSColor, _ at: CGPoint, _ y: CGFloat) -> SCNNode {
+        let n = SCNNode(geometry: SCNPlane(width: w, height: h)); n.geometry!.firstMaterial!.diffuse.contents = c
+        n.eulerAngles.x = -.pi / 2; n.position = SCNVector3(at.x, y, at.y); return n
+    }
+    func box(_ w: CGFloat, _ h: CGFloat, _ l: CGFloat, _ c: NSColor) -> SCNNode {
+        let n = SCNNode(geometry: SCNBox(width: w, height: h, length: l, chamferRadius: 2)); n.geometry!.firstMaterial!.diffuse.contents = c; return n
+    }
+    func carNode(_ c: Car) -> SCNNode {
+        let n = box(40, 10, 20, NSColor(c.color)); n.position.y = 8
+        let cab = box(20, 8, 18, NSColor(white: 0.1, alpha: 0.8)); cab.position = SCNVector3(-2, 8, 0); n.addChildNode(cab)
+        if c.cop { let bar = box(4, 3, 16, .red); bar.name = "bar"; bar.position = SCNVector3(-2, 13, 0); n.addChildNode(bar) }
+        return n
+    }
+
+    func sync(_ g: Game) {
+        if carNodes.count != g.cars.count { carNodes.forEach { $0.removeFromParentNode() }; carNodes = g.cars.map(carNode); carNodes.forEach(scene.rootNode.addChildNode) }
+        if pedNodes.count != g.peds.count {
+            pedNodes.forEach { $0.removeFromParentNode() }
+            pedNodes = g.peds.indices.map { i in let n = box(6, 16, 6, [NSColor.brown, .systemRed, .systemBlue, .black][i % 4]); n.position.y = 8; return n }
+            pedNodes.forEach(scene.rootNode.addChildNode)
+        }
+        let flash = Int(Date().timeIntervalSince1970 * 6) % 2 == 0
+        for (i, c) in g.cars.enumerated() {
+            carNodes[i].position = SCNVector3(c.p.x, 8, c.p.y); carNodes[i].eulerAngles.y = -c.a; carNodes[i].isHidden = g.driving == i
+            carNodes[i].childNode(withName: "bar", recursively: false)?.geometry?.firstMaterial?.diffuse.contents = flash ? NSColor.red : NSColor.blue
+        }
+        for (i, p) in g.peds.enumerated() { pedNodes[i].position = SCNVector3(p.p.x, 8, p.p.y) }
+        let a = g.driving.map { g.cars[$0].a } ?? g.pa
+        cam.position = SCNVector3(g.player.x, g.driving == nil ? 14 : 11, g.player.y)
+        cam.eulerAngles = SCNVector3(-0.04, -a - .pi / 2, 0)
+    }
+}
+
+struct SceneBox: NSViewRepresentable {
+    let w: World
+    func makeNSView(context: Context) -> SCNView {
+        let v = SCNView(); v.scene = w.scene; v.pointOfView = w.cam; v.antialiasingMode = .multisampling4X; v.preferredFramesPerSecond = 60
+        // QA hook: GS_SNAP=/path.png writes a frame after 3s and quits
+        if let out = ProcessInfo.processInfo.environment["GS_SNAP"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                let img = v.snapshot(); let rep = NSBitmapImageRep(data: img.tiffRepresentation!)!
+                try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0)
+            }
+        }
+        return v
+    }
+    func updateNSView(_ v: SCNView, context: Context) {}
+}
+
+struct GameView: View {
+    @StateObject var g = Game()
+    @State var w = World()
+    let timer = Timer.publish(every: 1 / 60, on: .main, in: .common).autoconnect()
+    var body: some View {
+        SceneBox(w: w)
+        .onReceive(timer) { _ in g.tick(); w.sync(g) }
+        .overlay { Image(systemName: "plus").foregroundStyle(.white.opacity(0.7)) }
         .overlay(alignment: .topLeading) {
-            Text("$\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player)), Vancouver\nWASD/arrows move, E enter/exit car")
+            Text("$\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player)), Vancouver" + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + "\nWASD/arrows move, E enter/exit car")
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white).padding(12).shadow(radius: 2)
         }
         .overlay(alignment: .topTrailing) {
@@ -172,7 +273,24 @@ struct GameView: View {
     }
 }
 
+// Dock icon: Vancouver skyline at dusk over the water
+func appIcon() -> NSImage {
+    NSImage(size: NSSize(width: 1024, height: 1024), flipped: false) { r in
+        NSBezierPath(roundedRect: r.insetBy(dx: 100, dy: 100), xRadius: 185, yRadius: 185).addClip()
+        NSGradient(starting: NSColor(red: 0.98, green: 0.55, blue: 0.25, alpha: 1), ending: NSColor(red: 0.2, green: 0.25, blue: 0.5, alpha: 1))!.draw(in: r, angle: -90)
+        NSColor(red: 0.2, green: 0.3, blue: 0.3, alpha: 1).setFill()
+        let m = NSBezierPath(); m.move(to: NSPoint(x: 100, y: 520)); m.line(to: NSPoint(x: 330, y: 760)); m.line(to: NSPoint(x: 520, y: 600)); m.line(to: NSPoint(x: 700, y: 800)); m.line(to: NSPoint(x: 924, y: 560)); m.line(to: NSPoint(x: 924, y: 400)); m.line(to: NSPoint(x: 100, y: 400)); m.fill()
+        NSColor(red: 0.08, green: 0.1, blue: 0.16, alpha: 1).setFill()
+        for (x, h) in [(160, 180), (240, 300), (330, 230), (420, 380), (510, 280), (600, 420), (690, 250), (780, 330), (860, 200)] { NSRect(x: x, y: 300, width: 72, height: h).fill() }
+        NSColor(red: 0.1, green: 0.25, blue: 0.45, alpha: 1).setFill(); NSRect(x: 0, y: 0, width: 1024, height: 310).fill()
+        NSColor(red: 1, green: 0.85, blue: 0.4, alpha: 1).setFill()
+        for i in 0..<14 { NSRect(x: 172 + (i * 83) % 700, y: 340 + (i * 57) % 200, width: 14, height: 18).fill() }
+        return true
+    }
+}
+
 @main struct GrandSwift: App {
-    init() { NSApplication.shared.setActivationPolicy(.regular); DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
+    init() { NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon()
+        if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) } DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
     var body: some Scene { WindowGroup("Grand Swift") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }
