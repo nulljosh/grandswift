@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grand Swift: Real Vancouver</title><link rel="icon" href="icon.png">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
+#hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
+#credit{position:fixed;right:10px;bottom:6px;font-size:11px;opacity:.85;text-shadow:0 1px 2px #000}
+#credit a{color:#fff}
+</style>
+<script src="config.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","3d-tiles-renderer":"https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.js","3d-tiles-renderer/plugins":"https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.3/build/index.plugins.js"}}</script>
+</head><body>
+<div id="hud"></div><div id="credit"></div>
+<script type="module">
+// Real Vancouver: Google Photorealistic 3D Tiles via Cesium ion, walk and drive on top.
+// ponytail: ground and walls come from raycasts into the tiles, no physics engine
+import * as THREE from "three";
+import { TilesRenderer } from "3d-tiles-renderer";
+import { CesiumIonAuthPlugin, GLTFExtensionsPlugin, ReorientationPlugin, TileCompressionPlugin } from "3d-tiles-renderer/plugins";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+
+const START = { lat: 49.2833, lon: -123.1187, name: "Granville & Georgia" };
+const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(devicePixelRatio, 2)); R.setSize(innerWidth, innerHeight); document.body.prepend(R.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9ebddb);
+const cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, .5, 20000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 3.2));
+
+const tiles = new TilesRenderer();
+tiles.registerPlugin(new CesiumIonAuthPlugin({ apiToken: window.CESIUM_TOKEN, assetId: "2275207", autoRefreshToken: true }));
+tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader: new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/") }));
+tiles.registerPlugin(new TileCompressionPlugin());
+tiles.registerPlugin(new ReorientationPlugin({ lat: START.lat * THREE.MathUtils.DEG2RAD, lon: START.lon * THREE.MathUtils.DEG2RAD, height: 0, recenter: true }));
+tiles.errorTarget = 8; tiles.setCamera(cam); tiles.setResolutionFromRenderer(cam, R);
+scene.add(tiles.group);
+tiles.addEventListener("load-tile-set", () => {
+  const a = tiles.getAttributions?.() || []; document.getElementById("credit").innerHTML = a.map(x => x.value || "").join(" ") || "Google, Cesium";
+});
+
+// hero + car (metres)
+const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: .6 });
+function person() {
+  const n = new THREE.Group(), cap = (r, l, c) => new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 8, 16), mat(c));
+  const body = cap(.25, .5, 0xbf1f1a); body.position.y = 1.15; const head = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 12), mat(0xd9a680)); head.position.y = 1.72;
+  n.legs = [-.12, .12].map(s => { const p = new THREE.Group(), l = cap(.09, .5, 0x2b3440); l.position.y = -.35; p.add(l); p.position.set(0, .8, s); n.add(p); return p; });
+  n.add(body, head); scene.add(n); return n;
+}
+const hero = person();
+const car = new THREE.Group(); { const b = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1, 1.9), new THREE.MeshPhysicalMaterial({ color: 0xd33, roughness: .25, metalness: .4, clearcoat: 1 })); b.position.y = .7; const c = new THREE.Mesh(new THREE.BoxGeometry(2.2, .7, 1.7), mat(0x111418)); c.position.set(-.3, 1.5, 0); car.add(b, c); } scene.add(car);
+
+const S = { p: new THREE.Vector3(0, 0, 0), a: 0, driving: false, car: { p: new THREE.Vector3(6, 0, 0), a: 0, v: 0 }, keys: new Set(), dx: 0, pitch: 0, grounded: false };
+const ray = new THREE.Raycaster(); ray.firstHitOnly = true;
+function groundAt(x, z, fromY) { ray.set(new THREE.Vector3(x, fromY + 40, z), new THREE.Vector3(0, -1, 0)); ray.far = 400; const h = ray.intersectObject(tiles.group, true)[0]; return h ? h.point.y : null; }
+function blocked(p, a, d) { ray.set(new THREE.Vector3(p.x, p.y + 1, p.z), new THREE.Vector3(Math.cos(a), 0, Math.sin(a))); ray.far = d; return ray.intersectObject(tiles.group, true).length > 0; }
+
+let last = performance.now(), gT = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, .05); last = now; const k = c => S.keys.has(c);
+  const f = k("KeyW") || k("ArrowUp"), b = k("KeyS") || k("ArrowDown"), l = k("KeyA") || k("ArrowLeft"), r = k("KeyD") || k("ArrowRight");
+  const me = S.driving ? S.car : S;
+  if (S.driving) {
+    const c = S.car; c.v += (f ? 12 : 0) * dt - (b ? 16 : 0) * dt; c.v *= .99; c.v = Math.max(-8, Math.min(45, c.v));
+    c.a += ((r ? 1 : 0) - (l ? 1 : 0)) * 1.6 * dt * Math.min(1, Math.abs(c.v) / 8) * Math.sign(c.v) + S.dx * .002; S.dx = 0;
+    if (blocked(c.p, c.v >= 0 ? c.a : c.a + Math.PI, Math.abs(c.v) * dt + 2.4)) c.v *= -.3; else c.p.addScaledVector(new THREE.Vector3(Math.cos(c.a), 0, Math.sin(c.a)), c.v * dt);
+    S.p.copy(c.p); S.a = c.a;
+  } else {
+    S.a += ((r ? 1 : 0) - (l ? 1 : 0)) * 2.4 * dt + S.dx * .004; S.dx = 0;
+    const sp = (f ? (k("ShiftLeft") ? 8 : 4) : 0) - (b ? 2 : 0);
+    if (sp && !blocked(S.p, sp > 0 ? S.a : S.a + Math.PI, .6)) S.p.addScaledVector(new THREE.Vector3(Math.cos(S.a), 0, Math.sin(S.a)), sp * dt);
+  }
+  // stick to the real ground (every other frame is plenty)
+  if ((gT += dt) > .03) { gT = 0; const g = groundAt(me.p.x, me.p.z, me.p.y); if (g !== null) { me.p.y += (g - me.p.y) * (S.grounded ? .5 : 1); S.grounded = true; } }
+  if (S.driving) S.p.y = S.car.p.y;
+  hero.visible = !S.driving; hero.position.copy(S.p); hero.rotation.y = -S.a;
+  hero.legs.forEach((g, j) => g.rotation.z = f && !S.driving ? Math.sin(now / 110 + j * Math.PI) * .6 : 0);
+  car.position.copy(S.car.p); car.rotation.y = -S.car.a;
+  const back = S.driving ? 10 : 5.5, up = S.driving ? 3.6 : 2.4, a = S.a;
+  cam.position.set(S.p.x - Math.cos(a) * back, S.p.y + up + S.pitch * 6, S.p.z - Math.sin(a) * back);
+  cam.rotation.set(-.2 - S.pitch, -a - Math.PI / 2, 0, "YXZ");
+  cam.updateMatrixWorld(); tiles.update();
+  document.getElementById("hud").textContent = `Real Vancouver, from ${START.name}\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}   ${S.grounded ? "" : "loading the city..."}\nW A S D move, Shift run, mouse look, E car, Esc back to the game`;
+  R.render(scene, cam); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+addEventListener("keydown", e => { if (e.code === "Escape") location.href = "play.html"; if (e.code === "KeyE" && !e.repeat) { if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.5, S.car.p.y, S.car.p.z + Math.cos(S.car.a) * 2.5); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; } S.keys.add(e.code); });
+addEventListener("keyup", e => S.keys.delete(e.code));
+addEventListener("mousemove", e => { S.dx += e.movementX; S.pitch = Math.max(-.4, Math.min(.5, S.pitch + e.movementY * .003)); });
+R.domElement.addEventListener("click", () => R.domElement.requestPointerLock());
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); tiles.setResolutionFromRenderer(cam, R); });
+window.S = S;
+</script></body></html>
