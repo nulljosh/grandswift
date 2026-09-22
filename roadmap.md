@@ -20,6 +20,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.5.0 shotgun and SMG, car damage and explosions, radio stations, saves, five-mission story, live Vancouver weather (Open-Meteo), welcome card and clearer tutorial, Esc menu with Save and Exit, error handling, 31-check web test suite in CI, live demo on the landing page, Mac app icon and full screen
 
+- v1.6.0 three heroes: Joshua (Gastown, yellow rain jacket, +50% cash, cools heat fast), Ben (Kitsilano, fastest, two-punch KOs), Alexandre (Victoria, steady aim, faster cars, armour); deterministic native test; QA playthrough fixes
+
 ## Next (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke

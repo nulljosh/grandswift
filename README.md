@@ -9,13 +9,16 @@ You start downtown at Granville and Georgia. A short tutorial covers walking, sh
 - Mac: `./build.sh && open "Grand Swift.app"`
 
 ## Controls
-W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, F punch, Q fists or pistol, E get in or out of a car, Tab switch between Joshua and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
+W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, F punch, Q fists or pistol, E get in or out of a car, Tab to cycle Joshua, Ben and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
 
 ## What's in it
 Fists that land: people fight back or run, and they fall over when they go down. A Real Vancouver beta (`site/real.html`) streams the actual city from Google's photorealistic 3D tiles through Cesium.
 
 ## A living city
 Each neighbourhood has its own people and its own lines: the Downtown Eastside, Gastown, the West End and Coal Harbour, Yaletown, Kitsilano and Victoria. Strangers walk up to bump you, chat, or pick a fight. Traffic keeps to the right lane. You hear cars go by, birds, gulls, and rain, and the rain comes and goes.
+
+## Three heroes
+Joshua runs Gastown in a yellow rain jacket. He earns 50% more per mission and the cops lose interest in him twice as fast. Ben hangs out in Kitsilano. He's the fastest runner, jumps highest, and drops people in two punches. Alexandre works downtown Victoria. He aims steadier, drives faster, and takes less damage.
 
 ## Weather and story
 The weather is live. The game asks Open-Meteo about downtown Vancouver every ten minutes, so if it's raining there, it's raining in the game. Five story missions come first, then side jobs forever. Your game saves itself.

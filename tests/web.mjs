@@ -47,6 +47,19 @@ for (const [k, v] of Object.entries(r)) check(v, k);
 check(p.errs.length === 0, "no page errors during play: " + p.errs.slice(0, 2).join(" | "));
 await p.close();
 
+// three heroes: Tab cycles Joshua -> Ben -> Alexandre -> Joshua
+p = await page(undefined, () => localStorage.clear()); await p.keyboard.press("Enter");
+check(await p.evaluate(async () => { const n = []; for (let i = 0; i < 3; i++) { dispatchEvent(new KeyboardEvent("keydown", { code: "Tab" })); dispatchEvent(new KeyboardEvent("keyup", { code: "Tab" })); await new Promise(r => setTimeout(r, 150)); n.push(G.heroes[G.cur].name + ":" + GS.hood(G.player.x, G.player.y).name); } return n.join(",") === "Ben:Kitsilano,Alexandre:Victoria,Joshua:Gastown"; }), "Tab cycles Ben (Kitsilano), Alexandre (Victoria), Joshua");
+await p.close();
+p = await page(undefined, () => localStorage.gs = JSON.stringify({ game: { heroes: [{ name: "Joshua", p: { x: 2120, y: 1340 }, a: 0 }, { name: "Alexandre", p: { x: 1340, y: 3940 }, a: 0 }], cur: 1, score: 7, step: 5, mission: 0, ammoW: [0, 60, 16, 120] } }));
+check(await p.evaluate(() => G.heroes.length === 3 && G.heroes[G.cur].name === "Alexandre" && G.score === 7), "old two-hero save upgrades to three heroes");
+await p.close();
+
+// perks change the numbers
+p = await page(undefined, () => localStorage.clear()); await p.keyboard.press("Enter");
+check(await p.evaluate(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); dispatchEvent(new KeyboardEvent("keydown", { code: "Tab" })); await w(150); G.pa = 0; G.weapon = 0; const v = { p: { x: G.player.x + 14, y: G.player.y }, a: 0, t: 0, angry: false }; G.peds.push(v); for (let i = 0; i < 2; i++) { v.p = { x: G.player.x + 14, y: G.player.y }; GS.punch(); await w(450); } return G.heroes[G.cur].name === "Ben" && !!v.dead; }), "Ben drops someone in two punches");
+await p.close();
+
 // edge cases: corrupt save, off-map save, no storage
 p = await page(undefined, () => localStorage.gs = "{not json");
 check(await p.evaluate(() => !!window.G && isFinite(G.player.x)), "corrupt save JSON does not crash");
