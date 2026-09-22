@@ -6,7 +6,7 @@ The loop runs autonomous single-item sprints on Vancouver Vice Unreal. One small
 
 ## Where things stand
 
-Face scan complete: iPhone video imported (ffmpeg enabled), 3D head solved, MetaHuman has Joshua's actual face. Mission chain live: laptop heist at Apple Store, lose heat at Art Gallery, rob the 7-Eleven on Granville, reach Waterfront. Built face_scan.py and face-scan skill for friends and family. Unreal 5.8.2 on LaCie, MCP on 18000 streams real Vancouver via Google 3D Tiles and raw HTTP client. Player in third-person at the real Apple Store on Georgia. Python bridge controls editor. Tiles load coarse first then sharpen for instant play. License Apache 2.0. Heroes: Joshua downtown, Ben Kitsilano, Alexandre Victoria. CI fully green.
+Epic launcher patching Unreal to 5.8.3 with Core Data (initial install stuck, now proceeding). Face scan complete: iPhone video imported, 3D head solved, MetaHuman has Joshua's face. Mission chain live: laptop heist at Apple Store, Art Gallery, 7-Eleven, Waterfront. face_scan.py and skill built for friends. Unreal 5.8.2 on LaCie, MCP 18000 streams real Vancouver via Google 3D Tiles. Player third-person at real Apple Store Georgia. Python controls editor. Tiles coarsen then sharpen. License Apache 2.0. Heroes Joshua, Ben, Alexandre. CI green.
 
 ## Next, in order
 
