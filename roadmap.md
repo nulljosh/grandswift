@@ -38,6 +38,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.14.0 online: one shared Vancouver on a Cloudflare Durable Object, players see each other live on the real streets with name tags; landing and README updated
 
+- v1.15.0 traffic on the real streets: 140 cars drive real road centre lines, keep right, turn at road ends, can hit you
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria

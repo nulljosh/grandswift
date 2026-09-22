@@ -244,6 +244,13 @@ const MODELS = "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models
 const hero = new THREE.Group(); scene.add(hero); let mixer = null, acts = {}, cur = "";
 gl.load(MODELS + "Soldier.glb", g => { const s = g.scene; s.rotation.y = -Math.PI / 2; s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(0xe8b21a), .6); } }); hero.add(s); mixer = new THREE.AnimationMixer(s); for (const c of g.animations) acts[c.name.toLowerCase()] = mixer.clipAction(c); });
 const carG = new THREE.Group(); scene.add(carG);
+// traffic: cars drive the real road centre lines, keeping right, turning around at the ends
+const traffic = [], CAR_COLORS = [0xc0392b, 0x1f3a5f, 0xeeeeee, 0x222222, 0xf2c21b, 0x7f8c8d, 0x2e7d32];
+const lanes = D.roads.filter(r => r.w >= 8 && r.k !== "footway" && r.k !== "pedestrian" && r.p.length >= 2).map(r => { let L = 0; const seg = []; for (let i = 1; i < r.p.length; i++) { const l = Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]); seg.push(l); L += l; } return { r, seg, L }; }).filter(l => l.L > 120);
+function laneAt(l, d, dir) { let i = 0; while (i < l.seg.length - 1 && d > l.seg[i]) { d -= l.seg[i]; i++; } const a = l.r.p[i], b = l.r.p[i + 1], t = Math.min(1, d / l.seg[i]), dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, off = l.r.w / 4 * dir; return { x: a[0] + dx * t - dz / len * off, z: a[1] + dz * t + dx / len * off, a: Math.atan2(dz, dx) + (dir < 0 ? Math.PI : 0) }; }
+gl.load(MODELS + "ferrari.glb", g => {
+  const near = lanes.filter(l => Math.hypot(l.r.p[0][0], l.r.p[0][1]) < 700); for (let i = 0; i < Math.min(140, near.length * 3); i++) { const l = near[Math.floor(Math.random() * near.length)], c = g.scene.clone(true); c.rotation.y = Math.PI / 2; const col = CAR_COLORS[i % CAR_COLORS.length]; c.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.name === "body") o.material = new THREE.MeshPhysicalMaterial({ color: col, metalness: .5, roughness: .25, clearcoat: 1 }); } }); const bd = c.getObjectByName("body"); if (bd) bd.material = new THREE.MeshPhysicalMaterial({ color: col, metalness: .5, roughness: .25, clearcoat: 1 }); const grp = new THREE.Group(); grp.add(c); scene.add(grp); traffic.push({ g: grp, l, d: Math.random() * l.L, dir: Math.random() < .5 ? 1 : -1, v: 8 + Math.random() * 6 }); }
+});
 gl.load(MODELS + "ferrari.glb", g => { const c = g.scene; c.rotation.y = Math.PI / 2; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); const b = c.getObjectByName("body"); if (b) b.material = new THREE.MeshPhysicalMaterial({ color: 0xc0392b, metalness: .5, roughness: .25, clearcoat: 1 }); carG.add(c); });
 window.PERSON = (tintHex) => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); if (tintHex) c.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(tintHex), .7); } }); g.add(c); } return g; };
 function play(n) { if (!mixer || cur === n || !acts[n]) return; acts[cur]?.fadeOut(.2); acts[n].reset().fadeIn(.2).play(); cur = n; }
@@ -271,6 +278,8 @@ function frame(now) {
   }
   if (window.SIG) { const ph = Math.floor(now / 1000) % 12, on = ph < 5 ? 2 : ph < 7 ? 1 : 0; SIG.forEach((l, k) => l.material.color.setHex(k === on ? [0xff3b30, 0xffc400, 0x34c759][k] : 0x222222)); }
   netTick();
+  for (const c of traffic) { c.d += c.v * dt * c.dir; if (c.d > c.l.L) { c.d = c.l.L; c.dir = -1; } if (c.d < 0) { c.d = 0; c.dir = 1; } const q = laneAt(c.l, c.d, c.dir); c.g.position.set(q.x, inRoom ? -100 : 0, q.z); c.g.rotation.y = -q.a;
+    if (!S.driving && !inRoom && Math.hypot(q.x - S.p.x, q.z - S.p.y) < 1.6) { P.hp -= 25; S.p.x -= Math.sin(q.a) * 2; S.p.y += Math.cos(q.a) * 2; toast("Hit by a car. Look both ways"); if (P.hp <= 0) { P.hp = 100; toast("Wasted"); } } }
   mixer?.update(dt);
   hero.visible = !S.driving; hero.position.set(S.p.x, 0, S.p.y); hero.rotation.y = -S.a; hero.scale.setScalar(1);
   carG.position.set(S.car.p.x, 0, S.car.p.y); carG.rotation.y = -S.car.a;
@@ -319,5 +328,5 @@ function connect() {
 if (location.host) connect();
 setInterval(() => { if (ws?.readyState === 1) ws.send(JSON.stringify({ x: +S.p.x.toFixed(1), z: +S.p.y.toFixed(1), a: +S.a.toFixed(2), d: S.driving, n: NAME })); }, 100);
 function netTick() { const now = performance.now(); for (const [id, o] of others) { if (now - o.seen > 10000) { scene.remove(o.g); others.delete(id); continue; } o.x += ((o.tx ?? o.x) - o.x) * .2; o.z += ((o.tz ?? o.z) - o.z) * .2; o.a = o.ta ?? o.a; o.g.position.set(o.x, inRoom ? -100 : 0, o.z); o.g.rotation.y = -o.a; } }
-window.S = S; window.solid = solid; window.others = others; window.enter = enter; window.punch = punch; window.rob = rob; window.P = P; window.actorsNow = () => actors; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
+window.S = S; window.solid = solid; window.others = others; window.traffic = traffic; window.enter = enter; window.punch = punch; window.rob = rob; window.P = P; window.actorsNow = () => actors; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
 </script></body></html>
