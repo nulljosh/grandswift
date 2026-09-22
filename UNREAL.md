@@ -47,3 +47,4 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Spawn: "Start: Apple Pacific Centre" at (814, 300, -6350) on the Georgia St sidewalk, facing the store; catch pad follows at z -6700.
 - Real places in Unreal coords (from the georeference): Apple (814, 1614), Art Gallery (-14005, 5010), Waterfront Station (51118, -26606), 7-Eleven 1294 Granville (-63876, 80134). Tile heights change with LOD, so trust the proven street z near spawn.
 - `unreal/qa.py '<python>'` runs full Unreal Python in the editor through Content/Python/init_unreal.py (copy in unreal/Python). It can save the level: `unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)`.
+- Tile cache: MaxCacheItems=100000 under CesiumRuntimeSettings in Config/DefaultEngine.ini (default 4096), so revisited streets load from disk. Baking the tiles into the project is off the table: Google 3D Tiles terms only allow caching.
