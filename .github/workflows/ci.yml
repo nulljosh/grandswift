@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    paths-ignore: ['unreal/**', 'UNREAL.md', 'docs/**']
+    paths-ignore: ['unreal/**', 'docs/**', '**/*.md', 'LICENSE']
   pull_request:
-    paths-ignore: ['unreal/**', 'UNREAL.md', 'docs/**']
+    paths-ignore: ['unreal/**', 'docs/**', '**/*.md', 'LICENSE']
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
