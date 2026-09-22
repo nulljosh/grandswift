@@ -10,7 +10,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "dist": "electron-builder --publish never"
+    "dist": "electron-builder --publish never",
+    "dist:signed": "electron-builder --publish never --config.forceCodeSigning=true"
   },
   "devDependencies": {
     "electron": "^33.0.0",
@@ -18,9 +19,10 @@
   },
   "build": {
     "appId": "com.jaybulb.rainjack",
-    "icon": "../../site/icon.png",
+    "icon": "assets/icon.png",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.ico"
     },
     "linux": {
       "target": [
@@ -31,8 +33,21 @@
       "maintainer": "Joshua Trommel <trommatic@icloud.com>"
     },
     "mac": {
-      "target": "dmg"
-    }
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    },
+    "directories": {
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "splash.html",
+      "assets/icon.png"
+    ]
   },
   "homepage": "https://rainjack.heyitsmejosh.com"
 }
