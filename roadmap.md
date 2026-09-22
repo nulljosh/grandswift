@@ -12,6 +12,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.1.0 third person camera, pause menu, full screen, sharper textures, single instance, landing page (not deployed yet), CI
 
+- v1.2.0 web build (site/play.html, three.js) is the lead: runs on Mac, Windows, Linux, iOS and Android browsers, installable as a PWA, touch controls. GTA style heat and stars (punch 1, kill 2, cops push to 5), cops shoot back, health, WASTED, aim assist, fists, missions (deliver, taxi, evade), XP and levels, 10 achievements, run and jump, 9 real landmarks, English Bay and Kits beaches, Lions Gate. Car stays visible when driving.
+
 ## Next (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke
@@ -37,3 +39,7 @@ Joshua Tree is our from-scratch i386 kernel. No GPU, no Swift runtime there.
 ## Resources
 - Google Maps Platform Photorealistic 3D Tiles via Cesium: real Vancouver geometry. Needs a Maps API key and a 3D Tiles loader.
 - Unreal MCP in Unreal Editor (UE 5.8 docs): Claude drives the editor directly. Real GTA 4 look = Unreal + Cesium + Google tiles, as a separate project.
+
+## Native store apps
+- [ ] iOS/Android store builds: wrap site/play.html (WKWebView on iOS, a WebView shell or Capacitor on Android). Until then the PWA installs from the browser on both.
+- [ ] Native Mac build still lacks stars, missions, XP and landmarks from the web build. Port or make the Mac app a WebView of play.html.

@@ -5,16 +5,17 @@ import AppKit
 let block: CGFloat = 260, road: CGFloat = 80
 // ponytail: hand-drawn Vancouver, one char per block. W water, P Stanley Park, R bridge deck, B city, letters = landmarks
 let vanMap = [
-    "WWWWWWWWWWWWWWWW",
-    "WPPPWWWWWWWWWWWW",
+    "WWRWWWWWWWWWWWWW",
+    "WPRPWWWWWWWWWWWW",
     "PPPPPWWWWCWWWWWW",
-    "PPPPBBBBBBBBBWWW",
+    "PPPPBBBBBBHBGWWW",
     "WPPBBBBBBBBBBBBW",
-    "WWBBBBBBBBBBBBBB",
-    "WWWBBBBBBBBBBBBB",
-    "WWWWBBBBBBBSBBBB",
+    "WYBBBBBBABBBBBBB",
+    "WWYBBBBBBBBBBBBB",
+    "WWWWBBBBBBBSOBBB",
     "WWWWWWBBBBBBBBBB",
-    "WWWWWRWWRWWWWWEW",
+    "WWWWWRWIRWWWWWEW",
+    "BBYYBBBBBBBBBBBB",
     "BBBBBBBBBBBBBBBB",
     "WWWWWRWWWWWWWWWW",
     "WWWWWRWWWWWWWWWW",
@@ -35,7 +36,7 @@ func cell(_ p: CGPoint) -> Character? {
 }
 func solid(_ p: CGPoint) -> Bool {
     guard let k = cell(p), k != "W" else { return true }
-    if k == "P" || k == "R" { return false }
+    if k == "P" || k == "R" || k == "Y" { return false }
     let x = p.x.truncatingRemainder(dividingBy: block), y = p.y.truncatingRemainder(dividingBy: block)
     return x > road && y > road
 }
@@ -66,7 +67,7 @@ final class Game: ObservableObject {
     var keys = Set<UInt16>()
     var player = CGPoint(x: 8 * block + 40, y: 5 * block + 40), pa: CGFloat = 0
     var cars: [Car] = [], peds: [Ped] = []
-    var mouseDX: CGFloat = 0, paused = false
+    var mouseDX: CGFloat = 0, paused = false, z: CGFloat = 0, vz: CGFloat = 0
     var driving: Int? = nil
     var wanted = 0, score = 0, last = Date()
 
@@ -98,9 +99,10 @@ final class Game: ObservableObject {
             move(&c, dt); cars[i] = c; player = c.p
         } else {
             pa += ((right ? 1 : 0) - (left ? 1 : 0)) * 3 * dt + mouseDX * 0.004; mouseDX = 0
-            let s: CGFloat = (fwd ? 140 : 0) - (back ? 80 : 0)
+            let s: CGFloat = (fwd ? (down(56) ? 270 : 140) : 0) - (back ? 80 : 0)
             let n = CGPoint(x: player.x + cos(pa) * s * dt, y: player.y + sin(pa) * s * dt)
             if !solid(n) { player = n }
+            if z > 0 || vz > 0 { vz -= 600 * dt; z = max(0, z + vz * dt); if z == 0 { vz = 0 } }
         }
         for i in peds.indices {
             let n = CGPoint(x: peds[i].p.x + cos(peds[i].a) * 30 * dt, y: peds[i].p.y + sin(peds[i].a) * 30 * dt)
@@ -146,7 +148,7 @@ final class Game: ObservableObject {
     var heroes = [Hero(name: "Joshua", p: CGPoint(x: 8 * block + 40, y: 5 * block + 40), driving: nil), Hero(name: "Alexandre", p: CGPoint(x: 5 * block + 40, y: 15 * block + 40), driving: nil)]
     var cur = 0
     // tutorial steps, then endless delivery missions to landmarks
-    let tut = ["Walk with W A S D", "Aim with the mouse (click to lock), shoot with Space or click", "Find a car and press E to get in", "Drive to the yellow beacon", "Press Tab to switch to Alexandre", "Tutorial done. Deliver cars to the beacon for cash"]
+    let tut = ["Walk with W A S D", "Aim with the mouse, click to shoot", "Find a car and press E to get in", "Drive to the yellow beacon", "Press Tab to switch to Alexandre", "Tutorial done. Deliver cars to the beacon for cash"]
     var step = 0, walkFrom = CGPoint.zero
     var target = CGPoint(x: 9 * block + 170, y: 2 * block + 40)
     static let spots: [CGPoint] = vanMap.indices.flatMap { r in vanMap[r].indices.compactMap { c in "CSEL".contains(vanMap[r][c]) ? CGPoint(x: CGFloat(c) * block + 40, y: CGFloat(r) * block + 40) : nil } }
@@ -304,7 +306,7 @@ final class World {
         }
         let flash = Int(Date().timeIntervalSince1970 * 6) % 2 == 0
         for (i, c) in g.cars.enumerated() {
-            carNodes[i].position = SCNVector3(c.p.x, c.kind == 2 ? 16 : 8, c.p.y); carNodes[i].eulerAngles.y = -c.a; carNodes[i].isHidden = g.driving == i
+            carNodes[i].position = SCNVector3(c.p.x, c.kind == 2 ? 16 : 8, c.p.y); carNodes[i].eulerAngles.y = -c.a; carNodes[i].isHidden = false
             carNodes[i].childNode(withName: "bar", recursively: false)?.geometry?.firstMaterial?.diffuse.contents = flash ? NSColor.red : NSColor.blue
         }
         for (i, p) in g.peds.enumerated() {
@@ -312,7 +314,7 @@ final class World {
             for (j, leg) in pedNodes[i].childNodes.filter({ $0.name == "leg" }).enumerated() { leg.eulerAngles.z = sin(p.t + CGFloat(j) * .pi) * 0.5 }
         }
         let a = g.driving.map { g.cars[$0].a } ?? g.pa
-        hero.isHidden = g.driving != nil; hero.position = SCNVector3(g.player.x, 0, g.player.y); hero.eulerAngles.y = -a
+        hero.isHidden = g.driving != nil; hero.position = SCNVector3(g.player.x, g.z, g.player.y); hero.eulerAngles.y = -a
         let moving = !g.keys.isDisjoint(with: [13, 1, 126, 125])
         for (j, leg) in hero.childNodes.filter({ $0.name == "leg" }).enumerated() { leg.eulerAngles.z = moving ? sin(Date().timeIntervalSince1970 * 10 + Double(j) * .pi) * 0.6 : 0 }
         // third person: sit behind the hero, pull in so buildings never block the view
@@ -350,7 +352,7 @@ struct GameView: View {
         t += "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted)
         t += "\n" + street + (street.contains("Victoria") ? "" : ", Vancouver")
         if let d = g.driving { t += "\n\(Int(abs(g.cars[d].v) / 4)) km/h" } else { t += "\nAmmo \(g.ammo)" }
-        t += "\nWASD move, E car, Space shoot, Tab swap, Esc pause"
+        t += "\nWASD move, E car, click/Enter shoot, Shift run, Space jump, Tab swap, Esc pause"
         if !g.msg.isEmpty { t += "\n" + g.msg }
         return t
     }
@@ -370,7 +372,7 @@ struct GameView: View {
                         Button("Toggle full screen (F)") { NSApp.windows.first?.toggleFullScreen(nil) }
                         Button("Restart tutorial") { g.step = 0; g.walkFrom = g.player; resume() }
                         Button("Quit") { NSApp.terminate(nil) }
-                        Text("W A S D move · mouse look · Space/click shoot · E car · Tab swap · Esc pause").font(.system(size: 13)).opacity(0.8).padding(.top, 10)
+                        Text("W A S D move · mouse look · click/Enter shoot · Shift run · Space jump · E car · Tab swap · Esc pause").font(.system(size: 13)).opacity(0.8).padding(.top, 10)
                     }.foregroundStyle(.white).buttonStyle(.borderedProminent).controlSize(.large)
                 }
             }
@@ -392,8 +394,9 @@ struct GameView: View {
             .frame(width: CGFloat(cols) * 10, height: CGFloat(rows) * 10).padding(12)
         }
         .onAppear {
-            NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { e in
-                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 53 && !e.isARepeat { if g.paused { resume() } else { g.paused = true; CGAssociateMouseAndMouseCursorPosition(1); NSCursor.unhide() } }; if e.keyCode == 3 && !e.isARepeat { NSApp.windows.first?.toggleFullScreen(nil) }; if g.paused { return e }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
+            NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .flagsChanged]) { e in
+                if e.type == .flagsChanged { if e.modifierFlags.contains(.shift) { g.keys.insert(56) } else { g.keys.remove(56) }; return e }
+                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 53 && !e.isARepeat { if g.paused { resume() } else { g.paused = true; CGAssociateMouseAndMouseCursorPosition(1); NSCursor.unhide() } }; if e.keyCode == 3 && !e.isARepeat { NSApp.windows.first?.toggleFullScreen(nil) }; if g.paused { return e }; if e.keyCode == 49 && g.driving == nil && g.z == 0 { g.vz = 180 }; if e.keyCode == 36 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
                 return nil
             }
             NSApp.windows.forEach { $0.acceptsMouseMovedEvents = true }

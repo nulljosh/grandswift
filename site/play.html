@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grand Swift: Play</title><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#111111"><link rel="apple-touch-icon" href="icon.png">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
+#hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
+#map{position:fixed;right:14px;top:14px;border:1px solid #fff4}
+#cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
+#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none;text-align:center}
+#hp{position:fixed;left:14px;bottom:14px;width:180px;height:10px;background:#0008;border-radius:5px;overflow:hidden}#hp i{display:block;height:100%;background:#c0392b}
+#touch{display:none}.touch #touch{display:block}.touch #hud{font-size:13px}
+#stick{position:fixed;left:24px;bottom:40px;width:130px;height:130px;border-radius:50%;background:#fff2;border:2px solid #fff5;touch-action:none}
+#knob{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:#fff8}
+#btns{position:fixed;right:18px;bottom:30px;display:grid;grid-template-columns:repeat(3,66px);gap:10px}
+#btns button{width:66px;height:66px;border-radius:50%;border:2px solid #fff6;background:#0006;color:#fff;font:700 13px Helvetica,sans-serif;touch-action:none}
+#btns .fire{background:#c0392bcc}
+#pause{position:fixed;inset:0;background:#000a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}
+</style></head><body>
+<div id="hud"></div><div id="toast"></div><div id="hp"><i></i></div>
+<div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
+<div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="fs">Full screen</button><a href="./" style="color:#fff">Back to site</a>
+<p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, Q fists/pistol, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
+<script type="module">
+// Web port of main.swift. Same map and rules, three.js renderer. Keep the two in step.
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+const block = 260, road = 80;
+const vanMap = ["WWRWWWWWWWWWWWWW","WPRPWWWWWWWWWWWW","PPPPPWWWWCWWWWWW","PPPPBBBBBBHBGWWW","WPPBBBBBBBBBBBBW","WYBBBBBBABBBBBBB","WWYBBBBBBBBBBBBB","WWWWBBBBBBBSOBBB","WWWWWWBBBBBBBBBB","WWWWWRWIRWWWWWEW","BBYYBBBBBBBBBBBB","BBBBBBBBBBBBBBBB","WWWWWRWWWWWWWWWW","WWWWWRWWWWWWWWWW","WWWBBBBBWWWWWWWW","WWWBBLBBWWWWWWWW","WWWBBBBBWWWWWWWW","WWWWWWWWWWWWWWWW"];
+const cols = 16, rows = vanMap.length, W = cols * block, H = rows * block;
+const aves = ["","","","W Hastings","W Pender","W Georgia","Robson","Smithe","Pacific","False Creek","W 2nd","W 4th"];
+const streets = ["Chilco","Denman","Bidwell","Nicola","Bute","Thurlow","Burrard","Hornby","Granville","Seymour","Richards","Homer","Cambie","Beatty","Quebec","Main"];
+const cell = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? null : vanMap[Math.floor(y / block)][Math.floor(x / block)];
+const solid = (x, y) => { const k = cell(x, y); if (!k || k === "W") return true; if (k === "P" || k === "R" || k === "Y") return false; return x % block > road && y % block > road; };
+function streetName(x, y) {
+  const c = Math.floor(x / block), r = Math.floor(y / block), k = cell(x, y);
+  if (k === "P") return "Stanley Park";
+  if (k === "Y") return r >= 10 ? "Kits Beach" : "English Bay Beach";
+  if (k === "R" && r < 2) return "Lions Gate Bridge";
+  const near = LANDMARKS.find(l => dist(l, { x, y }) < 190);
+  if (k === "R") return r >= 12 ? "Ferry Causeway" : c === 5 ? "Burrard Bridge" : "Granville Bridge";
+  if (r >= 14) return ["Belleville St","Government St","Douglas St"][(r - 14) % 3] + ", Victoria";
+  const ix = x % block <= road, iy = y % block <= road, a = aves[r] || "", s = streets[c] || "";
+  return (ix && iy ? `${s} & ${a}` : ix ? s : a) + (near ? `, by ${near.name}` : "") + ", Vancouver";
+}
+const NAMES = { C: "Canada Place", S: "BC Place", E: "Science World", L: "BC Legislature", H: "Harbour Centre", G: "Gastown Steam Clock", A: "Vancouver Art Gallery", O: "Rogers Arena", I: "Granville Island" };
+const LANDMARKS = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) LANDMARKS.push({ x: (c + .65) * block, y: (r + .65) * block, name: NAMES[k] }); }));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const rnd = (a, b) => a + Math.random() * (b - a);
+function roadPoint() { for (;;) { const p = { x: rnd(10, W - 10), y: rnd(10, H - 10) }; if (!solid(p.x, p.y)) return p; } }
+function sidewalkPed(p) {
+  const vert = Math.random() < .5, a = vert ? (Math.random() < .5 ? Math.PI / 2 : -Math.PI / 2) : (Math.random() < .5 ? 0 : Math.PI);
+  const q = { ...p }, e = Math.random() < .5 ? 6 : road - 6;
+  if (vert) q.x = Math.floor(q.x / block) * block + e; else q.y = Math.floor(q.y / block) * block + e;
+  return { p: solid(q.x, q.y) ? p : q, a, t: rnd(0, 6) };
+}
+const kinds = [[40, 20, 420], [40, 20, 400], [80, 24, 260], [38, 18, 600]];
+const colors = [0xd33, 0xeec21b, 0xe67e22, 0x2e9e4f, 0xeeeeee, 0xe86aa6];
+
+// ---- game state
+const G = { keys: new Set(), player: { x: 8 * block + 40, y: 5 * block + 40 }, pa: 0, cars: [], peds: [], driving: null, wanted: 0, score: 0, ammo: 60, msg: "", flash: 0, hp: 100, z: 0, vz: 0, weapon: 1, heat: 0, xp: 0, aimT: null, hurtT: 0, paused: false, step: 0, cur: 0, mouseDX: 0 };
+G.heroes = [{ name: "Joshua", p: { ...G.player }, a: 0, driving: null, ammo: 60 }, { name: "Alexandre", p: { x: 5 * block + 40, y: 15 * block + 40 }, a: 0, driving: null, ammo: 60 }];
+// GTA style heat: crimes add heat, stars are thresholds, heat cools only when no cop can see you
+const STARS = [1, 20, 60, 140, 260];
+const addHeat = (h, min = 0) => { G.heat = Math.max(G.heat + h, STARS[min - 1] ?? 0); G.wanted = STARS.filter(t => G.heat >= t).length; };
+// XP, levels, achievements (saved per browser)
+let save = {}; try { save = JSON.parse(localStorage.gs || "{}"); } catch {}
+save.ach ??= {}; save.xp ??= 0; save.deliveries ??= 0; save.seen ??= {}; G.xp = save.xp;
+const persist = () => { try { localStorage.gs = JSON.stringify(save); } catch {} };
+const level = () => Math.floor(Math.sqrt(G.xp / 100)) + 1;
+const ACH = { first: "First Blood", thief: "Grand Theft Auto", five: "Five Star Menace", copkill: "Cop Killer", island: "Island Hopper", tourist: "Tourist: every landmark", courier: "Courier: 5 deliveries", taxi: "Night Shift: first fare", ghost: "Ghost: lost a 3 star chase", champ: "Level 5" };
+let toastT = 0; const toast = t => { const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
+const unlock = k => { if (save.ach[k]) return; save.ach[k] = 1; persist(); toast("Achievement: " + ACH[k]); bang(.3); gainXP(100); };
+const gainXP = n => { const l = level(); G.xp += n; save.xp = G.xp; persist(); if (level() > l) toast("Level up! " + level()); if (level() >= 5) unlock("champ"); };
+const tut = ["Walk with W A S D", "Click to lock the mouse, click again to shoot", "Find a car and press E", "Drive to the yellow beacon", "Press Tab to switch to Alexandre", "Missions: follow the beacon"]
+// mission kinds after the tutorial
+const MISSIONS = ["deliver", "taxi", "evade"]; let mission = null;;
+const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) spots.push({ x: c * block + 40, y: r * block + 40 }); }));
+G.target = { x: 9 * block + 170, y: 2 * block + 40 }; const walkFrom = { ...G.player };
+for (let i = 0; i < 25; i++) { const p = roadPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 3 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
+for (let i = 0; i < 60; i++) G.peds.push(sidewalkPed(roadPoint()));
+
+// ---- sound
+let ac; const bang = v => { ac ??= new AudioContext(); const n = ac.sampleRate * .25, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4) * v; const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(); };
+
+function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx, ny)) { if (Math.abs(c.v) > 200) bang(.4); c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
+function toggleCar() {
+  if (G.driving !== null) { const c = G.cars[G.driving]; G.driving = null; G.player = { x: c.p.x - Math.sin(c.a) * 30, y: c.p.y + Math.cos(c.a) * 30 }; if (solid(G.player.x, G.player.y)) G.player = { ...c.p }; return; }
+  let best = null; G.cars.forEach((c, i) => { if (!c.cop && dist(c.p, G.player) < 45 && (best === null || dist(c.p, G.player) < dist(G.cars[best].p, G.player))) best = i; });
+  if (best !== null) { G.driving = best; const c = G.cars[best]; if (c.ai) { addHeat(4, 1); unlock("thief"); gainXP(5); } c.ai = false; }
+}
+// aim assist: best target inside a 12 degree cone, cops first, then closest; walls block
+function losClear(a, b) { const n = Math.ceil(dist(a, b) / 20); for (let i = 1; i < n; i++) if (solid(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n)) return false; return true; }
+function findTarget(range) {
+  let best = null, score = Infinity;
+  const test = (kind, i, p, bonus) => { const dx = p.x - G.player.x, dy = p.y - G.player.y, d = Math.hypot(dx, dy); if (d > range || d < 1) return;
+    const ang = Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - G.pa), Math.cos(Math.atan2(dy, dx) - G.pa))); if (ang > .21 || !losClear(G.player, p)) return;
+    const s = ang * 400 + d - bonus; if (s < score) { score = s; best = { kind, i }; } };
+  G.peds.forEach((p, i) => test("ped", i, p.p, 0)); G.cars.forEach((c, i) => i !== G.driving && test("car", i, c.p, c.cop ? 150 : 0));
+  return best;
+}
+function killPed(i) { G.peds.splice(i, 1); G.score += 20; addHeat(25, 2); gainXP(10); unlock("first"); }
+function shoot() {
+  if (G.driving !== null || G.paused) return;
+  if (G.weapon === 0) { // fists: short range shove, 1 star
+    bang(.15); const t = findTarget(28); if (t?.kind === "ped") { const p = G.peds[t.i]; p.a = G.pa; p.scared = 4; addHeat(3, 1); gainXP(2); }
+    return;
+  }
+  if (G.ammo <= 0) { G.msg = "Out of ammo, Q for fists"; msgT = 2; return; }
+  G.ammo--; G.flash = .08; bang(.8);
+  const t = findTarget(600); if (!t) return;
+  if (t.kind === "ped") killPed(t.i);
+  else { const c = G.cars[t.i]; c.hitT = .15; if (--c.hp <= 0) { if (c.cop) { G.score += 100; addHeat(50, 3); gainXP(40); save.cops = (save.cops || 0) + 1; persist(); if (save.cops >= 5) unlock("copkill"); } else addHeat(15, 2); bang(1); G.cars.splice(t.i, 1); if (G.driving !== null && G.driving > t.i) G.driving--; } else addHeat(c.cop ? 20 : 4, c.cop ? 2 : 1); }
+}
+function swapHero() {
+  G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo };
+  G.cur ^= 1; const h = G.heroes[G.cur]; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo;
+  G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
+  G.msg = "Now playing " + h.name; msgT = 3;
+}
+function wasted() { G.msg = "WASTED"; msgT = 3; G.hp = 100; G.score = Math.max(0, G.score - 100); G.heat = 0; G.wanted = 0; G.cars = G.cars.filter(c => !c.cop); G.driving = null; G.player = { x: 6 * block + 40, y: 6 * block + 40 }; }
+function busted() { G.heat = 0; G.hp = 100; G.msg = "BUSTED"; msgT = 3; G.ammo = 60; G.cars = G.cars.filter(c => !c.cop); G.wanted = 0; G.score = Math.max(0, G.score - 50); G.driving = null; G.player = { x: 8 * block + 40, y: 5 * block + 40 }; }
+function newTarget() { const s = spots.filter(p => dist(p, G.player) > 600); G.target = s[Math.floor(Math.random() * s.length)] || G.target; }
+let msgT = 0;
+function startMission(n) {
+  const kind = MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
+  if (kind === "deliver") { newTarget(); mission.text = "Deliver a car to the beacon"; }
+  if (kind === "taxi") { G.target = roadPoint(); while (dist(G.target, G.player) < 500) G.target = roadPoint(); mission.text = "Taxi: pick up the fare at the beacon (in a car)"; }
+  if (kind === "evade") { mission.text = "Get 3 stars, then lose the cops"; }
+  toast("Mission: " + mission.text);
+}
+function runMission(dt) {
+  const m = mission, at = dist(G.player, G.target) < 120, done = pay => { G.score += pay; gainXP(pay / 2); G.msg = `Mission passed! +$${pay}`; msgT = 3; bang(.3); startMission(m.n + 1); };
+  if (m.kind === "deliver" && G.driving !== null && at) { save.deliveries++; persist(); if (save.deliveries >= 5) unlock("courier"); done(250); }
+  if (m.kind === "taxi") {
+    if (m.stage === 0 && G.driving !== null && at) { m.stage = 1; newTarget(); m.text = "Taxi: drop the fare at the beacon"; toast(m.text); }
+    else if (m.stage === 1 && G.driving !== null && at) { unlock("taxi"); done(300); }
+  }
+  if (m.kind === "evade") { if (m.stage === 0 && G.wanted >= 3) { m.stage = 1; m.text = "Lose the cops"; toast(m.text); } else if (m.stage === 1 && G.wanted === 0) done(500); }
+}
+function tick(dt) {
+  const k = c => G.keys.has(c), fwd = k("KeyW") || k("ArrowUp"), back = k("KeyS") || k("ArrowDown"), left = k("KeyA") || k("ArrowLeft"), right = k("KeyD") || k("ArrowRight");
+  if (G.driving !== null) {
+    const c = G.cars[G.driving];
+    c.v += (fwd ? 500 : 0) * dt - (back ? 400 : 0) * dt; c.v *= .98; c.v = Math.max(-150, Math.min(kinds[c.kind][2], c.v));
+    c.a += ((right ? 1 : 0) - (left ? 1 : 0)) * 2.8 * dt * (c.v / 300) + G.mouseDX * .002; G.mouseDX = 0;
+    move(c, dt); G.player = { ...c.p };
+  } else {
+    G.pa += ((right ? 1 : 0) - (left ? 1 : 0)) * 3 * dt + G.mouseDX * .004; G.mouseDX = 0;
+    const run = k("ShiftLeft") || k("ShiftRight"), s = (fwd ? (run ? 270 : 140) : 0) - (back ? 80 : 0), nx = G.player.x + Math.cos(G.pa) * s * dt, ny = G.player.y + Math.sin(G.pa) * s * dt;
+    if (!solid(nx, ny)) G.player = { x: nx, y: ny };
+    if (G.z > 0 || G.vz > 0) { G.vz -= 600 * dt; G.z = Math.max(0, G.z + G.vz * dt); if (G.z === 0) G.vz = 0; }
+  }
+  for (const p of G.peds) {
+    const sp = p.scared > 0 ? 90 : 30; p.scared = (p.scared || 0) - dt; p.t += dt * sp / 4; const nx = p.p.x + Math.cos(p.a) * sp * dt, ny = p.p.y + Math.sin(p.a) * sp * dt;
+    if (solid(nx, ny)) { const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(p.p.x + Math.cos(a) * 8, p.p.y + Math.sin(a) * 8)); p.a = d.length ? d[Math.floor(Math.random() * d.length)] : p.a + Math.PI; } else { p.p.x = nx; p.p.y = ny; }
+  }
+  G.cars.forEach((c, i) => {
+    if (!c.ai || i === G.driving) return; c.v = 150;
+    const ax = c.p.x + Math.cos(c.a) * 45, ay = c.p.y + Math.sin(c.a) * 45;
+    if (solid(ax, ay) || G.cars.some((o, j) => j !== i && Math.hypot(o.p.x - ax, o.p.y - ay) < 25)) {
+      const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(c.p.x + Math.cos(a) * 45, c.p.y + Math.sin(a) * 45));
+      c.a = d.length ? d[Math.floor(Math.random() * d.length)] : c.a + Math.PI; c.v = 0;
+    }
+    move(c, dt);
+  });
+  if (G.driving !== null) { const c = G.cars[G.driving]; if (Math.abs(c.v) > 120) G.peds = G.peds.filter(p => { const hit = dist(p.p, c.p) < 20; if (hit) { G.score += 10; addHeat(25, 2); gainXP(8); unlock("first"); } return !hit; }); }
+  if (G.peds.length < 50) G.peds.push(sidewalkPed(roadPoint()));
+  if (G.cars.filter(c => c.cop).length < [0, 1, 2, 4, 6, 8][G.wanted]) { let p = roadPoint(); while (dist(p, G.player) < 500) p = roadPoint(); G.cars.push({ p, a: 0, v: 0, color: 0x2244cc, cop: true, ai: false, kind: 0, hp: 3 }); }
+  for (const c of G.cars) {
+    if (!c.cop) continue;
+    const want = Math.atan2(G.player.y - c.p.y, G.player.x - c.p.x), diff = Math.atan2(Math.sin(want - c.a), Math.cos(want - c.a));
+    c.a += Math.max(-3 * dt, Math.min(3 * dt, diff)); c.v = Math.min(c.v + 300 * dt, 280 + G.wanted * 40); move(c, dt);
+    c.gunT = (c.gunT || 0) - dt;
+    if (G.wanted >= 2 && c.gunT <= 0 && dist(c.p, G.player) < 260 && losClear(c.p, G.player)) { c.gunT = 1.4 - G.wanted * .15; bang(.35); if (Math.random() < .55) { G.hp -= G.driving !== null ? 4 : 9; G.hurtT = .3; if (G.hp <= 0) { wasted(); return; } } }
+    if (dist(c.p, G.player) < 30 && (G.driving === null || Math.abs(G.cars[G.driving].v) < 60)) { busted(); return; }
+  }
+  const seen = G.cars.some(c => c.cop && dist(c.p, G.player) < 450 && losClear(c.p, G.player));
+  if (G.wanted > 0 && !seen) { G.heat -= dt * 4; const w = G.wanted; G.wanted = STARS.filter(t => G.heat >= t).length; if (G.wanted < w) { const j = G.cars.map(c => c.cop).lastIndexOf(true); if (j >= 0) G.cars.splice(j, 1); if (w >= 3 && G.wanted === 0) unlock("ghost"); } }
+  if (G.wanted >= 5) unlock("five");
+  if (G.player.y > 14 * block) unlock("island");
+  spots.forEach((p, i) => { if (dist(p, G.player) < 150 && !save.seen[i]) { save.seen[i] = 1; persist(); if (Object.keys(save.seen).length >= spots.length) unlock("tourist"); } });
+  if (G.hp < 100 && G.wanted === 0) G.hp = Math.min(100, G.hp + dt * 5);
+  G.aimT = G.driving === null ? findTarget(G.weapon ? 600 : 28) : null; G.hurtT -= dt; toastT -= dt; if (toastT <= 0) document.getElementById("toast").style.display = "none";
+  // tutorial then missions
+  const s = G.step;
+  if (s === 0 && dist(G.player, walkFrom) > 100) G.step = 1;
+  else if (s === 1 && G.ammo < 60) G.step = 2;
+  else if (s === 2 && G.driving !== null) G.step = 3;
+  else if (s === 3 && dist(G.player, G.target) < 120) { G.step = 4; G.score += 100; }
+  else if (s === 4 && G.cur === 1) { G.step = 5; startMission(0); }
+  else if (s >= 5 && mission) runMission(dt);
+  G.flash = Math.max(0, G.flash - dt); msgT -= dt; if (msgT <= 0) G.msg = "";
+}
+
+// ---- renderer
+const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(devicePixelRatio); R.setSize(innerWidth, innerHeight); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.outputColorSpace = THREE.SRGBColorSpace; document.body.prepend(R.domElement);
+const scene = new THREE.Scene(), sky = new THREE.Color(0x9ebddb); scene.background = sky; scene.fog = new THREE.Fog(sky, 900, 3200);
+const cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 1, 6000);
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(-1000, 1500, 800); scene.add(sun); const amb = new THREE.AmbientLight(0xffffff, .6); scene.add(amb);
+const mat = c => new THREE.MeshLambertMaterial({ color: c });
+const boxM = (w, h, l, m) => new THREE.Mesh(new THREE.BoxGeometry(w, h, l), typeof m === "number" ? mat(m) : m);
+const plane = (w, h, c, x, z, y) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(c)); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); };
+plane(20000, 20000, 0x1f5279, W / 2, H / 2, -2);
+for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.ConeGeometry(500 + i % 3 * 150, 600 + i % 4 * 180, 8), mat(0x405c4d)); m.position.set(i * 520 - 400, 300 + i % 4 * 90, -1500 - i % 2 * 300); scene.add(m); }
+function windows(tone) {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+  x.fillStyle = tone; x.fillRect(0, 0, 256, 256); x.fillStyle = "#33495f";
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) x.fillRect(16 + i * 64, 24 + j * 128, 40, 80);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = R.capabilities.getMaxAnisotropy(); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+vanMap.forEach((row, by) => [...row].forEach((k, bx) => {
+  if (k === "W") return;
+  const cx = (bx + .5) * block, cz = (by + .5) * block;
+  plane(block, block, k === "P" ? 0x2e6b33 : 0x383838, cx, cz, 0);
+  if (k === "Y") { plane(block, block, 0xd8c79a, cx, cz, .3); return; }
+  if (k === "P") { for (let t = 0; t < 6; t++) { const tr = new THREE.Mesh(new THREE.ConeGeometry(22, 90, 7), mat(0x14471f)); tr.position.set(cx - 100 + t * 41 % 200, 45, cz - 90 + t * 67 % 180); scene.add(tr); } return; }
+  plane(block, 2, 0xe6bf33, cx, cz - block / 2 + road / 2, .2); plane(2, block, 0xe6bf33, cx - block / 2 + road / 2, cz, .2);
+  if (k === "R") { if (by < 2) for (const s of [-60, 60]) { const t = boxM(10, 160, 10, 0x2d6e3e); t.position.set(cx + s, 80, cz); scene.add(t); } return; }
+  const lx = cx + road / 2, lz = cz + road / 2, w = block - road - 20;
+  plane(block - road, block - road, 0x737373, lx, lz, .5);
+  let n;
+  if (k === "C") { n = boxM(w, 60, w, 0xffffff); n.position.y = 30; for (let i = 0; i < 4; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(30, 70, 8), mat(0xffffff)); s.position.set(i * 40 - 60, 65, 0); n.add(s); } }
+  else if (k === "S") { n = new THREE.Mesh(new THREE.SphereGeometry(w / 2, 24, 16), mat(0xe6e6e6)); n.scale.y = .4; }
+  else if (k === "E") { n = new THREE.Mesh(new THREE.SphereGeometry(w / 2.4, 24, 16), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: .9, roughness: .3 })); n.position.y = w / 2.4; }
+  else if (k === "H") { n = boxM(60, 480, 60, 0xb8b8b0); n.position.y = 240; const top = new THREE.Mesh(new THREE.CylinderGeometry(55, 45, 30, 24), mat(0x8c8c85)); top.position.y = 250; n.add(top); }
+  else if (k === "G") { n = new THREE.Group(); for (let i = 0; i < 3; i++) { const b = boxM(w / 3 - 6, 55 + i * 10, w, 0x8e4a32); b.position.set((i - 1) * w / 3, 27 + i * 5, 0); n.add(b); }
+    const clock = boxM(8, 40, 8, 0x3b2a1a); clock.position.set(-w / 2 - 20, 20 - 0, -w / 2 - 20); const cap = boxM(10, 6, 10, 0xc9a13a); cap.position.y = 23; clock.add(cap); n.add(clock); }
+  else if (k === "A") { n = boxM(w, 55, w * .7, 0xd9d2c0); n.position.y = 27; for (let i = 0; i < 6; i++) { const col = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 50, 10), mat(0xf2eee4)); col.position.set(-w / 2 + 15 + i * (w - 30) / 5, -2, w * .35 + 4); n.add(col); } const d = new THREE.Mesh(new THREE.SphereGeometry(22, 16, 10), mat(0xbfb8a6)); d.position.y = 32; n.add(d); }
+  else if (k === "O") { n = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, 45, 32), mat(0x5a5f66)); n.position.y = 22; }
+  else if (k === "I") { n = new THREE.Group(); [0xc0392b, 0x2e6fa8, 0xe0a526, 0x3d8c55].forEach((c, i) => { const b = boxM(w / 2 - 8, 26, w / 2 - 8, c); b.position.set((i % 2 - .5) * w / 2, 13, (Math.floor(i / 2) - .5) * w / 2); n.add(b); }); }
+  else if (k === "L") { n = boxM(w, 50, w * .6, 0xccbf99); n.position.y = 25; const d = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 12), mat(0x669980)); d.position.y = 35; n.add(d); }
+  else {
+    const h = 80 + (bx * 37 + by * 91) % 7 * 60 + (by >= 3 && by <= 7 && bx >= 6 && bx <= 12 ? 200 : 0), tone = .45 + (bx * 7 + by) % 5 * .09;
+    const t = windows(`rgb(${tone * 230},${tone * 255},${Math.min(255, tone * 280)})`); t.repeat.set(1, h / 40);
+    n = boxM(w, h, w, new THREE.MeshLambertMaterial({ map: t })); n.position.y = h / 2;
+  }
+  n.position.x = lx; n.position.z = lz; scene.add(n);
+}));
+const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 24), new THREE.MeshBasicMaterial({ color: 0xff3030, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
+for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.font = "bold 44px Helvetica"; x.textAlign = "center"; x.fillStyle = "#000a"; x.fillRect(0, 10, 512, 76); x.fillStyle = "#fff"; x.fillText(l.name, 256, 64);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(160, 30, 1); sp.position.set(l.x, l.name === "Harbour Centre" ? 540 : 150, l.y); scene.add(sp); }
+const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 16), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
+function person(color) {
+  const n = new THREE.Group(), body = boxM(7, 12, 5, color); body.position.y = 12;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(3, 12, 8), mat(0xd9a680)); head.position.y = 21;
+  n.legs = [-2, 2].map(s => { const pivot = new THREE.Group(), leg = boxM(2.5, 6, 2.5, 0x444444); leg.position.y = -3; pivot.add(leg); pivot.position.set(0, 6, s); n.add(pivot); return pivot; });
+  n.add(body, head); scene.add(n); return n;
+}
+const hero = person(0xbf1f1a); const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
+function carMesh(c) {
+  const [l, w] = kinds[c.kind], h = c.kind === 2 ? 26 : 10, n = boxM(l, h, w, c.kind === 2 ? 0x3355aa : c.color);
+  const cab = boxM(20, 8, w - 2, 0x1a1a1a); cab.position.set(-2, h / 2 + 3, 0); n.add(cab);
+  if (c.kind === 1) { const s = boxM(6, 4, 10, 0xffffff); s.position.y = h / 2 + 9; n.add(s); }
+  if (c.cop) { n.bar = boxM(4, 3, 16, 0xff0000); n.bar.position.set(-2, 13, 0); n.add(n.bar); }
+  scene.add(n); return n;
+}
+let carM = [], pedM = [];
+function sync(now) {
+  if (carM.length !== G.cars.length) { carM.forEach(m => scene.remove(m)); carM = G.cars.map(carMesh); }
+  if (pedM.length !== G.peds.length) { pedM.forEach(m => scene.remove(m)); pedM = G.peds.map((_, i) => person([0x8b5a2b, 0xd33, 0x2a6fdb, 0x111, 0x2e9e4f][i % 5])); }
+  const flash = Math.floor(now / 160) % 2;
+  G.cars.forEach((c, i) => { const m = carM[i]; m.position.set(c.p.x, c.kind === 2 ? 16 : 8, c.p.y); m.rotation.y = -c.a; m.visible = true; if (m.bar) m.bar.material.color.setHex(flash ? 0xff0000 : 0x0044ff); });
+  G.peds.forEach((p, i) => { const m = pedM[i]; m.position.set(p.p.x, 0, p.p.y); m.rotation.y = -p.a; m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); });
+  const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
+  hero.visible = G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
+  const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
+  const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
+  while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;
+  const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); cam.rotation.set(-.28, -a - Math.PI / 2, 0, "YXZ");
+  const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
+  beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade");
+  const day = (Math.sin(now / 1000 * 2 * Math.PI / 240) + 1) / 2; sky.setRGB(.08 + .54 * day, .1 + .64 * day, .2 + .66 * day); scene.fog.color = sky; sun.intensity = .4 + day;
+}
+const hpBar = document.querySelector("#hp i"), cross = document.getElementById("cross"), hud = document.getElementById("hud"), mc = document.getElementById("map"), mx = mc.getContext("2d"); mc.width = cols * 10; mc.height = rows * 10;
+function drawHud() {
+  const street = streetName(G.player.x, G.player.y);
+  hud.textContent = (G.step < tut.length ? "▶ " + tut[G.step] + "\n" : "") + `${G.heroes[G.cur].name}   $${G.score}   ${"★".repeat(G.wanted)}\n${street}\n` + (G.driving !== null ? `${Math.round(Math.abs(G.cars[G.driving].v) / 4)} km/h` : G.weapon ? `Pistol ${G.ammo}` : "Fists") + `   Lv ${level()}  ${G.xp} XP` + (mission && G.step >= 5 ? "\n" + mission.text : "") + (G.msg ? "\n" + G.msg : "");
+  hpBar.style.width = Math.max(0, G.hp) + "%"; cross.style.color = G.aimT ? "#ff4040" : "#fff"; document.body.style.boxShadow = G.hurtT > 0 ? "inset 0 0 80px #c00" : "none";
+  vanMap.forEach((row, r) => [...row].forEach((k, c) => { mx.fillStyle = k === "W" ? "#2255aa" : k === "P" ? "#2e8b3a" : k === "Y" ? "#d8c79a" : NAMES[k] ? "#ddd" : "#888"; mx.fillRect(c * 10, r * 10, 10, 10); }));
+  mx.fillStyle = "#f33"; G.cars.filter(c => c.cop).forEach(c => mx.fillRect(c.p.x / block * 10 - 2, c.p.y / block * 10 - 2, 4, 4));
+  mx.fillStyle = "#ffd23f"; mx.fillRect(G.target.x / block * 10 - 2, G.target.y / block * 10 - 2, 4, 4);
+  mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(G.player.x / block * 10, G.player.y / block * 10, 3, 0, 7); mx.fill();
+}
+let last = performance.now();
+function frame(now) { const dt = Math.min((now - last) / 1000, .05); last = now; if (!G.paused) tick(dt); sync(now); drawHud(); R.render(scene, cam); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+
+// ---- input
+const pauseEl = document.getElementById("pause");
+const setPause = p => { G.paused = p; pauseEl.style.display = p ? "flex" : "none"; G.keys.clear(); if (p && document.pointerLockElement) document.exitPointerLock(); };
+addEventListener("keydown", e => {
+  if (e.code === "Escape") { setPause(!G.paused); return; }
+  if (G.paused) return;
+  if (!e.repeat) { if (e.code === "KeyE") toggleCar(); if (e.code === "KeyQ") { G.weapon ^= 1; toast(G.weapon ? "Pistol" : "Fists"); } if (e.code === "Tab") swapHero(); if (e.code === "Space" && G.driving === null && G.z === 0) G.vz = 180; if (e.code === "Enter" || e.code === "Fire") shoot(); if (e.code === "KeyF") document.documentElement.requestFullscreen?.(); }
+  if (["Tab", "Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
+  G.keys.add(e.code);
+});
+addEventListener("keyup", e => G.keys.delete(e.code));
+R.domElement.addEventListener("mousedown", () => { if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
+addEventListener("mousemove", e => { if (document.pointerLockElement) G.mouseDX += e.movementX; });
+document.addEventListener("pointerlockchange", () => { if (!document.pointerLockElement && !G.paused && G.step > 0) setPause(true); });
+document.getElementById("resume").onclick = () => setPause(false);
+document.getElementById("fs").onclick = () => document.documentElement.requestFullscreen?.();
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); });
+// touch: left stick moves, drag anywhere else to look, buttons map to keys
+if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch");
+const stick = document.getElementById("stick"), knob = document.getElementById("knob"); let stickId = null, lookId = null, lookX = 0;
+const setStick = (dx, dy) => { knob.style.transform = `translate(${dx}px,${dy}px)`; ["KeyW", "KeyS", "KeyA", "KeyD"].forEach(k => G.keys.delete(k)); if (dy < -15) G.keys.add("KeyW"); if (dy > 15) G.keys.add("KeyS"); if (dx < -15) G.keys.add("KeyA"); if (dx > 15) G.keys.add("KeyD"); };
+stick.addEventListener("touchstart", e => { stickId = e.changedTouches[0].identifier; e.preventDefault(); }, { passive: false });
+addEventListener("touchmove", e => { for (const t of e.changedTouches) {
+  if (t.identifier === stickId) { const r = stick.getBoundingClientRect(), dx = Math.max(-45, Math.min(45, t.clientX - r.left - 65)), dy = Math.max(-45, Math.min(45, t.clientY - r.top - 65)); setStick(dx, dy); }
+  else if (t.identifier === lookId) { G.mouseDX += (t.clientX - lookX) * 1.5; lookX = t.clientX; } } e.preventDefault(); }, { passive: false });
+addEventListener("touchend", e => { for (const t of e.changedTouches) { if (t.identifier === stickId) { stickId = null; setStick(0, 0); } if (t.identifier === lookId) lookId = null; } });
+R.domElement.addEventListener("touchstart", e => { const t = e.changedTouches[0]; lookId = t.identifier; lookX = t.clientX; ac ??= new AudioContext(); }, { passive: true });
+document.querySelectorAll("#btns button").forEach(b => { b.addEventListener("touchstart", e => { e.preventDefault(); const k = b.dataset.k;
+  if (k === "Brake") { G.keys.add("KeyS"); return; } if (k === "ShiftLeft") { G.keys.add(k); return; } dispatchEvent(new KeyboardEvent("keydown", { code: k })); }, { passive: false });
+  b.addEventListener("touchend", () => { if (b.dataset.k === "Brake") G.keys.delete("KeyS"); if (b.dataset.k === "ShiftLeft") G.keys.delete("ShiftLeft"); dispatchEvent(new KeyboardEvent("keyup", { code: b.dataset.k })); }); });
+window.G = G; window.GS = { startMission, addHeat, shoot, findTarget, killPed, unlock, save };
+</script></body></html>
