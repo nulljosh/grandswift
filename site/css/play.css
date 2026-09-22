@@ -1,0 +1,16 @@
+html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
+#hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
+#map{position:fixed;right:14px;top:14px;border:1px solid #fff4}
+#cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.85;pointer-events:none;font:300 34px Helvetica,sans-serif;text-shadow:0 0 3px #000}
+#tip{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);background:#000b;padding:10px 16px;border-radius:10px;font-size:16px;max-width:90vw;text-align:center;pointer-events:none}
+.bub{position:fixed;transform:translate(-50%,-100%);background:#fff;color:#111;padding:5px 10px;border-radius:12px;font:600 13px Helvetica,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px #0005}
+#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none;text-align:center}
+#hp{position:fixed;left:14px;bottom:14px;width:180px;height:10px;background:#0008;border-radius:5px;overflow:hidden}#hp i{display:block;height:100%;background:#c0392b}
+#touch{display:none}.touch #touch{display:block}.touch #hud{font-size:13px}
+#stick{position:fixed;left:24px;bottom:40px;width:130px;height:130px;border-radius:50%;background:#fff2;border:2px solid #fff5;touch-action:none}
+#knob{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:#fff8}
+#btns{position:fixed;right:18px;bottom:30px;display:grid;grid-template-columns:repeat(3,66px);gap:10px}
+#btns button{width:66px;height:66px;border-radius:50%;border:2px solid #fff6;background:#0006;color:#fff;font:700 13px Helvetica,sans-serif;touch-action:none}
+#btns .fire{background:#c0392bcc}
+#pause{position:fixed;inset:0;background:#000a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}

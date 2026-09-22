@@ -2,24 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vancouver Vice: Play</title><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#111111"><link rel="apple-touch-icon" href="icon.png">
-<style>
-html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
-#hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
-#map{position:fixed;right:14px;top:14px;border:1px solid #fff4}
-#cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.85;pointer-events:none;font:300 34px Helvetica,sans-serif;text-shadow:0 0 3px #000}
-#tip{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);background:#000b;padding:10px 16px;border-radius:10px;font-size:16px;max-width:90vw;text-align:center;pointer-events:none}
-.bub{position:fixed;transform:translate(-50%,-100%);background:#fff;color:#111;padding:5px 10px;border-radius:12px;font:600 13px Helvetica,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px #0005}
-#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none;text-align:center}
-#hp{position:fixed;left:14px;bottom:14px;width:180px;height:10px;background:#0008;border-radius:5px;overflow:hidden}#hp i{display:block;height:100%;background:#c0392b}
-#touch{display:none}.touch #touch{display:block}.touch #hud{font-size:13px}
-#stick{position:fixed;left:24px;bottom:40px;width:130px;height:130px;border-radius:50%;background:#fff2;border:2px solid #fff5;touch-action:none}
-#knob{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:#fff8}
-#btns{position:fixed;right:18px;bottom:30px;display:grid;grid-template-columns:repeat(3,66px);gap:10px}
-#btns button{width:66px;height:66px;border-radius:50%;border:2px solid #fff6;background:#0006;color:#fff;font:700 13px Helvetica,sans-serif;touch-action:none}
-#btns .fire{background:#c0392bcc}
-#pause{position:fixed;inset:0;background:#000a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}
-</style></head><body>
+<link rel="stylesheet" href="css/play.css"></head><body>
 <div id="hud"></div><div id="bubbles"></div><div id="tip"></div><div id="toast"></div><div id="card" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000b;z-index:5"><div style="max-width:520px;padding:28px 30px;background:#15171c;border-radius:14px;border:1px solid #333"><h2 id="cardT" style="margin:0 0 10px;font-size:28px"></h2><div id="cardB" style="font-weight:500;line-height:1.6;white-space:pre-line;opacity:.9"></div><button id="cardGo" style="margin-top:18px;font:600 17px Helvetica,sans-serif;padding:10px 24px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer">Let's go</button></div></div><div id="hp"><i></i></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
 <div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="savebtn">Save game</button><button id="fs">Full screen</button><button onclick="try{const s=JSON.parse(localStorage.gs||'{}');delete s.game;localStorage.gs=JSON.stringify(s)}catch{};location.reload()">New game</button><button onclick="location.href='city.html'">Real streets (new)</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><button id="exitbtn">Exit game</button>
@@ -42,11 +25,7 @@ import { Sky } from "three/addons/objects/Sky.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-const block = 260, road = 80;
-const vanMap = ["WWRWWWWWWWWWWWWW","WPRPWWWWWWWWWWWW","PPPPPWWWWCWWWWWW","PPPPBBBBBBHBGWWW","WPPBBBBBBBBBBBBW","WYBBBBBBABBBBBBB","WWYBBBBBBBBBBBBB","WWWWBBBBBBBSOBBB","WWWWWWBBBBBBBBBB","WWWWWRWIRWWWWWEW","BBYYBBBBBBBBBBBB","BBBBBBBBBBBBBBBB","WWWWWRWWWWWWWWWW","WWWWWRWWWWWWWWWW","WWWBBBBBWWWWWWWW","WWWBBLBBWWWWWWWW","WWWBBBBBWWWWWWWW","WWWWWWWWWWWWWWWW"];
-const cols = 16, rows = vanMap.length, W = cols * block, H = rows * block;
-const aves = ["Burrard Inlet","Coal Harbour","Canada Place Way","W Hastings","W Pender","W Georgia","Robson","Smithe","Pacific","False Creek","W 2nd","W 4th"];
-const streets = ["Chilco","Denman","Bidwell","Nicola","Bute","Thurlow","Burrard","Hornby","Granville","Seymour","Richards","Homer","Cambie","Beatty","Quebec","Main"];
+import { block, road, vanMap, cols, rows, W, H, aves, streets, NAMES, HOODS, kinds, colors, PERKS, HERO_LOOK, STARS, WEAPONS, ACH, MISSIONS, STATIONS, WX, LINES, BUMPS, FIGHTS, STORY, SKIN, HAIR, PANTS, HERO_BODY } from "./js/data.js";
 const cell = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? null : vanMap[Math.floor(y / block)][Math.floor(x / block)];
 const solid = (x, y) => { const k = cell(x, y); if (!k || k === "W") return true; if (k === "P" || k === "R" || k === "Y") return false; return x % block > road && y % block > road; };
 function streetName(x, y) {
@@ -60,18 +39,8 @@ function streetName(x, y) {
   const ix = x % block <= road, iy = y % block <= road, a = aves[r] || "", s = streets[c] || "";
   return ([ix && iy ? [s, a].filter(Boolean).join(" & ") : ix ? s : a].filter(Boolean)[0] || "Waterfront") + (near ? `, by ${near.name}` : "") + ", Vancouver";
 }
-const NAMES = { C: "Canada Place", S: "BC Place", E: "Science World", L: "BC Legislature", H: "Harbour Centre", G: "Gastown Steam Clock", A: "Vancouver Art Gallery", O: "Rogers Arena", I: "Granville Island" };
 const LANDMARKS = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) LANDMARKS.push({ x: (c + .65) * block, y: (r + .65) * block, name: NAMES[k] }); }));
 // neighbourhoods: who you meet and what they say depends on where you are
-const HOODS = {
-  dtes: { name: "Downtown Eastside", shirts: [0x5a5048, 0x3d3d3d, 0x6b5b4a, 0x4a4f3a], cart: .35, slow: .6, lines: ["Got a smoke?", "Shelter's full again tonight", "Stay safe out here, alright", "Housing first, that's all I'm saying", "Spare a toonie?", "I used to work the docks, you know"] },
-  gastown: { name: "Gastown", shirts: [0xc0392b, 0xe0a526, 0x2a6fdb, 0xeeeeee], camera: .5, lines: ["Where's the steam clock?", "Is this where they film everything?", "Cobblestones, so charming", "Twelve dollar coffee, wow"] },
-  westend: { name: "West End / Coal Harbour", shirts: [0x1f2a44, 0x111111, 0xdddddd, 0x5a1f2a], dog: .35, lines: ["My Tesla's double parked", "The condo went up again, love it", "Seawall run at six, then the yacht club", "Have you tried the new omakase?"] },
-  yaletown: { name: "Yaletown", shirts: [0x222222, 0x6b7f8f, 0xeeeeee, 0x2e5e4e], lines: ["Brunch was forty bucks each, worth it", "Startup's pivoting again", "Did you see the Canucks game?"] },
-  kits: { name: "Kitsilano", shirts: [0x8fb8a8, 0xe8d8c8, 0x1c1c1c, 0xd98b8b], dog: .25, lines: ["Namaste", "Just did the Grouse Grind", "Kits Beach later?", "Oat milk, obviously"] },
-  victoria: { name: "Victoria", shirts: [0x7a6a8a, 0x8a9a7a, 0xc8b89a, 0x2a4a6a], lines: ["Tea at the Empress?", "Ferry was late again", "Lovely day for the harbour", "Are you from the mainland, dear?"] },
-  downtown: { name: "Downtown", shirts: [0x8b5a2b, 0xc0392b, 0x2a6fdb, 0x222222, 0x2e9e4f, 0xe0a526], lines: [] },
-};
 function hood(x, y) {
   const c = Math.floor(x / block), r = Math.floor(y / block);
   if (r >= 14) return HOODS.victoria; if (r >= 10) return HOODS.kits;
@@ -90,8 +59,6 @@ function sidewalkPed(p) {
   const P = solid(q.x, q.y) ? p : q, h = hood(P.x, P.y);
   return { p: P, a, t: rnd(0, 6), hood: h, cart: Math.random() < (h.cart || 0), dog: Math.random() < (h.dog || 0), camera: Math.random() < (h.camera || 0) };
 }
-const kinds = [[40, 20, 420], [40, 20, 400], [80, 24, 260], [38, 18, 600]];
-const colors = [0xd33, 0xeec21b, 0xe67e22, 0x2e9e4f, 0xeeeeee, 0xe86aa6];
 
 // ---- game state
 const G = { keys: new Set(), player: { x: 11 * block + 40, y: 3 * block + 40 }, pa: 0, cars: [], peds: [], driving: null, wanted: 0, score: 0, ammo: 60, ammoW: [0, 60, 16, 120], shotAt: 0, msg: "", flash: 0, hp: 100, z: 0, vz: 0, weapon: 1, heat: 0, xp: 0, aimT: null, hurtT: 0, paused: false, step: 0, cur: 0, mouseDX: 0 };
@@ -99,24 +66,15 @@ G.heroes = [{ name: "Joshua", p: { ...G.player }, a: 0, driving: null, ammo: 60 
 // Joshua runs Gastown, Ben hangs in Kitsilano, Alexandre is downtown Victoria
 G.heroes.splice(1, 0, { name: "Ben", p: { x: 6 * block + 40, y: 10 * block + 40 }, a: 0, driving: null, ammo: 60 });
 // perks: each hero plays differently
-const PERKS = {
-  Joshua: { blurb: "Gastown hustler: +50% mission cash, cops lose interest twice as fast", cash: 1.5, cool: 2 },
-  Ben: { blurb: "Kits athlete: runs 40% faster, jumps higher, drops people in two punches", run: 1.4, jump: 1.35, fists: 2 },
-  Alexandre: { blurb: "Victoria fixer: steady aim (+50% range), faster cars, shrugs off 30% of damage", aim: 1.5, drive: 1.15, armor: .7 },
-};
 const perk = k => PERKS[G.heroes[G.cur]?.name]?.[k] ?? 1;
 const hurt = n => { G.hp -= n * perk("armor"); G.hurtT = .3; };
-const HERO_LOOK = { Joshua: 0xe8b21a, Ben: 0x2a5fb8, Alexandre: 0x1c1c1f };
 // GTA style heat: crimes add heat, stars are thresholds, heat cools only when no cop can see you
-const STARS = [1, 20, 60, 140, 260];
-const WEAPONS = [{ name: "Fists" }, { name: "Pistol", dmg: 1, range: 600, rate: 250, max: 90 }, { name: "Shotgun", dmg: 3, range: 220, rate: 800, pellets: 3, max: 30 }, { name: "SMG", dmg: 1, range: 450, rate: 90, max: 240 }];
 const addHeat = (h, min = 0) => { G.heat = Math.max(G.heat + h, STARS[min - 1] ?? 0); G.wanted = STARS.filter(t => G.heat >= t).length; };
 // XP, levels, achievements (saved per browser)
 let save = {}; try { save = JSON.parse(localStorage.gs || "{}"); } catch {}
 save.ach ??= {}; save.xp ??= 0; save.deliveries ??= 0; save.seen ??= {}; G.xp = save.xp;
 const persist = () => { try { localStorage.gs = JSON.stringify(save); } catch {} };
 const level = () => Math.floor(Math.sqrt(G.xp / 100)) + 1;
-const ACH = { first: "First Blood", thief: "Grand Theft Auto", five: "Five Star Menace", copkill: "Cop Killer", island: "Island Hopper", tourist: "Tourist: every landmark", courier: "Courier: 5 deliveries", taxi: "Night Shift: first fare", ghost: "Ghost: lost a 3 star chase", champ: "Level 5" };
 function card(title, body) { G.paused = true; document.getElementById("cardT").textContent = title; document.getElementById("cardB").textContent = body; document.getElementById("card").style.display = "flex"; }
 let toastT = 0; const toast = t => { if (!t) return; const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
 const unlock = k => { if (save.ach[k]) return; save.ach[k] = 1; persist(); toast("Achievement: " + ACH[k]); bang(.3); gainXP(100); };
@@ -128,7 +86,7 @@ const tut = TOUCH
   ? ["Step 1/5: Walk. Push the stick on the left", "Step 2/5: Shoot. Drag the screen to aim, the crosshair turns red on a target. Tap Fire", "Step 3/5: Walk up to a car and tap Car", "Step 4/5: Drive to the yellow beacon", "Step 5/5: Tap Swap to switch characters (Ben in Kits, then Alexandre in Victoria)", "Missions: follow the beacon"]
   : ["Step 1/5: Walk. Hold W (A and D turn, Shift runs)", "Step 2/5: Shoot. Move the mouse to aim, the crosshair turns red on a target. Click to shoot your pistol", "Step 3/5: Walk up to a car and press E", "Step 4/5: Drive to the yellow beacon", "Step 5/5: Press Tab to switch characters (Ben in Kits, then Alexandre in Victoria)", "Missions: follow the beacon"]
 // mission kinds after the tutorial
-const MISSIONS = ["deliver", "taxi", "evade"]; let mission = null;;
+let mission = null;
 const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) spots.push({ x: c * block + 40, y: r * block + 40 }); }));
 G.target = { x: 9 * block + 170, y: 2 * block + 40 }; const walkFrom = { ...G.player };
 const streetPoint = () => { for (;;) { const p = roadPoint(); if (!carBlocked(p.x, p.y)) return p; } };
@@ -210,7 +168,6 @@ function wasted() { G.msg = "WASTED"; msgT = 3; G.hp = 100; G.score = Math.max(0
 function busted() { G.heat = 0; G.hp = 100; G.msg = "BUSTED"; msgT = 3; G.ammo = 60; G.ammoW = [0, 60, 16, 120]; G.cars = G.cars.filter(c => !c.cop); G.wanted = 0; G.score = Math.max(0, G.score - 50); G.driving = null; G.player = { x: 8 * block + 40, y: 5 * block + 40 }; }
 function newTarget() { const s = spots.filter(p => dist(p, G.player) > 600); G.target = s[Math.floor(Math.random() * s.length)] || G.target; }
 let msgT = 0;
-const STATIONS = [{ name: "Off" }, { name: "Kits Beach FM", bpm: 104, root: 55, beat: [1, 0, 0, 0, 1, 0, 0, 0], hat: true }, { name: "Hastings Hardcore", bpm: 150, root: 41, beat: [1, 0, 1, 0, 1, 0, 1, 1], hat: true }, { name: "CBC Rain Radio", bpm: 70, root: 48, beat: [1, 0, 0, 0, 0, 0, 0, 0], pad: true }];
 const RADIO = { st: 1, step: 0, next: 0 };
 function radioTick() {
   if (!ac || G.driving === null || G.paused || !RADIO.st) return;
@@ -249,7 +206,6 @@ function ambient(dt, day) {
 }
 // rain: comes and goes, like home
 const RAIN = { on: false, t: 1e9, snow: false, storm: false, live: null };
-const WX = { 0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Fog", 51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 61: "Rain", 63: "Rain", 65: "Heavy rain", 71: "Snow", 73: "Snow", 75: "Heavy snow", 80: "Showers", 81: "Showers", 82: "Downpour", 95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm" };
 async function liveWeather() {
   try {
     const j = await fetch("https://api.open-meteo.com/v1/forecast?latitude=49.2827&longitude=-123.1207&current=temperature_2m,precipitation,weather_code&timezone=America%2FVancouver").then(r => r.json());
@@ -259,8 +215,6 @@ async function liveWeather() {
   } catch { RAIN.t = 40; } // offline: fall back to random showers
 }
 liveWeather(); setInterval(liveWeather, 600000);
-const LINES = ["Sorry!", "Canucks are gonna choke again, eh", "Rent's thirty-four hundred for a one bedroom, man", "You been to Granville Island? The market's sick", "It's gonna rain. It's always gonna rain", "Spare some change for the SkyTrain?", "Nice day for the seawall", "Have you seen my dog? Off leash at English Bay", "Go Whitecaps!", "Where's the nearest Tim's?", "Bro, the Expo line is down again", "You look like you could use a JapaDog"];
-const BUMPS = ["Watch it, bud", "Hey! Eyes up", "Seriously?"], FIGHTS = ["You got a problem?", "Wanna go?", "Say that again"];
 let encounterT = 15;
 function say(p, text) { p.say = text; p.sayT = 3.5; }
 function streetLife(dt) {
@@ -281,13 +235,6 @@ function streetLife(dt) {
   }
   for (const p of G.peds) if (p.sayT > 0 && (p.sayT -= dt) <= 0) p.say = null;
 }
-const STORY = [
-  { title: "Joshua: Welcome to Vancouver", kind: "deliver", text: "A guy in Gastown needs a car. Bring one to the beacon", pay: 300 },
-  { title: "Joshua: Night Shift", kind: "taxi", text: "Cover a buddy's cab. Pick up the fare", pay: 350 },
-  { title: "Alexandre: Island Business", kind: "hit", text: "Someone's been talking. Find the marked man and deal with him", pay: 500 },
-  { title: "Joshua: Heat on Hastings", kind: "evade", text: "Get the cops' attention, three stars, then lose them", pay: 600 },
-  { title: "Joshua: The Granville Job", kind: "deliver", text: "Last one. Bring a fast car to the beacon. Don't scratch it", pay: 1000 },
-];
 let restoring = false;
 function startMission(n) {
   const story = STORY[n], kind = story ? story.kind : MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
@@ -478,7 +425,6 @@ function setAnim(n, name) { const m = n.mix; if (!m || m.cur === name || !m.acts
 function tint(n, hex) { if (!n.gl) return n.body?.material.color.setHex(hex); n.gl.traverse(o => { if (o.isMesh && o.material.color) o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(hex), .6); }); }
 // smooth torso from a lathe profile: hips, waist, chest, shoulders
 const TORSO = new THREE.LatheGeometry([[0, 0], [2.6, 0], [2.9, 1.2], [2.5, 3.8], [2.9, 6.2], [3.3, 8.4], [3.1, 9.4], [1.2, 10.2], [0, 10.3]].map(([x, y]) => new THREE.Vector2(x, y)), 48);
-const SKIN = [0xf1c9a5, 0xd9a680, 0xb67b53, 0x8d5a3b, 0x5c3a24], HAIR = [0x1c140f, 0x3b2616, 0x6b4a2b, 0xb58a4c, 0x8f8f8f], PANTS = [0x2b3440, 0x1f1f24, 0x4a3b2a, 0x3b4f6b, 0x5a5a5a];
 function person(color) {
   if (CROWD.length) { const n = new THREE.Group(); n.legs = [new THREE.Group(), new THREE.Group()]; n.arms = [new THREE.Group(), new THREE.Group()]; rigFor(n, color, CROWD[Math.floor(Math.random() * CROWD.length)]); n.scale.setScalar(.92 + Math.random() * .16); scene.add(n); return n; }
   if (XBOT || SOLDIER) { const n = new THREE.Group(); n.legs = [new THREE.Group(), new THREE.Group()]; n.arms = [new THREE.Group(), new THREE.Group()]; soldierFor(n, color, XBOT || SOLDIER); n.scale.setScalar(.92 + Math.random() * .16); scene.add(n); return n; }
@@ -532,7 +478,6 @@ const PEOPLE = ["male_adult_01", "female_adult_01", "male_adult_03", "female_adu
 const BODY = {}; let peopleReady = false;
 PEOPLE.forEach(n => gltf.load(`models/people/${n}.glb`, g => { BODY[n] = g; CROWD.splice(0, CROWD.length, ...Object.values(BODY).map(src => ({ src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "idle" } }))); if (!peopleReady && Object.keys(BODY).length >= Math.min(4, PEOPLE.length)) { peopleReady = true; reCrowd(); } }, undefined, e => console.warn("person failed", n, e)));
 // each hero has a body; Tab swaps it
-const HERO_BODY = { Joshua: "hero", Ben: "male_adult_05", Alexandre: "male_adult_09" };
 let heroReady = false;
 function dressHero(name) {
   const key = HERO_BODY[name], src = key === "hero" ? JOSH : BODY[key]; if (!src) return;
