@@ -19,9 +19,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 #pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}
 </style></head><body>
 <div id="hud"></div><div id="toast"></div><div id="hp"><i></i></div>
-<div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
+<div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
 <div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="fs">Full screen</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><a href="./" style="color:#fff">Back to site</a>
-<p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, Q fists/pistol, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
+<p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q fists/pistol, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 // Web port of main.swift. Same map and rules, three.js renderer. Keep the two in step.
@@ -104,16 +104,26 @@ function findTarget(range) {
   const test = (kind, i, p, bonus) => { const dx = p.x - G.player.x, dy = p.y - G.player.y, d = Math.hypot(dx, dy); if (d > range || d < 1) return;
     const ang = Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - G.pa), Math.cos(Math.atan2(dy, dx) - G.pa))); if (ang > .21 || !losClear(G.player, p)) return;
     const s = ang * 400 + d - bonus; if (s < score) { score = s; best = { kind, i }; } };
-  G.peds.forEach((p, i) => test("ped", i, p.p, 0)); G.cars.forEach((c, i) => i !== G.driving && test("car", i, c.p, c.cop ? 150 : 0));
+  G.peds.forEach((p, i) => !p.dead && test("ped", i, p.p, 0)); G.cars.forEach((c, i) => i !== G.driving && test("car", i, c.p, c.cop ? 150 : 0));
   return best;
 }
-function killPed(i) { G.peds.splice(i, 1); G.score += 20; addHeat(25, 2); gainXP(10); unlock("first"); }
+function killPed(i) { const p = G.peds[i]; if (p.dead) return; p.dead = 0.001; p.angry = false; G.score += 20; addHeat(25, 2); gainXP(10); unlock("first"); }
+const living = () => G.peds.filter(p => !p.dead);
+// punch: anyone in reach, 3 hits drops them; they fight back or run
+function punch() {
+  if (G.driving !== null || G.paused || performance.now() - (G.punchAt || 0) < 400) return;
+  G.punchAt = performance.now(); bang(.15);
+  let best = -1, bd = 30; G.peds.forEach((p, i) => { if (p.dead) return; const dx = p.p.x - G.player.x, dy = p.p.y - G.player.y, d = Math.hypot(dx, dy); const ang = Math.abs(Math.atan2(Math.sin(Math.atan2(dy, dx) - G.pa), Math.cos(Math.atan2(dy, dx) - G.pa))); if (d < bd && ang < .9) { bd = d; best = i; } });
+  if (best < 0) return;
+  const p = G.peds[best]; p.hp = (p.hp ?? 3) - 1; bang(.4); addHeat(12, 1); gainXP(2);
+  const nx = p.p.x + Math.cos(G.pa) * 8, ny = p.p.y + Math.sin(G.pa) * 8; if (!solid(nx, ny)) p.p = { x: nx, y: ny };
+  if (p.hp <= 0) { killPed(best); return; }
+  if (p.angry === undefined) p.angry = Math.random() < .45;
+  if (!p.angry) { p.scared = 6; p.a = G.pa; }
+}
 function shoot() {
   if (G.driving !== null || G.paused) return;
-  if (G.weapon === 0) { // fists: short range shove, 1 star
-    bang(.15); const t = findTarget(28); if (t?.kind === "ped") { const p = G.peds[t.i]; p.a = G.pa; p.scared = 4; addHeat(3, 1); gainXP(2); }
-    return;
-  }
+  if (G.weapon === 0) { punch(); return; }
   if (G.ammo <= 0) { G.msg = "Out of ammo, Q for fists"; msgT = 2; return; }
   G.ammo--; G.flash = .08; bang(.8);
   const t = findTarget(600); if (!t) return;
@@ -160,6 +170,12 @@ function tick(dt) {
     if (G.z > 0 || G.vz > 0) { G.vz -= 600 * dt; G.z = Math.max(0, G.z + G.vz * dt); if (G.z === 0) G.vz = 0; }
   }
   for (const p of G.peds) {
+    if (p.dead) { p.dead += 0; continue; }
+    if (p.angry && G.driving === null && dist(p.p, G.player) < 300) {
+      p.a = Math.atan2(G.player.y - p.p.y, G.player.x - p.p.x); p.swingT = (p.swingT || 0) - dt;
+      if (dist(p.p, G.player) < 16) { if (p.swingT <= 0) { p.swingT = 1; p.punching = .3; bang(.3); G.hp -= 7; G.hurtT = .25; if (G.hp <= 0) { wasted(); return; } } p.punching = Math.max(0, (p.punching || 0) - dt); continue; }
+      const nx = p.p.x + Math.cos(p.a) * 80 * dt, ny = p.p.y + Math.sin(p.a) * 80 * dt; if (!solid(nx, ny)) p.p = { x: nx, y: ny }; p.t += dt * 20; continue;
+    }
     const sp = p.scared > 0 ? 90 : 30; p.scared = (p.scared || 0) - dt; p.t += dt * sp / 4; const nx = p.p.x + Math.cos(p.a) * sp * dt, ny = p.p.y + Math.sin(p.a) * sp * dt;
     if (solid(nx, ny)) { const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(p.p.x + Math.cos(a) * 8, p.p.y + Math.sin(a) * 8)); p.a = d.length ? d[Math.floor(Math.random() * d.length)] : p.a + Math.PI; } else { p.p.x = nx; p.p.y = ny; }
   }
@@ -172,8 +188,9 @@ function tick(dt) {
     }
     move(c, dt);
   });
-  if (G.driving !== null) { const c = G.cars[G.driving]; if (Math.abs(c.v) > 120) G.peds = G.peds.filter(p => { const hit = dist(p.p, c.p) < 20; if (hit) { G.score += 10; addHeat(25, 2); gainXP(8); unlock("first"); } return !hit; }); }
-  if (G.peds.length < 50) G.peds.push(sidewalkPed(roadPoint()));
+  if (G.driving !== null) { const c = G.cars[G.driving]; if (Math.abs(c.v) > 120) G.peds.forEach((p, i) => { if (!p.dead && dist(p.p, c.p) < 20) { killPed(i); G.score -= 10; } }); }
+  if (living().length < 50) G.peds.push(sidewalkPed(roadPoint()));
+  G.peds = G.peds.filter(p => !p.dead || (p.dead += dt) < 30);
   if (G.cars.filter(c => c.cop).length < [0, 1, 2, 4, 6, 8][G.wanted]) { let p = roadPoint(); while (dist(p, G.player) < 500) p = roadPoint(); G.cars.push({ p, a: 0, v: 0, color: 0x2244cc, cop: true, ai: false, kind: 0, hp: 3 }); }
   for (const c of G.cars) {
     if (!c.cop) continue;
@@ -184,7 +201,7 @@ function tick(dt) {
     if (dist(c.p, G.player) < 30 && (G.driving === null || Math.abs(G.cars[G.driving].v) < 60)) { busted(); return; }
   }
   const seen = G.cars.some(c => c.cop && dist(c.p, G.player) < 450 && losClear(c.p, G.player));
-  if (G.wanted > 0 && !seen) { G.heat -= dt * 4; const w = G.wanted; G.wanted = STARS.filter(t => G.heat >= t).length; if (G.wanted < w) { const j = G.cars.map(c => c.cop).lastIndexOf(true); if (j >= 0) G.cars.splice(j, 1); if (w >= 3 && G.wanted === 0) unlock("ghost"); } }
+  if (G.wanted > 0 && !seen) { G.heat -= dt * 1.5; const w = G.wanted; G.wanted = STARS.filter(t => G.heat >= t).length; if (G.wanted < w) { const j = G.cars.map(c => c.cop).lastIndexOf(true); if (j >= 0) G.cars.splice(j, 1); if (w >= 3 && G.wanted === 0) unlock("ghost"); } }
   if (G.wanted >= 5) unlock("five");
   if (G.player.y > 14 * block) unlock("island");
   spots.forEach((p, i) => { if (dist(p, G.player) < 150 && !save.seen[i]) { save.seen[i] = 1; persist(); if (Object.keys(save.seen).length >= spots.length) unlock("tourist"); } });
@@ -260,7 +277,7 @@ function person(color) {
   const head = new THREE.Mesh(new THREE.SphereGeometry(2.8, 32, 16), mat(0xd9a680)); head.position.y = 21.5; head.castShadow = true;
   const hair = new THREE.Mesh(new THREE.SphereGeometry(2.95, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x2a1d14)); hair.position.y = 21.8;
   n.legs = [-1.7, 1.7].map(s => { const pivot = new THREE.Group(), leg = cap(1.3, 5, 0x2b3440); leg.position.y = -3.5; pivot.add(leg); pivot.position.set(0, 8, s); n.add(pivot); return pivot; });
-  for (const s of [-3.8, 3.8]) { const arm = cap(1, 5, color); arm.position.set(0, 14, s); n.add(arm); }
+  n.arms = [-3.8, 3.8].map(s => { const pv = new THREE.Group(), arm = cap(1, 5, color); arm.position.y = -3; pv.add(arm); pv.position.set(0, 17, s); n.add(pv); return pv; });
   n.add(hair);
   n.add(body, head); scene.add(n); return n;
 }
@@ -280,9 +297,12 @@ function sync(now) {
   if (pedM.length !== G.peds.length) { pedM.forEach(m => scene.remove(m)); pedM = G.peds.map((_, i) => person([0x8b5a2b, 0xd33, 0x2a6fdb, 0x111, 0x2e9e4f][i % 5])); }
   const flash = Math.floor(now / 160) % 2;
   G.cars.forEach((c, i) => { const m = carM[i]; m.position.set(c.p.x, c.kind === 2 ? 16 : 8, c.p.y); m.rotation.y = -c.a; m.visible = true; if (m.bar) m.bar.material.color.setHex(flash ? 0xff0000 : 0x0044ff); });
-  G.peds.forEach((p, i) => { const m = pedM[i]; m.position.set(p.p.x, 0, p.p.y); m.rotation.y = -p.a; m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); });
+  G.peds.forEach((p, i) => { const m = pedM[i]; m.position.set(p.p.x, 0, p.p.y);
+    if (p.dead) { const f = Math.min(1, p.dead * 3); m.rotation.set(f * Math.PI / 2, -p.a, 0, "YXZ"); m.position.y = f * 3; return; }
+    m.rotation.set(0, -p.a, 0); m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); m.arms[1].rotation.z = p.punching > 0 ? 1.5 : 0; });
   const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
   hero.visible = G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
+  hero.arms[1].rotation.z = performance.now() - (G.punchAt || 0) < 200 ? 1.6 : 0; hero.arms[0].rotation.z = G.weapon ? .9 : 0; gun.visible = !!G.weapon;
   const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
   const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
   while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;
@@ -322,7 +342,7 @@ const setPause = p => { G.paused = p; pauseEl.style.display = p ? "flex" : "none
 addEventListener("keydown", e => {
   if (e.code === "Escape") { setPause(!G.paused); return; }
   if (G.paused) return;
-  if (!e.repeat) { if (e.code === "KeyE") toggleCar(); if (e.code === "KeyQ") { G.weapon ^= 1; toast(G.weapon ? "Pistol" : "Fists"); } if (e.code === "Tab") swapHero(); if (e.code === "Space" && G.driving === null && G.z === 0) G.vz = 180; if (e.code === "Enter" || e.code === "Fire") shoot(); if (e.code === "KeyF") document.documentElement.requestFullscreen?.(); }
+  if (!e.repeat) { if (e.code === "KeyE") toggleCar(); if (e.code === "KeyQ") { G.weapon ^= 1; toast(G.weapon ? "Pistol" : "Fists"); } if (e.code === "Tab") swapHero(); if (e.code === "Space" && G.driving === null && G.z === 0) G.vz = 180; if (e.code === "Enter" || e.code === "Fire") shoot(); if (e.code === "KeyF") punch(); }
   if (["Tab", "Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
   G.keys.add(e.code);
 });
@@ -347,5 +367,5 @@ R.domElement.addEventListener("touchstart", e => { const t = e.changedTouches[0]
 document.querySelectorAll("#btns button").forEach(b => { b.addEventListener("touchstart", e => { e.preventDefault(); const k = b.dataset.k;
   if (k === "Brake") { G.keys.add("KeyS"); return; } if (k === "ShiftLeft") { G.keys.add(k); return; } dispatchEvent(new KeyboardEvent("keydown", { code: k })); }, { passive: false });
   b.addEventListener("touchend", () => { if (b.dataset.k === "Brake") G.keys.delete("KeyS"); if (b.dataset.k === "ShiftLeft") G.keys.delete("ShiftLeft"); dispatchEvent(new KeyboardEvent("keyup", { code: b.dataset.k })); }); });
-window.G = G; window.GS = { startMission, addHeat, shoot, findTarget, killPed, unlock, save };
+window.G = G; window.GS = { punch, startMission, addHeat, shoot, findTarget, killPed, unlock, save };
 </script></body></html>

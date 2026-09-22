@@ -9,9 +9,15 @@ You start downtown at Granville and Georgia. A short tutorial covers walking, sh
 - Mac: `./build.sh && open "Grand Swift.app"`
 
 ## Controls
-W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, Q fists or pistol, E get in or out of a car, Tab switch between Joshua and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
+W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, F punch, Q fists or pistol, E get in or out of a car, Tab switch between Joshua and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
 
 ## What's in it
+Fists that land: people fight back or run, and they fall over when they go down. A Real Vancouver beta (`site/real.html`) streams the actual city from Google's photorealistic 3D tiles through Cesium.
+
+## Platforms
+Web, plus apps for iOS and Mac (`apps/apple`), Windows and Linux (`apps/desktop`), and Android (`apps/android`). Tagging a release builds all of them in CI.
+
+## Inside the game
 Nine real landmarks: Canada Place, Harbour Centre, the Gastown steam clock, the Art Gallery, BC Place, Rogers Arena, Science World, Granville Island and the BC Legislature. English Bay and Kits beaches, Stanley Park, the Lions Gate, Burrard and Granville bridges. Traffic, people walking down the sidewalks, five star heat that cools once the cops lose sight of you, health, WASTED and BUSTED, XP and levels, and ten achievements saved in your browser.
 
 ## How it stacks up

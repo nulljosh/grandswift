@@ -14,6 +14,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.2.0 web build (site/play.html, three.js) is the lead: runs on Mac, Windows, Linux, iOS and Android browsers, installable as a PWA, touch controls. GTA style heat and stars (punch 1, kill 2, cops push to 5), cops shoot back, health, WASTED, aim assist, fists, missions (deliver, taxi, evade), XP and levels, 10 achievements, run and jump, 9 real landmarks, English Bay and Kits beaches, Lions Gate. Car stays visible when driving.
 
+- v1.3.x all platforms (iOS, Mac, Windows, Linux, Android shells), Real Vancouver beta on Google 3D Tiles, AO + SMAA sharpness pass, mouse camera, punching with fight back or flee, bodies fall over
+
 ## Next (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke
