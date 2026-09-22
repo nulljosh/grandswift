@@ -6,15 +6,17 @@ The loop runs autonomous single-item sprints on Vancouver Vice Unreal. One small
 
 ## Where things stand
 
-Unreal 5.8.2 on the LaCie drive. MCP server on 18000 streams real Vancouver via Google 3D Tiles and raw HTTP client. Player in third-person at the real Apple Store on Georgia. Joshua scanned his face via Live Link Face iPhone app, becoming a MetaHuman character. Three missions wired at real places: Art Gallery, rob the 7-Eleven on Granville, Waterfront Station (beacons and objectives). Python bridge controls Unreal editor. Tiles load coarse first then sharpen for instant play. License Apache 2.0. Heroes: Joshua downtown, Ben Kitsilano, Alexandre Victoria. Landing boots the level.
+Face scan complete: iPhone video imported (ffmpeg enabled), 3D head solved, MetaHuman has Joshua's actual face. Mission chain live: laptop heist at Apple Store, lose heat at Art Gallery, rob the 7-Eleven on Granville, reach Waterfront. Built face_scan.py and face-scan skill for friends and family. Unreal 5.8.2 on LaCie, MCP on 18000 streams real Vancouver via Google 3D Tiles and raw HTTP client. Player in third-person at the real Apple Store on Georgia. Python bridge controls editor. Tiles load coarse first then sharpen for instant play. License Apache 2.0. Heroes: Joshua downtown, Ben Kitsilano, Alexandre Victoria. CI fully green.
 
 ## Next, in order
 
-1. Drivable car: rig vehicle, test steering/braking, spawn near player, cops chase on collision
-2. Sprint with stamina (hold Shift), then guns from the First Person pack and car stealing from the Vehicle pack.
-3. Vehicle stealing pack: let player steal cars, vehicle variety, damage states visible
-4. Finish MetaHuman: complete Joshua's face scan into a full body model with animations
-5. Bake OSM geometry: pre-bake OpenStreetMap Vancouver for instant loading instead of streaming tiles
+1. MetaHuman Core Data download: unblock skin, rig and build (install wedged in Epic launcher, Claude cleared it)
+2. Skin Joshua: light freckles, curly ginger hair and glasses (customize the MetaHuman asset)
+3. Cloud rig: set up skeletal mesh and animation blueprint for the scanned face
+4. Build and deploy: finalize MetaHuman, swap onto the player character for third-person gameplay
+5. Sprint with stamina: add stamina bar, hold Shift to sprint (foundation for gunplay and driving)
+6. Guns and cars: integrate weapons and vehicle physics (first-person camera, steering, collisions)
+7. Bake OSM geometry: pre-bake OpenStreetMap Vancouver for instant loading instead of streaming tiles
 
 ## Restart prompt
 
