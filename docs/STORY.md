@@ -8,6 +8,12 @@ Three people. One rainy city. Rent is four grand and nobody has it.
 
 You switch between them any time. Their stories cross at the heist.
 
+## Family
+
+**Dad** has a garage, a boat and a lot of opinions. He lent Joshua his external hard drive two years ago and asks about it in every single scene.
+**Mom** calls at the worst possible moments. Mid-chase, mid-heist, mid-shootout. You can pick up or let it ring, and she remembers which.
+**Joshua's sister** is smarter than all three heroes combined and knows it. She won't help. Then she does, and she's the best one on the job.
+
 ## Act one: Joshua gets in over his head
 
 **1. Out the door.** The game starts mid-run. Joshua bursts out of the Apple Store on Georgia with a bag of Mac minis. Two employees in blue shirts chase him onto the sidewalk. One is on the phone to the cops. *Get out of here.*
@@ -22,7 +28,7 @@ You switch between them any time. Their stories cross at the heist.
 
 ## Act two: Ben and Alexandre
 
-**6. Kits Beach.** Switch to Ben. Joshua calls from a payphone, which Ben finds hilarious. Ben needs a boat. He borrows one from a dad at the Kits yacht club, sort of.
+**6. Kits Beach.** Switch to Ben. Joshua calls from a payphone, which Ben finds hilarious. They need a boat. Dad has one. Ben asks Dad, because Joshua can't face him. Dad says yes on one condition: Joshua brings back the hard drive.
 
 **7. The Lululemon sale.** A stampede on 4th Avenue. Ben uses the chaos to lift a delivery van full of sample stock. It's worth nothing. The van is the prize.
 
@@ -32,17 +38,17 @@ You switch between them any time. Their stories cross at the heist.
 
 ## Act three: the heist
 
-**10. The plan.** All three in one room for the first time, Ben's dad's garage. Pick the approach:
+**10. The plan.** All three in one room for the first time: Dad's garage. Mom brings sandwiches and pretends not to hear anything. Pick the approach:
 - **Loud:** hit the armoured truck on the Lions Gate Bridge.
 - **Quiet:** crash the presale party dressed as realtors and walk the cash out the front.
 
-**11. Crew and gear.** Pick a driver and a hacker from people you've met. Cheaper crew take a bigger cut of nothing when they mess up.
+**11. Crew and gear.** Pick a driver and a hacker from people you've met. Your sister is the best hacker in the city. She says no. Do a favour for her first (drive her to a job interview in Burnaby, on time, no cops) and she's in.
 
 **12. The score.** Pull the job. Each hero handles one part and you switch between them mid-heist.
 
-**13. The getaway.** Every cop in the city. The boat from mission 6 is the way out, under the bridge and across to North Van.
+**13. The getaway.** Every cop in the city. Mom calls. Dad's boat is the way out, under the bridge and across to North Van, where Dad is waiting on the dock asking about his hard drive.
 
-**14. Waterfront.** Pay Dmitri, or don't. Two endings. Either way, Vancouver is yours and the game opens up.
+**14. Waterfront.** Pay Dmitri, or don't. Two endings. Either way it ends at a family dinner, and Joshua finally gives Dad his hard drive back. Vancouver is yours and the game opens up.
 
 ## After the story
 

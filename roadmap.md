@@ -56,6 +56,7 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 - [ ] Pawn shop on Granville, cash counter.
 - [ ] Guns: rifle from the first-person template on a third-person aim.
 - [ ] Ben and Alexandre as switchable MetaHumans (face scans).
+- [ ] Dad, Mom and Joshua's sister as MetaHumans from iPhone face scans (/face-scan), for the garage, dinner and dock scenes.
 - [ ] Missions 5 to 14 from docs/STORY.md.
 - [ ] Mac .app release, splash and loading screen while the city streams in.
 
