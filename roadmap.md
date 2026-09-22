@@ -54,6 +54,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.22.0 no soldier flash on load (hero waits for the real body), lighter frame (fewer walkers, animation only nearby, no GTAO), a proper pistol held in the right hand, Mac app identifies itself for the native mouse lock, sturdier web test
 
+- v1.23.0 GTA V style character switch (camera lifts off, flies over the map, drops onto the next hero), clearer grouped tutorial card, Codex PRs merged: city gameplay tests, Kits and Victoria map data with real coastline water, native icons and splash screens
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria

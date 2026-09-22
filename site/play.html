@@ -196,10 +196,14 @@ function shoot() {
     const c = G.cars[t.i]; if (!c) return; damageCar(c, W.dmg * 12); addHeat(c.cop ? 20 : 4, c.cop ? 2 : 1);
   });
 }
+// GTA V style switch: camera lifts off the old hero, flies over the map, drops onto the new one
+const SW = { t: -1, from: null, to: null, up: .8, pan: 1.2, down: .8 }; window.GS_SW = SW;
 function swapHero() {
+  if (SW.t >= 0) return; SW.from = { ...G.player };
   G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo, ammoW: [...G.ammoW] };
   G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; dressHero(h.name); G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
   G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
+  SW.to = { ...G.player }; SW.t = 0; chirp(220, 90, 1.2, .08, "sawtooth");
   G.msg = "Now playing " + h.name; msgT = 3; toast(PERKS[h.name]?.blurb || h.name);
 }
 function wasted() { G.msg = "WASTED"; msgT = 3; G.hp = 100; G.score = Math.max(0, G.score - 100); G.heat = 0; G.wanted = 0; G.cars = G.cars.filter(c => !c.cop); G.driving = null; G.player = { x: 6 * block + 40, y: 6 * block + 40 }; }
@@ -305,6 +309,7 @@ function runMission(dt) {
   if (m.kind === "evade") { if (m.stage === 0 && G.wanted >= 3) { m.stage = 1; m.text = "Lose the cops"; toast(m.text); } else if (m.stage === 1 && G.wanted === 0) done(500); }
 }
 function tick(dt) {
+  if (SW.t >= 0) return;
   const k = c => G.keys.has(c), fwd = k("KeyW") || k("ArrowUp"), back = k("KeyS") || k("ArrowDown"), left = k("KeyA") || k("ArrowLeft"), right = k("KeyD") || k("ArrowRight");
   if (G.driving !== null) {
     const c = G.cars[G.driving];
@@ -569,7 +574,14 @@ function sync(now) {
   hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
   const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
   while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;
-  const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60);
+  if (SW.t >= 0) {
+    SW.t += 1 / 60; const H = 1700, base = { y: up }, T = SW.t, e = x => x < .5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
+    let x, z, y; if (T < SW.up) { const k = e(T / SW.up); x = SW.from.x; z = SW.from.y; y = base.y + (H - base.y) * k; }
+    else if (T < SW.up + SW.pan) { const k = e((T - SW.up) / SW.pan); x = SW.from.x + (SW.to.x - SW.from.x) * k; z = SW.from.y + (SW.to.y - SW.from.y) * k; y = H; }
+    else { const k = e(Math.min(1, (T - SW.up - SW.pan) / SW.down)); x = SW.to.x; z = SW.to.y; y = H + (base.y - H) * k; if (k >= 1) SW.t = -1; }
+    cam.position.set(x - (y < 200 ? Math.cos(a) * d : 0), y, z - (y < 200 ? Math.sin(a) * d : 0) + (y >= 200 ? 1 : 0)); cam.lookAt(x, 0, z); if (SW.t < 0) cam.rotation.order = "YXZ";
+  } else {
+  const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60); }
   const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
   sun.position.set(G.player.x - 400, 900, G.player.y + 300); sun.target.position.set(G.player.x, 0, G.player.y);
   beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade") && !(mission?.kind === "hit");
@@ -624,7 +636,7 @@ if (DEMO && innerWidth < 700) { // tiny frame on a phone: clean view, one tap op
   const tipEl = document.getElementById("tip"); Object.defineProperty(tipEl.style, "display", { set() {}, get() { return "none"; } });
 } else if (DEMO) toast("Live demo. Click in and play.");
 else if (loadGame()) toast("Welcome back. Game loaded.");
-else card("Welcome to Vancouver", "You're Joshua, on the cobblestones in Gastown. You've got a pistol and sixty rounds. Make a name for yourself.\n\nW A S D move, Shift run, Space jump\nMouse to aim (the crosshair goes red on a target), click to shoot, F to punch\nQ or 1-4 to switch weapons\nE to get in or out of a car, R for the radio\nTab to switch between Joshua, Ben (Kitsilano) and Alexandre (Victoria)\nEsc to pause\n\nFollow the tips at the top left. They'll walk you through it.");
+else card("Welcome to Vancouver", TOUCH ? "You're Joshua, on the cobblestones in Gastown. Pistol, sixty rounds, no plan.\n\nMOVE  Left stick. Hold Run to sprint, Jump to jump\nLOOK  Drag anywhere on the right\nFIGHT  Fire shoots, Punch punches, Gun switches weapons\nDRIVE  Walk up to a car and tap Car\nSWITCH  Tap Swap. The camera flies you to Ben in Kits, then Alexandre in Victoria\n\nThe tip at the bottom walks you through your first minute." : "You're Joshua, on the cobblestones in Gastown. Pistol, sixty rounds, no plan.\n\nMOVE  W A S D, Shift to run, Space to jump\nLOOK  Move the mouse (click once to lock it in)\nFIGHT  Click to shoot, F to punch, Q or 1-4 for weapons\nDRIVE  E to get in or out, R for the radio\nSWITCH  Tab. The camera flies you to Ben in Kits, then Alexandre in Victoria, GTA style\nMENU  Esc to pause, save or quit\n\nThe tip at the bottom walks you through your first minute.");
 requestAnimationFrame(frame);
 
 // ---- input
