@@ -35,3 +35,10 @@ The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unre
 - Switch to Alexandre: delivery jobs, and working in an office in downtown Victoria on Vancouver Island.
 - The template arena still floats about 69 m above Granville & Georgia. Delete it once the character can walk on the tiles.
 - Tile detail: maximumScreenSpaceError 8 (sharp). Lumen and virtual shadows are off in Config/DefaultEngine.ini for frame rate.
+
+## Next, Joshua's order (2026-09-22)
+1. Character skin: a real Joshua (MetaHuman) on the mannequin skeleton.
+2. Sharper city (tile detail is at 4, the max worth running; street level is capped by Google's photo scan).
+3. Guns (First Person pack) and stealing cars (Vehicle pack).
+4. First mission: rob a 7-Eleven downtown.
+Boot to playable takes a minute or two while tiles stream. Expected.
