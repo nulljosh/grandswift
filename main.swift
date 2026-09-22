@@ -16,11 +16,16 @@ let vanMap = [
     "WWWWWWBBBBBBBBBB",
     "WWWWWRWWRWWWWWEW",
     "BBBBBBBBBBBBBBBB",
-    "BBBBBBBBBBBBBBBB",
+    "WWWWWRWWWWWWWWWW",
+    "WWWWWRWWWWWWWWWW",
+    "WWWBBBBBWWWWWWWW",
+    "WWWBBLBBWWWWWWWW",
+    "WWWBBBBBWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
 ].map { Array($0) }
 let cols = vanMap[0].count, rows = vanMap.count
 let world = CGSize(width: block * CGFloat(cols), height: block * CGFloat(rows))
-let landmarks: [Character: (String, Color)] = ["C": ("Canada Place", .white), "S": ("BC Place", Color(white: 0.85)), "E": ("Science World", Color(red: 0.8, green: 0.8, blue: 0.9))]
+let landmarks: [Character: (String, Color)] = ["C": ("Canada Place", .white), "S": ("BC Place", Color(white: 0.85)), "E": ("Science World", Color(red: 0.8, green: 0.8, blue: 0.9)), "L": ("BC Legislature", Color(red: 0.8, green: 0.75, blue: 0.6))]
 let aves = ["", "", "", "W Hastings", "W Pender", "W Georgia", "Robson", "Smithe", "Pacific", "False Creek", "W 2nd", "W 4th"]
 let streets = ["Chilco", "Denman", "Bidwell", "Nicola", "Bute", "Thurlow", "Burrard", "Hornby", "Granville", "Seymour", "Richards", "Homer", "Cambie", "Beatty", "Quebec", "Main"]
 
@@ -37,15 +42,25 @@ func solid(_ p: CGPoint) -> Bool {
 func streetName(_ p: CGPoint) -> String {
     let c = Int(p.x / block), r = Int(p.y / block)
     if cell(p) == "P" { return "Stanley Park" }
-    if cell(p) == "R" { return c == 5 ? "Burrard Bridge" : "Granville Bridge" }
+    if cell(p) == "R" { return r >= 12 ? "Ferry Causeway" : c == 5 ? "Burrard Bridge" : "Granville Bridge" }
+    if r >= 14 { return ["Belleville St", "Government St", "Douglas St"][(r - 14) % 3] + ", Victoria" }
     let x = p.x.truncatingRemainder(dividingBy: block), y = p.y.truncatingRemainder(dividingBy: block)
     let ave = r < aves.count ? aves[r] : "", st = c < streets.count ? streets[c] : ""
     if x <= road && y <= road { return "\(st) & \(ave)" }
     return x <= road ? st : ave
 }
 
-struct Car { var p: CGPoint; var a: CGFloat = 0; var v: CGFloat = 0; var color: Color; var cop = false; var ai = false }
-struct Ped { var p: CGPoint; var a: CGFloat }
+struct Car { var p: CGPoint; var a: CGFloat = 0; var v: CGFloat = 0; var color: Color; var cop = false; var ai = false; var kind = 0; var hp = 3 }
+// kinds: 0 sedan, 1 taxi, 2 bus, 3 sports. (length, width, top speed)
+let kinds: [(CGFloat, CGFloat, CGFloat)] = [(40, 20, 420), (40, 20, 400), (80, 24, 260), (38, 18, 600)]
+struct Ped { var p: CGPoint; var a: CGFloat; var t: CGFloat = 0 }
+// sidewalk walker: snap across-axis to the road edge so peds walk down the street, not through it
+func sidewalkPed(_ p: CGPoint) -> Ped {
+    let vert = Bool.random(), a: CGFloat = vert ? (Bool.random() ? .pi / 2 : -.pi / 2) : (Bool.random() ? 0 : .pi)
+    var q = p; let edge: CGFloat = Bool.random() ? 6 : road - 6
+    if vert { q.x = floor(q.x / block) * block + edge } else { q.y = floor(q.y / block) * block + edge }
+    return Ped(p: solid(q) ? p : q, a: a, t: .random(in: 0...6))
+}
 
 final class Game: ObservableObject {
     var keys = Set<UInt16>()
@@ -56,8 +71,8 @@ final class Game: ObservableObject {
 
     init() {
         let colors: [Color] = [.red, .yellow, .orange, .green, .white, .pink]
-        for i in 0..<25 { cars.append(Car(p: roadPoint(), a: CGFloat(i % 4) * .pi / 2, color: colors[i % colors.count], ai: i % 3 != 0)) }
-        for _ in 0..<60 { peds.append(Ped(p: roadPoint(), a: .random(in: 0...(2 * .pi)))) }
+        for i in 0..<25 { cars.append(Car(p: roadPoint(), a: CGFloat(i % 4) * .pi / 2, color: i % 5 == 1 ? .yellow : colors[i % colors.count], ai: i % 3 != 0, kind: i % 7 == 0 ? 2 : i % 5 == 1 ? 1 : i % 6 == 0 ? 3 : 0)) }
+        for _ in 0..<60 { peds.append(sidewalkPed(roadPoint())) }
     }
     func roadPoint() -> CGPoint {
         while true { let p = CGPoint(x: .random(in: 10...world.width - 10), y: .random(in: 10...world.height - 10)); if !solid(p) { return p } }
@@ -75,7 +90,7 @@ final class Game: ObservableObject {
         let fwd = down(13) || down(126), back = down(1) || down(125), left = down(0) || down(123), right = down(2) || down(124)
         if let i = driving {
             var c = cars[i]
-            c.v += (fwd ? 500 : 0) * dt - (back ? 400 : 0) * dt; c.v *= 0.98; c.v = max(-150, min(420, c.v))
+            c.v += (fwd ? 500 : 0) * dt - (back ? 400 : 0) * dt; c.v *= 0.98; c.v = max(-150, min(kinds[c.kind].2, c.v)); Sound.engine = Float(abs(c.v) / 600)
             c.a += ((right ? 1 : 0) - (left ? 1 : 0)) * 2.8 * dt * (c.v / 300)
             move(&c, dt); cars[i] = c; player = c.p
         } else {
@@ -86,7 +101,8 @@ final class Game: ObservableObject {
         }
         for i in peds.indices {
             let n = CGPoint(x: peds[i].p.x + cos(peds[i].a) * 30 * dt, y: peds[i].p.y + sin(peds[i].a) * 30 * dt)
-            if solid(n) || .random(in: 0...1) < 0.005 { peds[i].a = .random(in: 0...(2 * .pi)) } else { peds[i].p = n }
+            peds[i].t += dt * 8
+            if solid(n) || n.x < 0 || n.y < 0 { let d = (0..<4).map { CGFloat($0) * .pi / 2 }.filter { !solid(CGPoint(x: peds[i].p.x + cos($0) * 8, y: peds[i].p.y + sin($0) * 8)) }; peds[i].a = d.randomElement() ?? peds[i].a + .pi } else { peds[i].p = n }
         }
         // ponytail: O(cars*peds) hit scan, fine at 25x60; grid-bucket it if counts grow
         // ambient traffic: cruise, turn to a free cardinal heading when blocked
@@ -100,7 +116,7 @@ final class Game: ObservableObject {
             move(&c, dt); cars[i] = c
         }
         for (ci, c) in cars.enumerated() where ci == driving && abs(c.v) > 120 { peds.removeAll { p in let hit = dist(p.p, c.p) < 20; if hit { score += 10; wanted = min(5, wanted + 1) }; return hit } }
-        if peds.count < 40 { peds.append(Ped(p: roadPoint(), a: 0)) }
+        if peds.count < 50 { peds.append(sidewalkPed(roadPoint())) }
         let copCount = cars.filter(\.cop).count
         if copCount < wanted { var p = roadPoint(); while dist(p, player) < 500 { p = roadPoint() }; cars.append(Car(p: p, color: .blue, cop: true)) }
         for i in cars.indices where cars[i].cop {
@@ -111,13 +127,41 @@ final class Game: ObservableObject {
             if dist(c.p, player) < 30 && (driving == nil || abs(cars[driving!].v) < 60) { busted() ; return }
         }
         if wanted > 0 && .random(in: 0...1) < 0.0008 { wanted -= 1; if let j = cars.lastIndex(where: \.cop) { cars.remove(at: j) } }
+        Sound.siren = wanted > 0 && cars.contains { $0.cop && dist($0.p, player) < 900 }
+        if driving == nil { Sound.engine = 0 }
+        flash = max(0, flash - Double(dt)); if !msg.isEmpty && Int(now.timeIntervalSince1970 * 60) % 240 == 0 { msg = "" }
         objectWillChange.send()
     }
     func move(_ c: inout Car, _ dt: CGFloat) {
         let n = CGPoint(x: c.p.x + cos(c.a) * c.v * dt, y: c.p.y + sin(c.a) * c.v * dt)
-        if solid(n) { c.v *= -0.3 } else { c.p = n }
+        if solid(n) { if abs(c.v) > 200 { Sound.bang(0.5) }; c.v *= -0.3 } else { c.p = n }
     }
-    func busted() { cars.removeAll(where: \.cop); wanted = 0; score = max(0, score - 50); driving = nil; player = CGPoint(x: 8 * block + 40, y: 5 * block + 40) }
+    var ammo = 60, flash = 0.0, msg = ""
+    // two playable heroes, Tab swaps (GTA V style). Inactive one is frozen where you left them.
+    struct Hero { var name: String; var p: CGPoint; var a: CGFloat = 0; var driving: Int?; var ammo = 60 }
+    var heroes = [Hero(name: "Joshua", p: CGPoint(x: 8 * block + 40, y: 5 * block + 40), driving: nil), Hero(name: "Alexandre", p: CGPoint(x: 5 * block + 40, y: 15 * block + 40), driving: nil)]
+    var cur = 0
+    func swapHero() {
+        heroes[cur] = Hero(name: heroes[cur].name, p: player, a: pa, driving: driving, ammo: ammo)
+        cur ^= 1; let h = heroes[cur]
+        player = h.p; pa = h.a; ammo = h.ammo
+        // ponytail: stored car index may have shifted if cars were destroyed meanwhile; drop it rather than track ids
+        driving = h.driving.flatMap { $0 < cars.count && !cars[$0].cop ? $0 : nil }
+        if let d = driving { cars[d].v = 0 }
+        msg = "Now playing \(h.name)"; Sound.bang(0.2)
+    }
+    func shoot() {
+        guard driving == nil, ammo > 0 else { return }
+        ammo -= 1; flash = 0.08; Sound.bang(1)
+        let d = CGPoint(x: cos(pa), y: sin(pa))
+        // ponytail: hitscan, nearest target within 12u of the ray, no walls check beyond first 600u
+        func along(_ p: CGPoint) -> CGFloat? { let v = CGPoint(x: p.x - player.x, y: p.y - player.y); let t = v.x * d.x + v.y * d.y; return t > 0 && t < 600 && abs(v.x * d.y - v.y * d.x) < 14 ? t : nil }
+        let pi = peds.indices.compactMap { i in along(peds[i].p).map { (i, $0) } }.min { $0.1 < $1.1 }
+        let ci = cars.indices.compactMap { i in along(cars[i].p).map { (i, $0) } }.min { $0.1 < $1.1 }
+        if let (i, t) = pi, t < (ci?.1 ?? .infinity) { peds.remove(at: i); score += 20; wanted = min(5, wanted + 1) }
+        else if let (i, _) = ci { cars[i].hp -= 1; if cars[i].hp <= 0 { if cars[i].cop { score += 100 }; Sound.bang(1); cars.remove(at: i); if let dr = driving, dr > i { driving = dr - 1 }; wanted = min(5, wanted + 1) } }
+    }
+    func busted() { msg = "BUSTED"; ammo = 60; cars.removeAll(where: \.cop); wanted = 0; score = max(0, score - 50); driving = nil; player = CGPoint(x: 8 * block + 40, y: 5 * block + 40) }
 }
 func dist(_ a: CGPoint, _ b: CGPoint) -> CGFloat { hypot(a.x - b.x, a.y - b.y) }
 
@@ -170,6 +214,7 @@ final class World {
                 for i in 0..<4 { let s2 = sail.clone(); s2.position = SCNVector3(CGFloat(i) * 40 - 60, 65, 0); node.addChildNode(s2) }
             case "S": node = SCNNode(geometry: SCNSphere(radius: w / 2)); node.scale = SCNVector3(1, 0.4, 1); node.geometry!.firstMaterial!.diffuse.contents = NSColor(white: 0.9, alpha: 1)
             case "E": node = SCNNode(geometry: SCNSphere(radius: w / 2.4)); node.geometry!.firstMaterial!.diffuse.contents = NSColor(white: 0.8, alpha: 1); node.geometry!.firstMaterial!.metalness.contents = 0.9
+            case "L": node = box(w, 50, w * 0.6, NSColor(red: 0.8, green: 0.75, blue: 0.6, alpha: 1)); let dome = SCNNode(geometry: SCNSphere(radius: 30)); dome.geometry!.firstMaterial!.diffuse.contents = NSColor(red: 0.4, green: 0.6, blue: 0.5, alpha: 1); dome.position.y = 35; node.addChildNode(dome)
             default:
                 let h = CGFloat(80 + (bx * 37 + by * 91) % 7 * 60 + (by >= 3 && by <= 7 && bx >= 6 && bx <= 12 ? 200 : 0))
                 let tone = 0.45 + CGFloat((bx * 7 + by) % 5) * 0.09
@@ -199,7 +244,10 @@ final class World {
         let n = SCNNode(geometry: SCNBox(width: w, height: h, length: l, chamferRadius: 2)); n.geometry!.firstMaterial!.diffuse.contents = c; return n
     }
     func carNode(_ c: Car) -> SCNNode {
-        let n = box(40, 10, 20, NSColor(c.color)); n.position.y = 8
+        let (l, w, _) = kinds[c.kind], h: CGFloat = c.kind == 2 ? 26 : 10
+        let n = box(l, h, w, NSColor(c.kind == 2 ? .blue.opacity(0.6) : c.color)); n.position.y = 8
+        if c.kind == 1 { let sign = box(6, 4, 10, .white); sign.position = SCNVector3(0, 15, 0); n.addChildNode(sign) }
+        for (x, z) in [(l / 2 - 8, w / 2), (l / 2 - 8, -w / 2), (-l / 2 + 8, w / 2), (-l / 2 + 8, -w / 2)] { let wh = SCNNode(geometry: SCNCylinder(radius: 5, height: 3)); wh.geometry!.firstMaterial!.diffuse.contents = NSColor.black; wh.eulerAngles.x = .pi / 2; wh.position = SCNVector3(x, -4, z); n.addChildNode(wh) }
         let cab = box(20, 8, 18, NSColor(white: 0.1, alpha: 0.8)); cab.position = SCNVector3(-2, 8, 0); n.addChildNode(cab)
         if c.cop { let bar = box(4, 3, 16, .red); bar.name = "bar"; bar.position = SCNVector3(-2, 13, 0); n.addChildNode(bar) }
         return n
@@ -209,15 +257,22 @@ final class World {
         if carNodes.count != g.cars.count { carNodes.forEach { $0.removeFromParentNode() }; carNodes = g.cars.map(carNode); carNodes.forEach(scene.rootNode.addChildNode) }
         if pedNodes.count != g.peds.count {
             pedNodes.forEach { $0.removeFromParentNode() }
-            pedNodes = g.peds.indices.map { i in let n = box(6, 16, 6, [NSColor.brown, .systemRed, .systemBlue, .black][i % 4]); n.position.y = 8; return n }
+            pedNodes = g.peds.indices.map { i in
+                let n = SCNNode(), body = box(7, 12, 5, [NSColor.brown, .systemRed, .systemBlue, .black, .systemGreen][i % 5]); body.position.y = 12
+                let head = SCNNode(geometry: SCNSphere(radius: 3)); head.geometry!.firstMaterial!.diffuse.contents = NSColor(red: 0.85, green: 0.65, blue: 0.5, alpha: 1); head.position.y = 21
+                for s in [-2.0, 2.0] { let leg = box(2.5, 6, 2.5, .darkGray); leg.name = "leg"; leg.pivot = SCNMatrix4MakeTranslation(0, 3, 0); leg.position = SCNVector3(0, 6, s); n.addChildNode(leg) }
+                n.addChildNode(body); n.addChildNode(head); return n }
             pedNodes.forEach(scene.rootNode.addChildNode)
         }
         let flash = Int(Date().timeIntervalSince1970 * 6) % 2 == 0
         for (i, c) in g.cars.enumerated() {
-            carNodes[i].position = SCNVector3(c.p.x, 8, c.p.y); carNodes[i].eulerAngles.y = -c.a; carNodes[i].isHidden = g.driving == i
+            carNodes[i].position = SCNVector3(c.p.x, c.kind == 2 ? 16 : 8, c.p.y); carNodes[i].eulerAngles.y = -c.a; carNodes[i].isHidden = g.driving == i
             carNodes[i].childNode(withName: "bar", recursively: false)?.geometry?.firstMaterial?.diffuse.contents = flash ? NSColor.red : NSColor.blue
         }
-        for (i, p) in g.peds.enumerated() { pedNodes[i].position = SCNVector3(p.p.x, 8, p.p.y) }
+        for (i, p) in g.peds.enumerated() {
+            pedNodes[i].position = SCNVector3(p.p.x, 0, p.p.y); pedNodes[i].eulerAngles.y = -p.a
+            for (j, leg) in pedNodes[i].childNodes.filter({ $0.name == "leg" }).enumerated() { leg.eulerAngles.z = sin(p.t + CGFloat(j) * .pi) * 0.5 }
+        }
         let a = g.driving.map { g.cars[$0].a } ?? g.pa
         cam.position = SCNVector3(g.player.x, g.driving == nil ? 14 : 11, g.player.y)
         cam.eulerAngles = SCNVector3(-0.04, -a - .pi / 2, 0)
@@ -248,8 +303,12 @@ struct GameView: View {
         SceneBox(w: w)
         .onReceive(timer) { _ in g.tick(); w.sync(g) }
         .overlay { Image(systemName: "plus").foregroundStyle(.white.opacity(0.7)) }
+        .overlay(alignment: .bottomTrailing) {
+            if g.driving == nil { ZStack { if g.flash > 0 { Circle().fill(.yellow).frame(width: 60).offset(x: -40, y: -150).blur(radius: 6) }
+                RoundedRectangle(cornerRadius: 4).fill(Color(white: 0.12)).frame(width: 40, height: 180).rotationEffect(.degrees(-20)).offset(x: -80, y: -20) }.padding(40).allowsHitTesting(false) }
+        }
         .overlay(alignment: .topLeading) {
-            Text("$\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player)), Vancouver" + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + "\nWASD/arrows move, E enter/exit car")
+            Text("\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white).padding(12).shadow(radius: 2)
         }
         .overlay(alignment: .topTrailing) {
@@ -266,7 +325,7 @@ struct GameView: View {
         }
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { e in
-                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
+                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
                 return nil
             }
         }
@@ -289,8 +348,35 @@ func appIcon() -> NSImage {
     }
 }
 
+import AVFoundation
+// Synth audio: engine hum by speed, siren sweep, noise bursts for gunshots/crashes.
+// ponytail: cross-thread vars without locks, fine for audio params; atomics if it ever glitches
+enum Sound {
+    static var engine: Float = 0, siren = false, burst: Float = 0
+    static func bang(_ v: Float) { burst = max(burst, v) }
+    static let av = AVAudioEngine()
+    static func start() {
+        var ph: Float = 0, sp: Float = 0, t: Float = 0
+        let fmt = av.outputNode.inputFormat(forBus: 0), sr = Float(fmt.sampleRate)
+        let src = AVAudioSourceNode { _, _, n, abl -> OSStatus in
+            let bufs = UnsafeMutableAudioBufferListPointer(abl)
+            for f in 0..<Int(n) {
+                t += 1 / sr
+                ph += (40 + engine * 140) / sr; if ph > 1 { ph -= 1 }
+                var x = (ph * 2 - 1) * (engine > 0.01 ? 0.08 + engine * 0.1 : 0)
+                if siren { sp += (700 + 300 * sin(t * 4)) / sr; x += sin(sp * 2 * .pi) * 0.06 }
+                if burst > 0.001 { x += Float.random(in: -1...1) * burst * 0.6; burst *= 0.9993 }
+                for b in bufs { b.mData!.assumingMemoryBound(to: Float.self)[f] = x }
+            }
+            return noErr
+        }
+        av.attach(src); av.connect(src, to: av.mainMixerNode, format: AVAudioFormat(standardFormatWithSampleRate: fmt.sampleRate, channels: 1))
+        try? av.start()
+    }
+}
+
 @main struct GrandSwift: App {
-    init() { NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon()
+    init() { NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon(); Sound.start()
         if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) }; DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
     var body: some Scene { WindowGroup("Grand Swift") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }
