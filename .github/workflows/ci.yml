@@ -1,0 +1,9 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  qa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swiftc -O -parse-as-library main.swift -o grandswift
+      - run: GS_QA=1 ./grandswift

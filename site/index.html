@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grand Swift</title><meta name="description" content="A third person GTA-style game set in Vancouver and Victoria, native on the Mac.">
+<link rel="icon" href="icon.png">
+<style>
+:root{--bg:#f5f3ee;--ink:#15171c;--dim:#5b5f68;--line:#dcd8cf;--accent:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#111316;--ink:#f1efe9;--dim:#9a9ea6;--line:#2a2d33}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 -apple-system,"SF Pro Text",Helvetica,Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:56px 16px}
+header{display:flex;align-items:center;gap:14px}header img{width:56px;height:56px;border-radius:13px}
+h1{font-size:44px;letter-spacing:-.02em;margin:0}p.lead{font-size:21px;color:var(--dim);max-width:640px}
+.shot{width:100%;border-radius:12px;border:1px solid var(--line);margin:28px 0;display:block}
+a.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;margin-top:40px}
+.grid h3{margin:0 0 4px;font-size:17px}.grid p{margin:0;color:var(--dim)}
+footer{margin-top:56px;color:var(--dim);font-size:14px;border-top:1px solid var(--line);padding-top:18px}
+</style></head><body><main>
+<header><img src="icon.png" alt="Grand Swift icon"><h1>Grand Swift</h1></header>
+<p class="lead">A third person crime game set in Vancouver and Victoria. Jack a car on Granville, outrun the cops across the Burrard Bridge, then switch to Alexandre in Victoria.</p>
+<a class="btn" href="https://github.com/nulljosh/grandswift/releases/latest">Download for Mac</a>
+<img class="shot" src="shot.png" alt="Third person view of the hero on a downtown Vancouver street">
+<div class="grid">
+<div><h3>Real streets</h3><p>Hastings, Georgia, Robson, Granville, Stanley Park, False Creek, Science World, BC Place and the Legislature.</p></div>
+<div><h3>Two heroes</h3><p>Press Tab to jump between Joshua downtown and Alexandre in Victoria. Each stays where you left them.</p></div>
+<div><h3>Cars, cops, guns</h3><p>Sedans, taxis, buses and sports cars, a five star wanted level and cops who give chase.</p></div>
+<div><h3>Native and tiny</h3><p>One Swift file, SceneKit rendering, synth sound, full screen, a tutorial and delivery missions.</p></div>
+</div>
+<footer>Made on a Mac Mini in Vancouver. <a href="https://github.com/nulljosh/grandswift" style="color:inherit">Source</a></footer>
+</main></body></html>

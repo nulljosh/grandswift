@@ -66,7 +66,7 @@ final class Game: ObservableObject {
     var keys = Set<UInt16>()
     var player = CGPoint(x: 8 * block + 40, y: 5 * block + 40), pa: CGFloat = 0
     var cars: [Car] = [], peds: [Ped] = []
-    var mouseDX: CGFloat = 0
+    var mouseDX: CGFloat = 0, paused = false
     var driving: Int? = nil
     var wanted = 0, score = 0, last = Date()
 
@@ -88,6 +88,7 @@ final class Game: ObservableObject {
     }
 
     func tick() {
+        if paused { last = Date(); return }
         let now = Date(); let dt = CGFloat(min(now.timeIntervalSince(last), 0.05)); last = now
         let fwd = down(13) || down(126), back = down(1) || down(125), left = down(0) || down(123), right = down(2) || down(124)
         if let i = driving {
@@ -240,7 +241,7 @@ final class World {
                 node = box(w, h, w, NSColor(red: tone * 0.9, green: tone, blue: tone * 1.1, alpha: 1))
                 node.geometry!.firstMaterial!.diffuse.contents = windows(NSColor(red: tone * 0.9, green: tone, blue: tone * 1.1, alpha: 1))
                 node.geometry!.firstMaterial!.diffuse.contentsTransform = SCNMatrix4MakeScale(1, h / 40, 1)
-                node.geometry!.firstMaterial!.diffuse.wrapT = .repeat
+                node.geometry!.firstMaterial!.diffuse.wrapT = .repeat; node.geometry!.firstMaterial!.diffuse.maxAnisotropy = 16; node.geometry!.firstMaterial!.diffuse.mipFilter = .linear
             }
             node.position = SCNVector3(lot.x, k == "C" || k == "E" ? w / 2.4 : k == "S" ? 0 : node.boundingBox.max.y, lot.y)
             if k == "C" { node.position.y = 30 }
@@ -248,10 +249,11 @@ final class World {
         }}
     }
     func windows(_ c: NSColor) -> NSImage {
-        NSImage(size: NSSize(width: 64, height: 64), flipped: false) { rect in
+        NSImage(size: NSSize(width: 256, height: 256), flipped: false) { rect in
             c.setFill(); rect.fill()
             NSColor(red: 0.2, green: 0.3, blue: 0.4, alpha: 1).setFill()
-            for x in 0..<4 { for y in 0..<2 { NSRect(x: 4 + x * 16, y: 6 + y * 32, width: 10, height: 20).fill() } }
+            for x in 0..<4 { for y in 0..<2 { NSRect(x: 16 + x * 64, y: 24 + y * 128, width: 40, height: 80).fill() } }
+            NSColor(white: 1, alpha: 0.12).setFill(); for x in 0..<4 { for y in 0..<2 { NSRect(x: 16 + x * 64, y: 84 + y * 128, width: 40, height: 20).fill() } }
             return true
         }
     }
@@ -275,6 +277,13 @@ final class World {
     lazy var beacon: SCNNode = {
         let n = SCNNode(geometry: SCNCylinder(radius: 14, height: 600)); n.geometry!.firstMaterial!.diffuse.contents = NSColor.systemYellow.withAlphaComponent(0.35)
         n.geometry!.firstMaterial!.emission.contents = NSColor.systemYellow; n.geometry!.firstMaterial!.lightingModel = .constant; scene.rootNode.addChildNode(n); return n
+    }()
+    lazy var hero: SCNNode = {
+        let n = SCNNode(), body = box(8, 13, 6, NSColor(red: 0.75, green: 0.12, blue: 0.1, alpha: 1)); body.position.y = 13
+        let head = SCNNode(geometry: SCNSphere(radius: 3.5)); head.geometry!.firstMaterial!.diffuse.contents = NSColor(red: 0.85, green: 0.65, blue: 0.5, alpha: 1); head.position.y = 23
+        let gun = box(8, 2, 2, .black); gun.position = SCNVector3(7, 14, 4)
+        for s in [-2.0, 2.0] { let leg = box(3, 7, 3, .darkGray); leg.name = "leg"; leg.pivot = SCNMatrix4MakeTranslation(0, 3.5, 0); leg.position = SCNVector3(0, 7, s); n.addChildNode(leg) }
+        [body, head, gun].forEach(n.addChildNode); scene.rootNode.addChildNode(n); return n
     }()
     func sync(_ g: Game) {
         beacon.position = SCNVector3(g.target.x, 300, g.target.y); beacon.isHidden = g.step < 2
@@ -303,15 +312,22 @@ final class World {
             for (j, leg) in pedNodes[i].childNodes.filter({ $0.name == "leg" }).enumerated() { leg.eulerAngles.z = sin(p.t + CGFloat(j) * .pi) * 0.5 }
         }
         let a = g.driving.map { g.cars[$0].a } ?? g.pa
-        cam.position = SCNVector3(g.player.x, g.driving == nil ? 14 : 11, g.player.y)
-        cam.eulerAngles = SCNVector3(-0.04, -a - .pi / 2, 0)
+        hero.isHidden = g.driving != nil; hero.position = SCNVector3(g.player.x, 0, g.player.y); hero.eulerAngles.y = -a
+        let moving = !g.keys.isDisjoint(with: [13, 1, 126, 125])
+        for (j, leg) in hero.childNodes.filter({ $0.name == "leg" }).enumerated() { leg.eulerAngles.z = moving ? sin(Date().timeIntervalSince1970 * 10 + Double(j) * .pi) * 0.6 : 0 }
+        // third person: sit behind the hero, pull in so buildings never block the view
+        let back: CGFloat = g.driving == nil ? 70 : 110, up: CGFloat = g.driving == nil ? 38 : 48
+        var d = back
+        while d > 12 && solid(CGPoint(x: g.player.x - cos(a) * d, y: g.player.y - sin(a) * d)) { d -= 6 }
+        cam.position = SCNVector3(g.player.x - cos(a) * d, up, g.player.y - sin(a) * d)
+        cam.eulerAngles = SCNVector3(-0.28, -a - .pi / 2, 0)
     }
 }
 
 struct SceneBox: NSViewRepresentable {
     let w: World
     func makeNSView(context: Context) -> SCNView {
-        let v = SCNView(); v.scene = w.scene; v.pointOfView = w.cam; v.antialiasingMode = .multisampling4X; v.preferredFramesPerSecond = 60
+        let v = SCNView(); v.scene = w.scene; v.pointOfView = w.cam; v.antialiasingMode = .multisampling8X; v.layer?.contentsScale = NSScreen.main?.backingScaleFactor ?? 2; v.preferredFramesPerSecond = 60
         // QA hook: GS_SNAP=/path.png writes a frame after 3s and quits
         if let out = ProcessInfo.processInfo.environment["GS_SNAP"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -328,16 +344,29 @@ struct GameView: View {
     @StateObject var g = Game()
     @State var w = World()
     let timer = Timer.publish(every: 1 / 60, on: .main, in: .common).autoconnect()
+    func resume() { g.paused = false; g.keys = [] }
     var body: some View {
         SceneBox(w: w)
         .onReceive(timer) { _ in g.tick(); w.sync(g) }
         .overlay { Image(systemName: "plus").foregroundStyle(.white.opacity(0.7)) }
-        .overlay(alignment: .bottomTrailing) {
-            if g.driving == nil { ZStack { if g.flash > 0 { Circle().fill(.yellow).frame(width: 60).offset(x: -40, y: -150).blur(radius: 6) }
-                RoundedRectangle(cornerRadius: 4).fill(Color(white: 0.12)).frame(width: 40, height: 180).rotationEffect(.degrees(-20)).offset(x: -80, y: -20) }.padding(40).allowsHitTesting(false) }
+        .overlay { if g.flash > 0 { Circle().fill(.yellow.opacity(0.6)).frame(width: 30).blur(radius: 4).offset(y: 30).allowsHitTesting(false) } }
+        .overlay {
+            if g.paused {
+                ZStack {
+                    Color.black.opacity(0.6)
+                    VStack(spacing: 14) {
+                        Text("PAUSED").font(.system(size: 44, weight: .heavy))
+                        Button("Resume") { resume() }.keyboardShortcut(.defaultAction)
+                        Button("Toggle full screen (F)") { NSApp.windows.first?.toggleFullScreen(nil) }
+                        Button("Restart tutorial") { g.step = 0; g.walkFrom = g.player; resume() }
+                        Button("Quit") { NSApp.terminate(nil) }
+                        Text("W A S D move · mouse look · Space/click shoot · E car · Tab swap · Esc pause").font(.system(size: 13)).opacity(0.8).padding(.top, 10)
+                    }.foregroundStyle(.white).buttonStyle(.borderedProminent).controlSize(.large)
+                }
+            }
         }
         .overlay(alignment: .topLeading) {
-            Text((g.step < g.tut.count ? "▶ " + g.tut[g.step] + "\n" : "") + "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
+            Text((g.step < g.tut.count ? "▶ " + g.tut[g.step] + "\n" : "") + "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap, Esc pause" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white).padding(12).shadow(radius: 2)
         }
         .overlay(alignment: .topTrailing) {
@@ -354,12 +383,13 @@ struct GameView: View {
         }
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { e in
-                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 53 { CGAssociateMouseAndMouseCursorPosition(1); NSCursor.unhide() }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
+                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 53 && !e.isARepeat { if g.paused { resume() } else { g.paused = true; CGAssociateMouseAndMouseCursorPosition(1); NSCursor.unhide() } }; if e.keyCode == 3 && !e.isARepeat { NSApp.windows.first?.toggleFullScreen(nil) }; if g.paused { return e }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
                 return nil
             }
             NSApp.windows.forEach { $0.acceptsMouseMovedEvents = true }
+            if ProcessInfo.processInfo.environment["GS_SNAP"] == nil { DispatchQueue.main.async { NSApp.windows.first?.toggleFullScreen(nil) } }
             NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged, .leftMouseDown]) { e in
-                if e.type == .leftMouseDown { CGAssociateMouseAndMouseCursorPosition(0); NSCursor.hide(); g.shoot() } else { g.mouseDX += e.deltaX }
+                if g.paused { return e }; if e.type == .leftMouseDown { CGAssociateMouseAndMouseCursorPosition(0); NSCursor.hide(); g.shoot() } else { g.mouseDX += e.deltaX }
                 return e
             }
         }
@@ -446,6 +476,7 @@ func runQA() -> Never {
     t.cars[t.driving!].p = t.target; run(t, 1); check(t.step == 4, "tutorial: reaching beacon advances")
     t.swapHero(); run(t, 1); check(t.step == 5, "tutorial: swap finishes it")
     check(!Game.spots.isEmpty && Game.spots.allSatisfy { !solid($0) }, "mission beacons are on road")
+    g.paused = true; let pp = g.player; g.keys = [13]; run(g, 60); g.keys = []; check(dist(pp, g.player) < 0.01, "pause freezes the game"); g.paused = false
     run(g, 3600); check(g.peds.count > 20 && !g.player.x.isNaN, "60s soak, no NaN, city stays populated")
     print(fails.isEmpty ? "QA OK" : "QA FAILED: \(fails.count)"); exit(fails.isEmpty ? 0 : 1)
 }

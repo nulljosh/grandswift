@@ -10,6 +10,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.0.0 tutorial, delivery missions, mouse look, day/night cycle, README, 22 QA checks
 
+- v1.1.0 third person camera, pause menu, full screen, sharper textures, single instance, landing page (not deployed yet), CI
+
 ## Next (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke

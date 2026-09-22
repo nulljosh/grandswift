@@ -1,0 +1,5 @@
+name = "grandswift"
+compatibility_date = "2026-09-01"
+routes = [{ pattern = "grandswift.heyitsmejosh.com", custom_domain = true }]
+[assets]
+directory = "./site"
