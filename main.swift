@@ -291,6 +291,6 @@ func appIcon() -> NSImage {
 
 @main struct GrandSwift: App {
     init() { NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon()
-        if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) } DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
+        if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) }; DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
     var body: some Scene { WindowGroup("Grand Swift") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }
