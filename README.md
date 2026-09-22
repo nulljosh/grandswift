@@ -59,3 +59,6 @@ That's a separate project. Unreal needs a large download and disk space, and Epi
 `GS_QA=1 ./rainjack` plays the Mac game with no window and checks 23 things. The web build has a 31-check headless suite (`node tests/web.mjs`) covering the menu, saves, combat, explosions, neighbourhoods, corrupt saves, blocked storage, offline mode and phones. CI runs the Mac checks on every push.
 
 See roadmap.md for what's next.
+
+## License
+MIT. See LICENSE. Privacy: PRIVACY.md (also at rainjack.heyitsmejosh.com/privacy.html). Third-party models keep their own licenses, listed under Credits.
