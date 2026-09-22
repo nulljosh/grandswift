@@ -242,7 +242,12 @@ function street(x, z) { let best = null, bd = 1e9; for (let i = -1; i <= 1; i++)
 const gl = new GLTFLoader(); gl.setDRACOLoader(new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/"));
 const MODELS = "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/";
 const hero = new THREE.Group(); scene.add(hero); let mixer = null, acts = {}, cur = "";
-gl.load(MODELS + "Soldier.glb", g => { const s = g.scene; s.rotation.y = -Math.PI / 2; s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(0xe8b21a), .6); } }); hero.add(s); mixer = new THREE.AnimationMixer(s); for (const c of g.animations) acts[c.name.toLowerCase()] = mixer.clipAction(c); });
+// hero: Remy from Mixamo (a real-looking guy), walk cycle in place; height normalised to 1.8 m, paused when standing
+gl.load("models/remy.glb", g => {
+  const s = g.scene; s.updateMatrixWorld(true); const h = new THREE.Box3().setFromObject(s).getSize(new THREE.Vector3()).y || 1; s.scale.multiplyScalar(1.8 / h); s.rotation.y = Math.PI / 2;
+  s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); hero.add(s);
+  mixer = new THREE.AnimationMixer(s); const walk = mixer.clipAction(g.animations[0]); acts = { walk, run: walk, idle: walk }; walk.play();
+}, undefined, e => console.warn("hero model failed", e));
 const carG = new THREE.Group(); scene.add(carG);
 // traffic: cars drive the real road centre lines, keeping right, turning around at the ends
 const traffic = [], CAR_COLORS = [0xc0392b, 0x1f3a5f, 0xeeeeee, 0x222222, 0xf2c21b, 0x7f8c8d, 0x2e7d32];
@@ -253,7 +258,7 @@ gl.load(MODELS + "ferrari.glb", g => {
 });
 gl.load(MODELS + "ferrari.glb", g => { const c = g.scene; c.rotation.y = Math.PI / 2; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); const b = c.getObjectByName("body"); if (b) b.material = new THREE.MeshPhysicalMaterial({ color: 0xc0392b, metalness: .5, roughness: .25, clearcoat: 1 }); carG.add(c); });
 window.PERSON = (tintHex) => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); if (tintHex) c.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(tintHex), .7); } }); g.add(c); } return g; };
-function play(n) { if (!mixer || cur === n || !acts[n]) return; acts[cur]?.fadeOut(.2); acts[n].reset().fadeIn(.2).play(); cur = n; }
+function play(n) { if (!mixer || !acts.walk) return; acts.walk.timeScale = n === "idle" ? 0 : n === "run" ? 1.9 : 1; if (n === "idle" && cur !== "idle") acts.walk.time = .2; cur = n; }
 
 // start on Granville at Georgia, facing north toward the harbour; nudge onto open ground if the survey puts us in a lobby
 const S = { p: new THREE.Vector2(0, 0), a: -Math.PI / 2, driving: false, car: { p: new THREE.Vector2(6, 4), a: -Math.PI / 2, v: 0 }, keys: new Set(), dx: 0 };

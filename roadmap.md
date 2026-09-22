@@ -42,6 +42,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.16.0 cops on the real streets: police cars spawn by stars, chase you through real downtown with flashing bars, bust you (fine a third of your cash); ramming traffic earns a star; stars cool one at a time out of sight
 
+- v1.17.0 real people: Remy from Mixamo (converted in Blender, Draco compressed) is the hero on the real streets
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
