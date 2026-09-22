@@ -13,7 +13,7 @@ Epic launcher patching Unreal to 5.8.3 with Core Data (initial install stuck, no
 
 ## Next, in order
 
-1. MetaHuman Core Data download: unblock skin, rig and build (install wedged in Epic launcher, Claude cleared it)
+1. MetaHuman Core Data: launcher (even reinstalled via brew, 2026-09-22) freezes at 0% CPU the instant any install on the 5.8.2 LaCie engine is queued (log dies at QueueAppInstall manifest check). If it freezes, kill it and move Data/DownloadManager/*.json out or it refreezes on every open. Untested ideas: grant Removable Volumes in Privacy, or remove + reinstall 5.8 fresh. Meanwhile ship Joshua with the default skin.
 2. Skin Joshua: light freckles, curly ginger hair and glasses (customize the MetaHuman asset)
 3. Cloud rig: set up skeletal mesh and animation blueprint for the scanned face
 4. Build and deploy: finalize MetaHuman, swap onto the player character for third-person gameplay
