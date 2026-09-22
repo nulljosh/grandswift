@@ -79,6 +79,111 @@ addMerged(parkG, new THREE.MeshStandardMaterial({ color: 0x3f7a3c, roughness: 1 
 const waterG = D.water.filter(p => p.length >= 3).map(p => { const s = new THREE.ShapeGeometry(new THREE.Shape(p.map(([x, z]) => new THREE.Vector2(x, -z)))); s.rotateX(-Math.PI / 2); s.translate(0, .03, 0); return s; });
 addMerged(waterG, new THREE.MeshStandardMaterial({ color: 0x1d4a6b, roughness: .1, metalness: .5 }));
 
+// street furniture: name signs at real intersections, signals where big roads cross, lamps along arterials
+const nodes = new Map(); D.roads.forEach(r => { if (!r.n || r.k === "footway") return; for (const [x, z] of r.p) { const k = Math.round(x) + "," + Math.round(z); if (!nodes.has(k)) nodes.set(k, { x, z, roads: new Map() }); nodes.get(k).roads.set(r.n, r); } });
+const signTex = new Map();
+function nameTex(n) {
+  if (signTex.has(n)) return signTex.get(n);
+  const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d");
+  x.fillStyle = "#1f5e3b"; x.fillRect(0, 0, 512, 96); x.strokeStyle = "#fff"; x.lineWidth = 5; x.strokeRect(6, 6, 500, 84);
+  x.fillStyle = "#fff"; x.font = "bold 50px Helvetica, Arial"; x.textAlign = "center"; x.textBaseline = "middle";
+  const label = n.replace(/ Street$/, " St").replace(/ Avenue$/, " Av").replace(/^West /, "W ").replace(/^East /, "E ").replace(/ Boulevard$/, " Blvd");
+  x.fillText(label, 256, 50, 480); const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; signTex.set(n, t); return t;
+}
+const poleMat = new THREE.MeshStandardMaterial({ color: 0x5a5e62, metalness: .6, roughness: .4 }), poleGeo = new THREE.CylinderGeometry(.06, .07, 3.4, 12);
+const bladeGeo = new THREE.PlaneGeometry(1.5, .28);
+const lampPoles = [], signals = [];
+let signs = 0;
+for (const nd of nodes.values()) {
+  if (nd.roads.size < 2) continue;
+  const rs = [...nd.roads.values()].slice(0, 2), wmax = Math.max(...rs.map(r => r.w));
+  const px = nd.x + wmax * .6 + 1, pz = nd.z + wmax * .6 + 1; if (solid(px, pz)) continue;
+  const post = new THREE.Mesh(poleGeo, poleMat); post.position.set(px, 1.7, pz); scene.add(post);
+  rs.forEach((r, i) => {
+    const j = r.p.findIndex(([x, z]) => Math.abs(x - nd.x) < 1 && Math.abs(z - nd.z) < 1), a2 = r.p[Math.min(j + 1, r.p.length - 1)], a1 = r.p[Math.max(j - 1, 0)];
+    const ang = Math.atan2(a2[1] - a1[1], a2[0] - a1[0]);
+    const blade = new THREE.Mesh(bladeGeo, new THREE.MeshStandardMaterial({ map: nameTex(r.n), side: THREE.DoubleSide, roughness: .5 }));
+    blade.position.set(px, 3.25 + i * .3, pz); blade.rotation.y = -ang; scene.add(blade);
+  });
+  signs++;
+  if (rs.every(r => r.w >= 10)) signals.push([nd.x - wmax * .6 - 1, nd.z - wmax * .6 - 1]);
+}
+// traffic signals: pole, arm, three lights; instanced so hundreds cost nothing
+if (signals.length) {
+  const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(4, .12, .12), poleMat, signals.length), sp = new THREE.InstancedMesh(new THREE.CylinderGeometry(.1, .12, 5, 12), poleMat, signals.length);
+  const head = new THREE.InstancedMesh(new THREE.BoxGeometry(.35, 1, .3), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }), signals.length);
+  const lamps = [0xff3b30, 0xffc400, 0x34c759].map(c => new THREE.InstancedMesh(new THREE.SphereGeometry(.1, 16, 8), new THREE.MeshBasicMaterial({ color: c }), signals.length));
+  const m = new THREE.Matrix4(); signals.forEach(([x, z], i) => { sp.setMatrixAt(i, m.makeTranslation(x, 2.5, z)); arm.setMatrixAt(i, m.makeTranslation(x + 2, 4.9, z)); head.setMatrixAt(i, m.makeTranslation(x + 3.8, 4.4, z)); lamps.forEach((l, k) => l.setMatrixAt(i, m.makeTranslation(x + 3.8, 4.72 - k * .3, z - .16))); });
+  [sp, arm, head, ...lamps].forEach(o => scene.add(o)); window.SIG = lamps;
+}
+// streetlights every ~35 m on arterials
+const lampPts = []; D.roads.forEach(r => { if (r.w < 10) return; let acc = 0; for (let i = 1; i < r.p.length; i++) { const [ax, az] = r.p[i - 1], [bx, bz] = r.p[i], L = Math.hypot(bx - ax, bz - az); for (acc += L; acc > 35; acc -= 35) { const t = 1 - (acc - 35) / L, x = ax + (bx - ax) * t, z = az + (bz - az) * t, nx = -(bz - az) / L, nz = (bx - ax) / L, ox = x + nx * (r.w / 2 + 1.2), oz = z + nz * (r.w / 2 + 1.2); if (!solid(ox, oz)) lampPts.push([ox, oz, Math.atan2(-nz, -nx)]); } } });
+if (lampPts.length) {
+  const lp = new THREE.InstancedMesh(new THREE.CylinderGeometry(.08, .1, 7, 10), poleMat, lampPts.length), lh = new THREE.InstancedMesh(new THREE.BoxGeometry(.9, .15, .3), new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0xffe8b0, emissiveIntensity: .6 }), lampPts.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(); lampPts.forEach(([x, z, a], i) => { lp.setMatrixAt(i, m.makeTranslation(x, 3.5, z)); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a); lh.setMatrixAt(i, m.compose(new THREE.Vector3(x + Math.cos(a) * .45, 7, z + Math.sin(a) * .45), q, new THREE.Vector3(1, 1, 1))); });
+  scene.add(lp, lh);
+}
+console.log("street furniture:", signs, "signs,", signals.length, "signals,", lampPts.length, "lamps");
+
+// interiors: every named place from OSM belongs to the building it sits in; E at a wall walks you inside a room built for that kind of place
+const poisIn = new Map(); for (const [x, z, kind, name] of D.pois || []) for (const b of grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []) if (inside(b, x, z)) { if (!poisIn.has(b)) poisIn.set(b, []); poisIn.get(b).push({ x, z, kind, name }); break; }
+const IX = 20000, room = new THREE.Group(); scene.add(room); let inRoom = null, props = [];
+const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .6 });
+function prop(w, h, d, c, x, z, y = 0, solidProp = true) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof c === "number" ? M(c) : c); m.position.set(IX + x, y + h / 2, z); m.castShadow = m.receiveShadow = true; room.add(m); if (solidProp) props.push([x - w / 2 - .3, x + w / 2 + .3, z - d / 2 - .3, z + d / 2 + .3]); return m; }
+function label(text, sub, x, z, y, w = 7) { const c = document.createElement("canvas"); c.width = 1024; c.height = 220; const g = c.getContext("2d"); g.fillStyle = "#15171c"; g.fillRect(0, 0, 1024, 220); g.fillStyle = "#fff"; g.font = "bold 90px Helvetica, Arial"; g.textAlign = "center"; g.fillText(text, 512, 110, 980); g.font = "500 44px Helvetica, Arial"; g.fillStyle = "#e8b21a"; g.fillText(sub, 512, 180, 980); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 220 / 1024), new THREE.MeshBasicMaterial({ map: t })); m.position.set(IX + x, y, z); room.add(m); return m; }
+const KIND = { cafe: "Cafe", ice_cream: "Ice cream", restaurant: "Restaurant", fast_food: "Fast food", bar: "Bar", pub: "Pub", nightclub: "Nightclub", shop: "Shop", grocery: "Grocery", pharmacy: "Pharmacy", bank: "Bank", hotel: "Hotel", museum: "Museum", gallery: "Gallery", cinema: "Cinema", library: "Library", office: "Lobby" };
+function buildRoom(kind, name) {
+  room.clear(); props = []; const Wd = 18, Dp = 14;
+  const floorC = { cafe: 0x8a6446, restaurant: 0x6e4b33, bar: 0x3a2a20, pub: 0x4a3222, nightclub: 0x111114, bank: 0xd9d6cf, hotel: 0xc9b99a, museum: 0xcfcac0, gallery: 0xe9e6df, library: 0x6b4a30, cinema: 0x2a1418 }[kind] ?? 0xb9b6ae;
+  const wallC = { bar: 0x2e2622, pub: 0x3b2a1f, nightclub: 0x0d0d12, cinema: 0x1a0e10, gallery: 0xf4f2ee, museum: 0xe8e2d6 }[kind] ?? 0xe2ddd3;
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(Wd, 4.2, Dp), [M(wallC), M(wallC), M(0xf2f2f0), M(floorC), M(wallC), M(wallC)].map(m => (m.side = THREE.BackSide, m))); shell.position.set(IX, 2.1, 0); shell.receiveShadow = true; room.add(shell);
+  const light = new THREE.PointLight(kind === "nightclub" ? 0xff4060 : kind === "bar" || kind === "pub" ? 0xffb060 : 0xfff2dd, kind === "nightclub" ? 40 : 60, 30, 1.6); light.position.set(IX, 3.8, 0); room.add(light);
+  const l2 = light.clone(); l2.position.set(IX, 3.8, -4); room.add(l2);
+  label(name, KIND[kind] || "Lobby", 0, -Dp / 2 + .05, 3.1);
+  const exit = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.6), new THREE.MeshBasicMaterial({ color: 0x9fe3ff, transparent: true, opacity: .35 })); exit.position.set(IX, 1.3, Dp / 2 - .05); exit.rotation.y = Math.PI; room.add(exit);
+  label("EXIT", "E to leave", 0, Dp / 2 - .06, 3, 2.4).rotation.y = Math.PI;
+  const r = (a, b) => a + Math.random() * (b - a);
+  if (["cafe", "ice_cream", "restaurant", "fast_food"].includes(kind)) {
+    prop(8, 1.1, 1, 0x5a3e2b, 0, -Dp / 2 + 2.2); prop(.6, .5, .5, 0x9aa0a6, -2, -Dp / 2 + 2.2, 1.1, false); prop(.5, .6, .5, 0x333333, 2, -Dp / 2 + 2.2, 1.1, false);
+    for (let i = 0; i < 6; i++) { const x = -6 + (i % 3) * 6, z = -1 + Math.floor(i / 3) * 3.8; prop(1.2, .75, 1.2, kind === "fast_food" ? 0xd8322a : 0x8a6446, x, z); prop(.5, .45, .5, 0x333333, x - 1, z, 0, false); prop(.5, .45, .5, 0x333333, x + 1, z, 0, false); prop(.25, .1, .25, 0xffffff, x, z, .75, false); }
+  } else if (["bar", "pub", "nightclub"].includes(kind)) {
+    prop(12, 1.1, 1, 0x4a2e1c, 0, -Dp / 2 + 2); prop(12, 2.4, .4, 0x2a1a10, 0, -Dp / 2 + .4, 0, false);
+    for (let i = 0; i < 30; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .32, 12), new THREE.MeshStandardMaterial({ color: [0x2e7d32, 0x8d5524, 0xc9c9c9, 0x1565c0][i % 4], roughness: .1, metalness: .3, transparent: true, opacity: .85 })); b.position.set(IX - 5.6 + i * .38, 1.5 + (i % 2) * .5, -Dp / 2 + .55); room.add(b); }
+    for (let i = 0; i < 8; i++) prop(.45, .75, .45, 0x222222, -5 + i * 1.4, -Dp / 2 + 3);
+    if (kind === "nightclub") { const ball = new THREE.Mesh(new THREE.SphereGeometry(.4, 32, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: .05 })); ball.position.set(IX, 3.6, 1); ball.name = "spin"; room.add(ball); }
+  } else if (["shop", "grocery", "pharmacy"].includes(kind)) {
+    for (let row = 0; row < 3; row++) { prop(10, 2, .8, 0xd9d9d9, -1, -3 + row * 3.2); for (let i = 0; i < 26; i++) prop(.3, .35, .3, [0xe74c3c, 0x3498db, 0xf1c40f, 0x2ecc71, 0xffffff][(i + row) % 5], -5.8 + i * .38, -3 + row * 3.2 + (i % 2 ? .55 : -.55), .7 + (i % 3) * .55, false); }
+    prop(2.4, 1, 1, 0x333333, 6.5, 4.5);
+  } else if (kind === "bank") {
+    prop(12, 1.2, .8, 0xe9e4da, 0, -Dp / 2 + 2.4); const glass = prop(12, 1.2, .05, new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .25, roughness: 0 }), 0, -Dp / 2 + 2.4, 1.2, false);
+    for (let i = 0; i < 5; i++) prop(.12, 1, .12, 0xc9a13a, -3 + i * 1.5, 1.5, 0, false);
+  } else if (kind === "hotel") {
+    prop(6, 1.1, 1.2, 0x3b2a1f, 0, -Dp / 2 + 2.5); for (const x of [-5, 5]) { prop(3, .5, 1.2, 0x7a2a2a, x, 2); prop(3, .9, .3, 0x7a2a2a, x, 2.7); prop(.6, 1.6, .6, 0x2e6b33, x + 2.2, 4); }
+    const ch = new THREE.Mesh(new THREE.SphereGeometry(.6, 32, 16), new THREE.MeshStandardMaterial({ color: 0xffe8a0, emissive: 0xffd870, emissiveIntensity: 1 })); ch.position.set(IX, 3.5, 0); room.add(ch);
+  } else if (["museum", "gallery"].includes(kind)) {
+    for (let i = 0; i < 6; i++) { const f = prop(2.2, 1.6, .08, new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), .5, .5) }), -6 + i * 2.4, -Dp / 2 + .1, 1.4, false); }
+    for (let i = 0; i < 3; i++) { prop(1, 1, 1, 0xf2f2f2, -4 + i * 4, 1.5); const sc = new THREE.Mesh(new THREE.TorusKnotGeometry(.3, .1, 128, 24), new THREE.MeshStandardMaterial({ color: 0xc9a13a, metalness: .9, roughness: .2 })); sc.position.set(IX - 4 + i * 4, 1.5, 1.5); sc.name = "spin"; room.add(sc); }
+  } else if (kind === "cinema") {
+    const scr = prop(14, 5, .1, new THREE.MeshBasicMaterial({ color: 0xdfe8ff }), 0, -Dp / 2 + .1, .6, false); for (let row = 0; row < 4; row++) for (let i = 0; i < 9; i++) prop(.8, .9, .8, 0x7a1a22, -5.6 + i * 1.4, -1 + row * 2);
+  } else if (kind === "library") {
+    for (let row = 0; row < 3; row++) { prop(12, 2.6, .6, 0x5a3e2b, 0, -4 + row * 3.4); for (let i = 0; i < 50; i++) prop(.2, .45, .35, [0x8b2f2f, 0x2f4f8b, 0x2f6b3f, 0xb08a3a][i % 4], -5.8 + i * .24, -4 + row * 3.4 + .35, .3 + (i % 4) * .6, false); }
+  } else {
+    prop(4, 1.1, 1.2, 0x3a3f45, 0, -Dp / 2 + 3); for (const x of [-6, -3.6]) prop(1.8, 3, .1, new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: .9, roughness: .25 }), x, -Dp / 2 + .1, 0, false); prop(.6, 1.6, .6, 0x2e6b33, 7, -4);
+  }
+  // a couple of people inside
+  if (window.PERSON) for (let i = 0; i < 3; i++) { const p = window.PERSON(); p.position.set(IX + r(-6, 6), 0, r(-2, 5)); p.rotation.y = r(0, 6); room.add(p); }
+  return { Wd, Dp };
+}
+function enter(b) {
+  const list = poisIn.get(b) || []; let poi = null, bd = 1e9; for (const q of list) { const d = (q.x - S.p.x) ** 2 + (q.z - S.p.y) ** 2; if (d < bd) { bd = d; poi = q; } }
+  const kind = poi?.kind || "office", name = poi?.name || b.n || street(S.p.x, S.p.y) + " building";
+  const dims = buildRoom(KIND[kind] ? kind : "shop", name);
+  inRoom = { back: S.p.clone(), a: S.a, name, kind, ...dims }; S.p.set(IX, dims.Dp / 2 - 1.5); S.a = -Math.PI / 2;
+}
+function leave() { S.p.copy(inRoom.back); S.a = inRoom.a + Math.PI; S.p.x += Math.cos(S.a) * 1.2; S.p.y += Math.sin(S.a) * 1.2; inRoom = null; room.clear(); }
+const solidOut = solid;
+const solidAny = (x, z) => inRoom ? (Math.abs(x - IX) > inRoom.Wd / 2 - .4 || Math.abs(z) > inRoom.Dp / 2 - .4 || props.some(([a, b, c, d]) => x - IX > a && x - IX < b && z > c && z < d)) : solidOut(x, z);
+
 // nearest street name for the HUD
 const roadIdx = new Map(); D.roads.forEach(r => { if (!r.n) return; for (const [x, z] of r.p) { const k = key(Math.floor(x / 60), Math.floor(z / 60)); if (!roadIdx.has(k)) roadIdx.set(k, []); roadIdx.get(k).push([x, z, r.n]); } });
 function street(x, z) { let best = null, bd = 1e9; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const [px, pz, n] of roadIdx.get(key(Math.floor(x / 60) + i, Math.floor(z / 60) + j)) || []) { const d = (px - x) ** 2 + (pz - z) ** 2; if (d < bd) { bd = d; best = n; } } return best || "Downtown"; }
@@ -90,6 +195,7 @@ const hero = new THREE.Group(); scene.add(hero); let mixer = null, acts = {}, cu
 gl.load(MODELS + "Soldier.glb", g => { const s = g.scene; s.rotation.y = -Math.PI / 2; s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(0xe8b21a), .6); } }); hero.add(s); mixer = new THREE.AnimationMixer(s); for (const c of g.animations) acts[c.name.toLowerCase()] = mixer.clipAction(c); });
 const carG = new THREE.Group(); scene.add(carG);
 gl.load(MODELS + "ferrari.glb", g => { const c = g.scene; c.rotation.y = Math.PI / 2; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); const b = c.getObjectByName("body"); if (b) b.material = new THREE.MeshPhysicalMaterial({ color: 0xc0392b, metalness: .5, roughness: .25, clearcoat: 1 }); carG.add(c); });
+window.PERSON = () => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); g.add(c); } return g; };
 function play(n) { if (!mixer || cur === n || !acts[n]) return; acts[cur]?.fadeOut(.2); acts[n].reset().fadeIn(.2).play(); cur = n; }
 
 // start on Granville at Georgia, facing north toward the harbour; nudge onto open ground if the survey puts us in a lobby
@@ -104,24 +210,30 @@ function frame(now) {
   const f = k("KeyW") || k("ArrowUp"), b = k("KeyS") || k("ArrowDown"), l = k("KeyA") || k("ArrowLeft"), r = k("KeyD") || k("ArrowRight");
   if (S.driving) {
     const c = S.car; c.v += ((f ? 9 : 0) - (b ? 12 : 0)) * dt; c.v *= .992; c.v = Math.max(-6, Math.min(34, c.v)); c.a += ((r ? 1 : 0) - (l ? 1 : 0)) * 1.5 * dt * Math.min(1, Math.abs(c.v) / 6) * Math.sign(c.v) + S.dx * .002; S.dx = 0;
-    const nx = c.p.x + Math.cos(c.a) * c.v * dt, nz = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx + Math.cos(c.a) * 2.2, nz + Math.sin(c.a) * 2.2)) c.v *= -.3; else c.p.set(nx, nz);
+    const nx = c.p.x + Math.cos(c.a) * c.v * dt, nz = c.p.y + Math.sin(c.a) * c.v * dt; if (solidAny(nx + Math.cos(c.a) * 2.2, nz + Math.sin(c.a) * 2.2)) c.v *= -.3; else c.p.set(nx, nz);
     S.p.copy(c.p); S.a = c.a;
   } else {
     S.a += ((r ? 1 : 0) - (l ? 1 : 0)) * 2.2 * dt + S.dx * .004; S.dx = 0;
     const sp = (f ? (k("ShiftLeft") ? 7 : 3.2) : 0) - (b ? 1.6 : 0), nx = S.p.x + Math.cos(S.a) * sp * dt, nz = S.p.y + Math.sin(S.a) * sp * dt;
-    if (!solid(nx, nz)) S.p.set(nx, nz); play(sp > 4 ? "run" : sp ? "walk" : "idle");
+    if (!solidAny(nx, nz)) S.p.set(nx, nz); play(sp > 4 ? "run" : sp ? "walk" : "idle");
   }
+  if (window.SIG) { const ph = Math.floor(now / 1000) % 12, on = ph < 5 ? 2 : ph < 7 ? 1 : 0; SIG.forEach((l, k) => l.material.color.setHex(k === on ? [0xff3b30, 0xffc400, 0x34c759][k] : 0x222222)); }
   mixer?.update(dt);
   hero.visible = !S.driving; hero.position.set(S.p.x, 0, S.p.y); hero.rotation.y = -S.a; hero.scale.setScalar(1);
   carG.position.set(S.car.p.x, 0, S.car.p.y); carG.rotation.y = -S.car.a;
-  const back = S.driving ? 9 : 4.5, up = S.driving ? 3.2 : 2.1;
+  const back = inRoom ? 3.2 : S.driving ? 9 : 4.5, up = inRoom ? 2 : S.driving ? 3.2 : 2.1;
   cam.position.set(S.p.x - Math.cos(S.a) * back, up, S.p.y - Math.sin(S.a) * back); cam.lookAt(S.p.x + Math.cos(S.a) * 6, 1.4, S.p.y + Math.sin(S.a) * 6);
   sun.position.set(S.p.x + sunDir.x * 400, sunDir.y * 400, S.p.y + sunDir.z * 400); sun.target.position.set(S.p.x, 0, S.p.y); sky.position.copy(cam.position);
-  document.getElementById("hud").textContent = `${street(S.p.x, S.p.y)}, Vancouver\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nReal streets from OpenStreetMap. W A S D, Shift run, mouse look, E car`;
+  let hint = ""; if (!inRoom && !S.driving) { const x = S.p.x + Math.cos(S.a) * 2, z = S.p.y + Math.sin(S.a) * 2; const b = (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).find(bb => inside(bb, x, z)); if (b) { const q = (poisIn.get(b) || [])[0]; hint = `\nE to go into ${q ? q.name : b.n || "the building"}`; } }
+  room.children.forEach(o => { if (o.name === "spin") o.rotation.y += dt; });
+  document.getElementById("hud").textContent = (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nReal streets from OpenStreetMap. W A S D, Shift run, mouse look, E car`;
   R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-const toggle = () => { if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.2, S.car.p.y + Math.cos(S.car.a) * 2.2); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; };
+const toggle = () => {
+  if (inRoom) { if (S.p.y > inRoom.Dp / 2 - 3) leave(); return; }
+  if (!S.driving && S.p.distanceTo(S.car.p) >= 5) { for (const d of [1.2, 2, 3]) { const x = S.p.x + Math.cos(S.a) * d, z = S.p.y + Math.sin(S.a) * d; const b = (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).find(bb => inside(bb, x, z)); if (b) return enter(b); } return; }
+  if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.2, S.car.p.y + Math.cos(S.car.a) * 2.2); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; };
 addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
 addEventListener("mousemove", e => S.dx += e.movementX);
@@ -135,5 +247,5 @@ addEventListener("touchmove", e => { for (const t of e.changedTouches) { if (t.i
 addEventListener("touchend", e => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; ["KeyW", "KeyS", "KeyA", "KeyD"].forEach(c => S.keys.delete(c)); } if (t.identifier === lid) lid = null; } });
 R.domElement.addEventListener("touchstart", e => { lid = e.changedTouches[0].identifier; lx = e.changedTouches[0].clientX; }, { passive: true });
 document.getElementById("car").onclick = toggle;
-window.S = S; window.solid = solid;
+window.S = S; window.solid = solid; window.enter = enter; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
 </script></body></html>

@@ -30,6 +30,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.10.0 Real streets (site/city.html): downtown Vancouver built from OpenStreetMap, 3,359 real buildings at real heights, 8,378 streets with names, parks; walk and drive with collision against the real footprints (tools/osm.py)
 
+- v1.11.0 street signs at 641 real intersections, 212 working traffic lights, 1,571 streetlights; walk into any building: 2,609 real named places from OSM, each with an interior built for its kind (cafe, bar, shop, grocery, bank, hotel, museum, cinema, library, lobby) and its real name on the wall
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
