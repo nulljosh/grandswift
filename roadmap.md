@@ -50,6 +50,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.20.0 diverse crowd: 12 realistic people (Microsoft Rocketbox, MIT) with their own walk and idle, 6 on phones; each hero has their own body and Tab swaps it; privacy policy page
 
+- v1.21.0 people walk facing forward, cars stay off parks and beaches, park spawns fall back to your hero's street, Ferrari only for sports cars; README explains how the three versions fit together
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria

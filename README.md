@@ -8,6 +8,17 @@ You start downtown at Granville and Georgia. A short tutorial covers walking, sh
 - Web: open `site/play.html` on a local server (`python3 -m http.server -d site`), or add it to your home screen on iOS or Android.
 - Mac: `./build.sh && open "Rainjack.app"`
 
+## How it fits together
+Three versions of one game, sharing the same rules and the same map data.
+
+1. **Main game** (`site/play.html`). A simplified Vancouver and Victoria with all the gameplay: story missions, cops and stars, three heroes, weapons, weather, saves. Runs on anything, phones included.
+2. **Real Streets** (`site/city.html`). Real downtown built from OpenStreetMap by `tools/osm.py`, the approach from the fable51-worlds repo: real buildings, street names, walk-in shops, traffic, cops and online play. Gameplay from the main game moves here over time.
+3. **Unreal** (`unreal/`, `UNREAL.md`). The high-end version. Google's photorealistic 3D tiles, streamed through Cesium, give the real city its look, and Claude builds it through Unreal's MCP. `unreal/setup_vancouver.py` drops the city in.
+
+The Real Vancouver beta (`site/real.html`) is the same Google tiles in a browser, a preview of what Unreal will show.
+
+Apps for iOS, Mac, Windows, Linux and Android (`apps/`) are thin shells around the live web game, so every platform gets every update at once. The online world is one Cloudflare Durable Object in `worker.js`.
+
 ## Controls
 W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter to attack, F punch, Q fists or pistol, E get in or out of a car, Tab to cycle Joshua, Ben and Alexandre, Esc pause, F full screen. On phones: a stick on the left, drag to look, and buttons on the right.
 
