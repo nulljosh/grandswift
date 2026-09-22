@@ -44,6 +44,21 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 - Interiors that feel lived in (ours are generated rooms).
 - Lighting at night: headlights, neon, wet reflections.
 
+## Unreal build: gaps against GTA 5, in build order
+
+- [ ] Driving QA passes: E in, W drives, E out (python3 unreal/qa.py drive).
+- [ ] Core Data look: fair freckled skin, curly ginger hair, male body, black crewneck over a white collar.
+- [ ] Smooth walk: hidden mannequin drives, Joshua's body follows (leader pose, wired, needs a PIE check).
+- [ ] Fast travel on Tab between Vancouver, Victoria, Seattle, Toronto, New York (unreal/fasttravel.dsl).
+- [ ] Cops and stars (docs/COPS.md): BP_Heat, pursuit cars, search circle.
+- [ ] Minimap top right: top-down scene capture of the Google tiles, stars beside it.
+- [ ] Apple Store opener: two employees chase you out, Mac minis line in the corner.
+- [ ] Pawn shop on Granville, cash counter.
+- [ ] Guns: rifle from the first-person template on a third-person aim.
+- [ ] Ben and Alexandre as switchable MetaHumans (face scans).
+- [ ] Missions 5 to 14 from docs/STORY.md.
+- [ ] Mac .app release, splash and loading screen while the city streams in.
+
 ## Gaps against GTA 5
 
 - Three full characters with their own stories, not just perks.
