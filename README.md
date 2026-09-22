@@ -15,6 +15,9 @@ Rent is four grand and it rains nine months a year. Steal a car on Granville, ro
 
 It's the real city: the Unreal build streams Google's 3D scan of Vancouver, so you start outside the actual Apple Store on Georgia. Play as Joshua downtown, Ben in Kits or Alexandre in Victoria, and switch any time.
 
+## Cast
+Your family gets pulled in. Brian, your dad, has the garage, the boat, and a thing he wants back: his hard drive. Christine calls at terrible moments. Sarah is smarter than all three of you and refuses to help. Then she's the best one on the job.
+
 | | |
 |---|---|
 | <img src="docs/img/vv-downtown.jpg" alt="Downtown Vancouver towers streamed into Unreal"> | <img src="docs/img/unreal-joshua.jpg" alt="Joshua's face scan as the player in Unreal"> |

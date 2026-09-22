@@ -3,7 +3,7 @@
 All the releases, newest first. Every version is tagged on GitHub with builds attached.
 
 ## 1.27 (unreleased)
-You're in the game. An iPhone face scan becomes a rigged MetaHuman on the player, in tortoise Armanis, walking the real Vancouver in Unreal. The story opens mid-heist: run out of the Apple Store on Georgia with a bag of Mac minis, jack the sports car at the curb (E), lose the cops, pawn the minis on Granville. Tab fast-travels between Vancouver, Victoria, Seattle, Toronto and New York. Sharper map, solid walls. README and landing show the Unreal build.
+You're in the game. An iPhone face scan becomes a rigged MetaHuman on the player, in tortoise Armanis, walking the real Vancouver in Unreal. The story opens mid-heist: run out of the Apple Store on Georgia with a bag of Mac minis, jack the sports car at the curb (E), lose the cops, pawn the minis on Granville. Tab fast-travels between Vancouver, Victoria, Seattle, Toronto and New York. Sharper map, solid walls. Story script and family cast (Brian, Christine, Sarah) wired in. README and landing show the Unreal build.
 
 ## 1.26 (2026-09-22)
 The Stanley Park geese have chosen violence. New icon (skyline, the Harbour Centre lookout, the SeaBus). Online play test suite. play.html split into files. Everything renamed to vancouvervice. Whitepaper and architecture diagram.
