@@ -32,7 +32,7 @@ const r = await p.evaluate(async () => { const w = ms => new Promise(r => setTim
   o.spawnOnRoad = !GS.solid(G.player.x, G.player.y);
   o.pedsWalkable = G.peds.every(q => !GS.solid(q.p.x, q.p.y));
   G.keys.add("KeyW"); const x0 = G.player.x; await w(700); G.keys.delete("KeyW"); o.walks = Math.abs(G.player.x - x0) > 5 || true;
-  G.pa = 0; G.weapon = 0; const v = { p: { x: G.player.x + 14, y: G.player.y }, a: 0, t: 0, angry: false }; G.peds.push(v);
+  G.paused = false; G.driving = null; G.player = { x: 8 * 260 + 40, y: 5 * 260 + 40 }; G.pa = 0; G.weapon = 0; const v = { p: { x: G.player.x + 14, y: G.player.y }, a: 0, t: 0, angry: false }; G.peds.push(v);
   for (let i = 0; i < 3; i++) { v.p = { x: G.player.x + 14, y: G.player.y }; GS.punch(); await w(450); }
   o.punchKills = !!v.dead; o.bodyStays = G.peds.includes(v); o.punchStar = G.wanted >= 1;
   G.weapon = 2; const t = { p: { x: G.player.x + 60, y: G.player.y }, a: 0, t: 0 }; G.peds.push(t); G.shotAt = 0; GS.shoot(); o.shotgun = !!t.dead;

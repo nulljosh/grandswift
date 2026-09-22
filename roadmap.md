@@ -52,6 +52,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.21.0 people walk facing forward, cars stay off parks and beaches, park spawns fall back to your hero's street, Ferrari only for sports cars; README explains how the three versions fit together
 
+- v1.22.0 no soldier flash on load (hero waits for the real body), lighter frame (fewer walkers, animation only nearby, no GTAO), a proper pistol held in the right hand, Mac app identifies itself for the native mouse lock, sturdier web test
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria

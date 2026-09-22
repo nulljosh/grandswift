@@ -310,7 +310,7 @@ const toggle = () => {
 addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
 // the Mac app (WKWebView, no "Safari/" in its UA) sends raw deltas through GS_mouse instead
-const IN_MAC_APP = /Macintosh/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent);
+const IN_MAC_APP = /RainjackApp/.test(navigator.userAgent);
 window.GS_mouse = (dx) => { S.dx += dx; };
 addEventListener("mousemove", e => { if (IN_MAC_APP) return; S.dx += e.movementX; });
 R.domElement.addEventListener("click", () => R.domElement.requestPointerLock?.());

@@ -133,7 +133,7 @@ const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NA
 G.target = { x: 9 * block + 170, y: 2 * block + 40 }; const walkFrom = { ...G.player };
 const streetPoint = () => { for (;;) { const p = roadPoint(); if (!carBlocked(p.x, p.y)) return p; } };
 for (let i = 0; i < 55; i++) { const p = streetPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 5 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
-for (let i = 0; i < 100; i++) G.peds.push(sidewalkPed(roadPoint()));
+for (let i = 0; i < (TOUCH ? 35 : 60); i++) G.peds.push(sidewalkPed(roadPoint()));
 G.cars.forEach(c => c.ai && lane(c));
 
 // ---- sound
@@ -337,7 +337,7 @@ function tick(dt) {
     move(c, dt);
   });
   if (G.driving !== null) { const c = G.cars[G.driving]; if (Math.abs(c.v) > 120) G.peds.forEach((p, i) => { if (!p.dead && dist(p.p, c.p) < 20) { killPed(i); G.score -= 10; } }); }
-  if (living().length < 90) G.peds.push(sidewalkPed(roadPoint()));
+  if (living().length < (TOUCH ? 30 : 55)) G.peds.push(sidewalkPed(roadPoint()));
   G.peds = G.peds.filter(p => !p.dead || (p.dead += dt) < 30);
   if (G.cars.filter(c => c.cop).length < [0, 1, 2, 4, 6, 8][G.wanted]) { let p = roadPoint(); while (dist(p, G.player) < 500) p = roadPoint(); G.cars.push({ p, a: 0, v: 0, color: 0x2244cc, cop: true, ai: false, kind: 0, hp: 3 }); }
   for (const c of G.cars) {
@@ -490,7 +490,16 @@ function person(color) {
   n.add(body, head); scene.add(n); return n;
 }
 // Joshua wears the Vancouver uniform: a yellow rain jacket with the hood up
-let hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); hero.hood = hood; } const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
+let hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); hero.hood = hood; } const gun = (() => { // a proper pistol: slide, frame, barrel, angled grip, trigger guard; gunmetal and polymer
+  const g = new THREE.Group(), metal = new THREE.MeshStandardMaterial({ color: 0x2b2e33, metalness: .85, roughness: .3 }), poly = new THREE.MeshStandardMaterial({ color: 0x141517, roughness: .7 });
+  const slide = new THREE.Mesh(new RoundedBoxGeometry(2.6, .55, .42, 3, .06), metal); slide.position.set(.3, .45, 0);
+  const frame = new THREE.Mesh(new RoundedBoxGeometry(2.1, .35, .38, 3, .05), poly); frame.position.set(.15, .05, 0);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .3, 20), metal); barrel.rotation.z = Math.PI / 2; barrel.position.set(1.65, .45, 0);
+  const grip = new THREE.Mesh(new RoundedBoxGeometry(.55, 1.3, .4, 3, .08), poly); grip.position.set(-.6, -.55, 0); grip.rotation.z = .28;
+  const guard = new THREE.Mesh(new THREE.TorusGeometry(.26, .05, 10, 24, Math.PI), poly); guard.position.set(.05, -.18, 0); guard.rotation.z = Math.PI;
+  const trig = new THREE.Mesh(new THREE.BoxGeometry(.06, .28, .08), metal); trig.position.set(.05, -.2, 0);
+  const sight = new THREE.Mesh(new THREE.BoxGeometry(.12, .1, .1), metal); sight.position.set(1.4, .77, 0);
+  g.add(slide, frame, barrel, grip, guard, trig, sight); g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return g; })(); gun.position.set(7, 14, 4); hero.add(gun);
 function carMesh(c) {
   if (FERRARI && c.kind === 3) {
     const n = new THREE.Group(), car = FERRARI.clone(true); car.scale.setScalar(9.2); car.rotation.y = Math.PI / 2; car.position.y = -8;
@@ -510,10 +519,7 @@ function carMesh(c) {
   scene.add(n); return n;
 }
 let carM = [], pedM = [];
-gltf.load(MODELS + "Soldier.glb", g => {
-  SOLDIER = g;
-  if (!hero.gl) hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (!hero.gl) hero.body = null; if (!hero.gl) soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); if (hero.mix?.acts.run === undefined) tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13.5, 3);
-}, undefined, e => console.warn("character model failed, keeping shapes", e));
+// ponytail: soldier rig retired, the hero waits for his real body (hero.glb) instead of flashing armour
 const reCrowd = () => { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); };
 gltf.load("models/hero.glb", g => { JOSH = g; if (G.heroes[G.cur].name === "Joshua") dressHero("Joshua"); }, undefined, e => console.warn("hero body failed", e));
 // crowd: 12 realistic people (Microsoft Rocketbox, MIT), each with its own walk and idle
@@ -522,11 +528,14 @@ const BODY = {}; let peopleReady = false;
 PEOPLE.forEach(n => gltf.load(`models/people/${n}.glb`, g => { BODY[n] = g; CROWD.splice(0, CROWD.length, ...Object.values(BODY).map(src => ({ src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "idle" } }))); if (!peopleReady && Object.keys(BODY).length >= Math.min(4, PEOPLE.length)) { peopleReady = true; reCrowd(); } }, undefined, e => console.warn("person failed", n, e)));
 // each hero has a body; Tab swaps it
 const HERO_BODY = { Joshua: "hero", Ben: "male_adult_05", Alexandre: "male_adult_09" };
+let heroReady = false;
 function dressHero(name) {
   const key = HERO_BODY[name], src = key === "hero" ? JOSH : BODY[key]; if (!src) return;
   if (hero.gl) hero.remove(hero.gl); hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; hero.mix = null;
   rigFor(hero, 0xffffff, key === "hero" ? { src, turn: Math.PI / 2, map: { walk: src.animations[0]?.name, run: src.animations[0]?.name, idle: src.animations[0]?.name } } : { src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "walk" } });
-  hero.mix.acts.run = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
+  hero.mix.acts.run = hero.mix.acts.walk; heroReady = true;
+  let hand = null; hero.gl.traverse(o => { if (!hand && o.isBone && /right.?hand$|r.?hand$|R_Hand/i.test(o.name)) hand = o; });
+  if (hand) { hand.add(gun); const k = 1 / hero.gl.scale.x; gun.scale.setScalar(k); gun.position.set(0, 4 * k, 1.2 * k); gun.rotation.set(0, 0, -Math.PI / 2); } else { hero.add(gun); gun.scale.setScalar(1); gun.position.set(6, 13.5, 3); }
 }
 let JOSH = null;
 if (false) gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
@@ -551,10 +560,10 @@ function sync(now) {
   const bm = booms[booms.length - 1]; if (bm && (bm.t += 1 / 60) < .6) { boomMesh.visible = true; boomMesh.position.set(bm.x, 20, bm.y); boomMesh.scale.setScalar(10 + bm.t * 140); boomMesh.material.opacity = 1 - bm.t / .6; } else boomMesh.visible = false;
   G.peds.forEach(p => { const m = p.m; m.position.set(p.p.x, 0, p.p.y);
     if (p.dead) { const f = Math.min(1, p.dead * 3); m.rotation.set(f * Math.PI / 2, -p.a, 0, "YXZ"); m.position.y = f * 3; return; }
-    if (m.mix && dist(p.p, G.player) < 600) { const st = p.scared > 0 || p.angry || p.walkUp ? "run" : p.say ? "idle" : "walk"; setAnim(m, st); const sp = st === "run" ? (p.scared > 0 ? 90 : p.angry ? 80 : 45) : 30 * (p.hood?.slow || 1); if (m.mix.acts[st]) m.mix.acts[st].timeScale = st === "idle" ? 1 : sp / (st === "run" ? 50 : 19); m.mix.mixer.update(1 / 60); }
+    if (m.mix && dist(p.p, G.player) < 320) { const st = p.scared > 0 || p.angry || p.walkUp ? "run" : p.say ? "idle" : "walk"; setAnim(m, st); const sp = st === "run" ? (p.scared > 0 ? 90 : p.angry ? 80 : 45) : 30 * (p.hood?.slow || 1); if (m.mix.acts[st]) m.mix.acts[st].timeScale = st === "idle" ? 1 : sp / (st === "run" ? 50 : 19); m.mix.mixer.update(1 / 60); }
     m.rotation.set(0, -p.a, 0); m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); m.arms[1].rotation.z = p.punching > 0 ? 1.5 : 0; });
   const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
-  hero.visible = G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
+  hero.visible = heroReady && G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
   hero.arms[1].rotation.z = performance.now() - (G.punchAt || 0) < 200 ? 1.6 : 0; hero.arms[0].rotation.z = G.weapon ? .9 : 0; gun.visible = !!G.weapon;
   const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); if (hero.mix) { const w = hero.mix.acts.walk || hero.mix.acts.run; if (hero.mix.acts.run !== w) { setAnim(hero, moving ? "run" : "idle"); const a = hero.mix.acts.run; if (a) a.timeScale = (fast ? 270 : 140) * perk("run") / 50; } else if (w) { w.timeScale = moving ? (fast ? 270 : 140) * perk("run") / 19 : 0; } hero.mix.mixer.update(1 / 60); } // run cycle covers ~50 units/s at 1x, match it to real speed
   hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
@@ -597,7 +606,7 @@ let composer = null;
 if (post) {
   composer = new EffectComposer(R); composer.setPixelRatio(devicePixelRatio);
   composer.addPass(new RenderPass(scene, cam));
-  const ao = new GTAOPass(scene, cam, innerWidth, innerHeight); ao.blendIntensity = .8; ao.updateGtaoMaterial({ radius: 12, distanceFallOff: 1, thickness: 4 }); composer.addPass(ao);
+  // ponytail: GTAO dropped for frame rate; SMAA stays
   composer.addPass(new OutputPass());
   composer.addPass(new SMAAPass(innerWidth * devicePixelRatio, innerHeight * devicePixelRatio));
 }
@@ -635,7 +644,7 @@ addEventListener("mouseup", () => G.mouseHeld = false);
 R.domElement.addEventListener("mousedown", () => { G.mouseHeld = !!document.pointerLockElement; if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
 // mouse always steers the camera; click locks it for endless turning
 // the Mac app (WKWebView, no "Safari/" in its UA) sends raw deltas through GS_mouse instead
-const IN_MAC_APP = /Macintosh/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent);
+const IN_MAC_APP = /RainjackApp/.test(navigator.userAgent);
 window.GS_mouse = (dx, dy) => { if (G.paused) return; G.mouseDX += dx; G.pitch = Math.max(-.6, Math.min(.5, (G.pitch || 0) + dy * .003)); G.mouseHeld = false; };
 addEventListener("mousemove", e => { if (G.paused || IN_MAC_APP) return; G.mouseDX += e.movementX; G.pitch = Math.max(-.6, Math.min(.5, (G.pitch || 0) + e.movementY * .003)); });
 document.addEventListener("pointerlockchange", () => { if (!document.pointerLockElement && !G.paused && G.step > 0) setPause(true); });
