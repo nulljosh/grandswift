@@ -1,0 +1,31 @@
+name: Release apps
+on:
+  push: { tags: ["v*"] }
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  desktop:
+    strategy: { matrix: { os: [windows-latest, ubuntu-latest] } }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install && npm run dist
+        working-directory: apps/desktop
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with: { files: "apps/desktop/dist/*.exe\napps/desktop/dist/*.AppImage\napps/desktop/dist/*.deb" }
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - run: gradle assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk GrandSwift-android.apk
+        working-directory: apps/android
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with: { files: apps/android/GrandSwift-android.apk }
