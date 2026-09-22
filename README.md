@@ -26,15 +26,15 @@ Nine real landmarks: Canada Place, Harbour Centre, the Gastown steam clock, the 
 ## How it stacks up
 Graded honestly against the real thing.
 
-| Game | Grade | Why |
-|---|---|---|
-| GTA 1/2 (top down, 1997) | B+ | Same loop: steal, drive, stars, missions. It's also 3D and runs on phones. |
-| GTA 3 (2001) | D+ | The shape is right: third person, stars, missions, a real city. What's missing: a story, voices, radio, car damage, physics, weapon variety, interiors, a map bigger than downtown. |
-| GTA 4 (2008) | F | No physics engine, no ragdolls, blocky people, and a city made of boxes. |
-| GTA 5 (2013) | F | That game had a thousand people working on it for five years. |
-| GTA 6 (previews) | F | Photoreal streets and crowds. That calls for a real engine and real map data. |
+| Game | Grade | What we have | Biggest gaps |
+|---|---|---|---|
+| GTA 1/2 | A- | Steal, drive, stars, missions, a real city, phones | Nothing big. It's past this. |
+| GTA 3 | C | Third person, fists and a pistol, five star heat, cops that shoot back, missions, rain, day and night, neighbourhoods | Story and cutscenes, voice acting, radio, more weapons, car damage and explosions, a map a lot bigger than downtown, interiors, saving |
+| GTA 4 | D | Street life, people who react, a real city in the beta | Physics and ragdolls, animated people instead of posed ones, driving that feels heavy, a dense city with real buildings in the main game, phone and friends |
+| GTA 5 | F | Two heroes you swap between | Three full characters with stories, heists, huge map with countryside and water, planes, online, skills |
+| GTA 6 (previews) | F | Photoreal streets only in the Real Vancouver beta | Crowds of hundreds, photoreal everything, full physics, a whole state to explore |
 
-The honest ceiling for this codebase is a solid GTA 2 to GTA 3. Getting anywhere near GTA 4 or later means changing engines, not polishing this one.
+The quickest wins toward GTA 3: radio stations, car damage and explosions, a second and third weapon, a save, and a story mission chain. Toward GTA 4 and up: move the game onto the real city (the beta) and then onto Unreal.
 
 ## The GTA 4+ path
 Two resources make that possible, and neither is set up yet:
