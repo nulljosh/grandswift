@@ -10,9 +10,9 @@ You switch between them any time. Their stories cross at the heist.
 
 ## Family
 
-**Dad** has a garage, a boat and a lot of opinions. He lent Joshua his external hard drive two years ago and asks about it in every single scene.
-**Mom** calls at the worst possible moments. Mid-chase, mid-heist, mid-shootout. You can pick up or let it ring, and she remembers which.
-**Joshua's sister** is smarter than all three heroes combined and knows it. She won't help. Then she does, and she's the best one on the job.
+**Brian**, Joshua's dad, has a garage, a boat and a lot of opinions. He lent Joshua his external hard drive two years ago and asks about it in every single scene.
+**Christine**, Joshua's mom, calls at the worst possible moments. Mid-chase, mid-heist, mid-shootout. You can pick up or let it ring, and she remembers which.
+**Sarah**, Joshua's sister, is smarter than all three heroes combined and knows it. She won't help. Then she does, and she's the best one on the job.
 
 ## Act one: Joshua gets in over his head
 
@@ -42,7 +42,7 @@ You switch between them any time. Their stories cross at the heist.
 - **Loud:** hit the armoured truck on the Lions Gate Bridge.
 - **Quiet:** crash the presale party dressed as realtors and walk the cash out the front.
 
-**11. Crew and gear.** Pick a driver and a hacker from people you've met. Your sister is the best hacker in the city. She says no. Do a favour for her first (drive her to a job interview in Burnaby, on time, no cops) and she's in.
+**11. Crew and gear.** Pick a driver and a hacker from people you've met. Sarah is the best hacker in the city. She says no. Do a favour for her first (drive her to a job interview in Burnaby, on time, no cops) and she's in.
 
 **12. The score.** Pull the job. Each hero handles one part and you switch between them mid-heist.
 
