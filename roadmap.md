@@ -1,93 +1,77 @@
 # Vancouver Vice roadmap
 
-A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully fledged.
+The goal: a GTA-style game set in the real Vancouver, good enough that friends play it for real. Measured honestly against GTA 3 through GTA 6.
 
-## Shipped
-- v0.1.0 top-down city, cars, cops, wanted stars
-- v0.2.0 Vancouver map, street names, minimap
-- v0.3.0 first person SceneKit, traffic, lane lines, Dock icon, app bundle
-- v0.4.0 guns, car types, sidewalk walkers, synth sound, Victoria, Joshua/Alexandre swap, headless QA (`GS_QA=1 ./grandswift`, 15 checks)
+## Where we are (end of 2026-09-21)
 
-- v1.0.0 tutorial, delivery missions, mouse look, day/night cycle, README, 22 QA checks
+Built in one day. Live at vancouvervice.heyitsmejosh.com, repo nulljosh/vancouvervice (local folder is still `~/Documents/Code/rainjack`).
 
-- v1.1.0 third person camera, pause menu, full screen, sharper textures, single instance, landing page (not deployed yet), CI
+- **Main game** (`site/play.html`): simplified Vancouver and Victoria. Fists, pistol, shotgun, SMG. Cars that smoke, burn and explode. Five-star cops that shoot back. Five story missions then endless side jobs. Three heroes with perks (Joshua in Gastown, Ben in Kits, Alexandre in Victoria), switched with a GTA V style camera flight. XP, levels, ten achievements, saves, live Vancouver weather, radio stations, neighbourhood crowds, strangers who bump, chat or fight.
+- **Real streets** (`site/city.html`): downtown built from OpenStreetMap. 3,359 real buildings, 8,378 named streets, signs, traffic lights, streetlights, 140 cars in traffic, cop chases, walk-in interiors for 2,609 real places, 7-Eleven robberies, online play for everyone on the page. Victoria (`?area=victoria`, Tab flies there), Kits and Langley data exist. SkyTrain guideway, stations and one moving train are scaffolded.
+- **Real Vancouver beta** (`site/real.html`): Google photorealistic 3D tiles through Cesium.
+- **People:** 12 realistic Microsoft Rocketbox people (MIT) plus a Mixamo hero, converted with Blender.
+- **Apps:** native shells on every platform. Windows in C# (WPF plus WebView2), Linux in C (GTK plus WebKitGTK), Mac and iOS in SwiftUI, Android in Java. No Electron.
+- **Quality:** CI builds every platform and runs a 31-check web suite, a city gameplay test, map data tests and a Mac self-test.
 
-- v1.2.0 web build (site/play.html, three.js) is the lead: runs on Mac, Windows, Linux, iOS and Android browsers, installable as a PWA, touch controls. GTA style heat and stars (punch 1, kill 2, cops push to 5), cops shoot back, health, WASTED, aim assist, fists, missions (deliver, taxi, evade), XP and levels, 10 achievements, run and jump, 9 real landmarks, English Bay and Kits beaches, Lions Gate. Car stays visible when driving.
+Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 
-- v1.3.x all platforms (iOS, Mac, Windows, Linux, Android shells), Real Vancouver beta on Google 3D Tiles, AO + SMAA sharpness pass, mouse camera, punching with fight back or flee, bodies fall over
+## Next up, in order
 
-- v1.4.0 smooth people (shaped torso, hands, shoes, varied skin and hair), 100 walkers and 44 cars in lanes, neighbourhoods with their own crowds and lines, strangers who bump, chat or fight, speech bubbles, traffic, bird, gull and rain sound, rain that comes and goes
+1. **Unreal version.** UE 5.8.2 is installing to `/Volumes/LaCie/UE_5.8` (Epic's launcher is slow and crashed once; press Resume). When `UnrealEditor.app` exists: create a Third Person project, enable the Unreal MCP, Python and Cesium for Unreal plugins, add the Unreal MCP to Claude, run `unreal/setup_vancouver.py` with `CESIUM_ION_TOKEN` from `.env`. See `UNREAL.md`.
+2. **Funny Vancouver chaos** (Joshua asked for all of these, GTA-style satire, nobody vulnerable as the punchline): bike lane rage cyclist, seagulls steal your hot dog at English Bay, SkyTrain surfing, crypto bro in a Patagonia vest, condo presale campout brawl, rain rage road fights, Stanley Park geese, Lululemon sale stampede in Kits, Tesla bros drag racing in Coal Harbour, film crew blocking the street (steal the prop cop car), weed delivery mission, open house real estate agent chasing you, 2011-style hockey riot, wet coast driver doing 30 in the fast lane.
+3. **Move gameplay onto the real streets.** Missions, heroes, weapons, radio and weather from the main game, running on the OpenStreetMap city. Eventually the real streets become the main game.
+4. **SkyTrain for real.** Ride it (enter at a station, fast travel between stations), trains on every line, underground sections downtown instead of the elevated scaffold, SkyTrain surfing.
+5. **Bigger map.** Join downtown, Kits, Burnaby, Richmond, North Shore, Surrey and Langley into one city with streaming. Bridges and the Sea to Sky.
+6. **Real Victoria gameplay.** The ferry from Tsawwassen, Alexandre's missions, the Legislature, the Inner Harbour.
 
-- v1.5.0 shotgun and SMG, car damage and explosions, radio stations, saves, five-mission story, live Vancouver weather (Open-Meteo), welcome card and clearer tutorial, Esc menu with Save and Exit, error handling, 31-check web test suite in CI, live demo on the landing page, Mac app icon and full screen
+## Gaps against GTA 3
 
-- v1.6.0 three heroes: Joshua (Gastown, yellow rain jacket, +50% cash, cools heat fast), Ben (Kitsilano, fastest, two-punch KOs), Alexandre (Victoria, steady aim, faster cars, armour); deterministic native test; QA playthrough fixes
+- A story with characters, cutscenes and a reason to care. We have five text missions.
+- Voice acting or at least voiced one-liners.
+- Real radio stations with DJs and ads (ours are procedural beats).
+- More weapons (bat, knife-free melee, rifle, grenades), weapon pickups and ammo shops.
+- Hospitals and police stations you respawn at, safehouses you save at.
+- Vehicle variety: bikes, boats (the harbour), a helicopter.
+- Car damage that shows (dents, lost doors), not just smoke and fire.
 
-- v1.7.0 real models: animated rigged people (walk, run, idle) and real car models (Ferrari 458, CC-BY), shapes as fallback
+## Gaps against GTA 4
 
-- v1.8.0 real ocean (reflective animated water), physical sky with a moving sun, Kits Beach with textured and wet sand, foam, driftwood logs, lifeguard towers, volleyball nets, towels and umbrellas; CI web test no longer flaky
+- Physics: ragdolls, heavy driving, crashes that feel real.
+- Animation: people who stumble, fall, get up, react, not just walk and idle.
+- A phone: calls, texts, contacts, mission givers.
+- Pedestrians with daily routines, jobs, homes, conversations.
+- Interiors that feel lived in (ours are generated rooms).
+- Lighting at night: headlights, neon, wet reflections.
 
-- v1.9.0 renamed to Vancouver Vice: repo nulljosh/vancouvervice, vancouvervice.heyitsmejosh.com (old domain redirects), apps and docs; Android activity was never committed (gitignore matched it), fixed
+## Gaps against GTA 5
 
-- v1.10.0 Real streets (site/city.html): downtown Vancouver built from OpenStreetMap, 3,359 real buildings at real heights, 8,378 streets with names, parks; walk and drive with collision against the real footprints (tools/osm.py)
+- Three full characters with their own stories, not just perks.
+- Heists: plan, pick a crew, pull the job.
+- A big map with countryside, mountains, water, air.
+- Property, businesses, stocks.
+- Online modes: races, deathmatch, shared cops and heists.
 
-- v1.11.0 street signs at 641 real intersections, 212 working traffic lights, 1,571 streetlights; walk into any building: 2,609 real named places from OSM, each with an interior built for its kind (cafe, bar, shop, grocery, bank, hotel, museum, cinema, library, lobby) and its real name on the wall
+## Gaps against GTA 6 (previews)
 
-- v1.12.0 store crime: walk into a real 7-Eleven or shop, rob the till (G, two stars) or stop a robbery in progress (F, $200 reward); drunks start fights; cash, health and stars on the real-streets map
+- Photoreal everything: this is the Unreal plus Google tiles path.
+- Crowds of hundreds with unique faces (MetaHumans).
+- Social media satire inside the game (an in-game Instagram and TikTok).
+- Weather and time that change how the city behaves.
 
-- v1.13.0 real-streets detail: 1024px facades with frames and floor lines, storefront glass on every ground floor, rooftop AC and water tanks, raised sidewalks, street trees, glass reflections, AO + SMAA
+## Quick polish list (small, any session)
 
-- v1.14.0 online: one shared Vancouver on a Cloudflare Durable Object, players see each other live on the real streets with name tags; landing and README updated
+- Better car models (more than the Ferrari): search MIT or CC0 glTF cars.
+- More people models: the rest of the Rocketbox set, plus Mixamo characters.
+- Add the vancouvervice domain to the Cesium token so the 3D beta works there.
+- Signing keys for Windows, Mac notarisation and Android so apps install without warnings (`apps/README.md`).
+- App Store: screenshots, description, privacy answers, $0.99 upfront per GTM.md.
+- Refresh README screenshots (the 7-Eleven shot still shows the old soldier model).
+- Move the old technical README notes into `docs/ARCHITECTURE.md`.
 
-- v1.15.0 traffic on the real streets: 140 cars drive real road centre lines, keep right, turn at road ends, can hit you
+## How to pick this up
 
-- v1.16.0 cops on the real streets: police cars spawn by stars, chase you through real downtown with flashing bars, bust you (fine a third of your cash); ramming traffic earns a star; stars cool one at a time out of sight
+Open Claude Code in `~/Documents/Code/rainjack` and paste:
 
-- v1.17.0 real people: Remy from Mixamo (converted in Blender, Draco compressed) is the hero on the real streets
-
-- v1.18.0 no more key beeps in the Mac app, native mouse lock in the Mac app (WKWebView has no Pointer Lock), walk and run cycles matched to real speed so feet stop sliding; Blender MCP hooked up
-
-- v1.19.0 Remy is the hero and part of the crowd in the main game too; Mac app mouse deltas batched per frame for smooth look
-
-- v1.20.0 diverse crowd: 12 realistic people (Microsoft Rocketbox, MIT) with their own walk and idle, 6 on phones; each hero has their own body and Tab swaps it; privacy policy page
-
-- v1.21.0 people walk facing forward, cars stay off parks and beaches, park spawns fall back to your hero's street, Ferrari only for sports cars; README explains how the three versions fit together
-
-- v1.22.0 no soldier flash on load (hero waits for the real body), lighter frame (fewer walkers, animation only nearby, no GTAO), a proper pistol held in the right hand, Mac app identifies itself for the native mouse lock, sturdier web test
-
-- v1.23.0 GTA V style character switch (camera lifts off, flies over the map, drops onto the next hero), clearer grouped tutorial card, Codex PRs merged: city gameplay tests, Kits and Victoria map data with real coastline water, native icons and splash screens
-
-## Next
-- [ ] Move missions, cops, crowds and stars onto the real-streets map
-- [ ] Coastline and water from OSM, Kits and Victoria
-- [x] Online: one shared server (v1.14.0)
-- [ ] Online chat, shared cops and stars
-- [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)
-- [ ] Detailed CC0 civilian characters with faces and clothes (gap vs GTA 3/4)
-- [x] Mouse look
-- [ ] Hood/dashboard view in cars, car damage and smoke
-- [ ] Missions (a pickup, a chase, a hit), cash pickups, respawn at hospital
-- [ ] Weapon switching (fists, pistol, shotgun), cops shooting back
-- [ ] Day/night cycle and rain (it is Vancouver)
-- [ ] Radio stations
-- [ ] Real ferry to Victoria instead of a causeway
-- [ ] Inactive hero visible in the world
-
-## Cross platform
-SwiftUI + SceneKit + AppKit are Apple only, so Windows and Linux need a port, not a flag.
-- [ ] Pull the sim (Game, map, QA) into a pure Swift module with no Apple imports
-- [ ] Windows/Linux front end: Swift + raylib (C, links everywhere), or a Godot port. raylib keeps the Swift sim.
-- [ ] CI builds for macOS, Windows, Linux and attaches all three to each GitHub release
-
-## Joshua Tree port
-Joshua Tree is our from-scratch i386 kernel. No GPU, no Swift runtime there.
-- [ ] Rewrite the sim in C (it is ~150 lines of logic)
-- [ ] Software raycaster renderer (Wolfenstein style) on the JT framebuffer, keyboard via its PS/2 driver
-- [ ] Ship as a JT app next to Stocks/Epiphany
-
-## Resources
-- Google Maps Platform Photorealistic 3D Tiles via Cesium: real Vancouver geometry. Needs a Maps API key and a 3D Tiles loader.
-- Unreal MCP in Unreal Editor (UE 5.8 docs): Claude drives the editor directly. Real GTA 4 look = Unreal + Cesium + Google tiles, as a separate project.
-
-## Native store apps
-- [ ] iOS/Android store builds: wrap site/play.html (WKWebView on iOS, a WebView shell or Capacitor on Android). Until then the PWA installs from the browser on both.
-- [ ] Native Mac build still lacks stars, missions, XP and landmarks from the web build. Port or make the Mac app a WebView of play.html.
+```
+/loop Work through roadmap.md for Vancouver Vice, top to bottom. One item per round: build it, test it headless (node tests/web.mjs, node tests/city.mjs), deploy with npx wrangler deploy, commit, tag a release, update the landing page and README if it's user-facing, and check it off here. Keep usage lean: one Haiku subagent at most. Self-grade honestly against GTA 3 after each round.
+```

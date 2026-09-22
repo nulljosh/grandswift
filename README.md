@@ -34,3 +34,5 @@ Better looking people. A real story. The whole Lower Mainland. And a version bui
 
 ---
 <sub>MIT license. Map data © OpenStreetMap contributors. People by Microsoft Rocketbox (MIT). Car model by vicent091036 (CC-BY 4.0). Privacy: [vancouvervice.heyitsmejosh.com/privacy.html](https://vancouvervice.heyitsmejosh.com/privacy.html).</sub>
+
+<sub>[Changelog](CHANGELOG.md) · [Roadmap](roadmap.md) · [How it works](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)</sub>

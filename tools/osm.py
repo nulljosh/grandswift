@@ -11,6 +11,7 @@ AREAS = {
     "downtown": ((49.2833, -123.1187), (49.2690, -123.1500, 49.2960, -123.0950)),
     "kits": ((49.2690, -123.1575), (49.2620, -123.1750, 49.2760, -123.1400)),
     "victoria": ((48.4250, -123.3650), (48.4150, -123.3800, 48.4350, -123.3500)),
+    "langley": ((49.1044, -122.6604), (49.0950, -122.6750, 49.1120, -122.6450)),
 }
 
 
@@ -77,7 +78,9 @@ def main():
  way["natural"="water"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
  node["shop"]["name"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
  node["amenity"~"^(cafe|restaurant|bar|pub|fast_food|bank|pharmacy|cinema|nightclub|ice_cream|library)$"]["name"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
- node["tourism"~"^(hotel|museum|gallery)$"]["name"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}););
+ node["tourism"~"^(hotel|museum|gallery)$"]["name"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+ way["railway"~"^(light_rail|subway)$"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
+ node["railway"="station"]["name"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}););
 out geom;"""
 
     for endpoint in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
@@ -92,16 +95,19 @@ out geom;"""
             if "kumi" in endpoint:
                 raise
 
-    out = {"origin": [lat0, lon0], "buildings": [], "roads": [], "parks": [], "water": [], "pois": []}
+    out = {"origin": [lat0, lon0], "buildings": [], "roads": [], "parks": [], "water": [], "pois": [], "rail": [], "stations": []}
     coasts = []
     for el in data["elements"]:
         t, g = el.get("tags", {}), el.get("geometry")
         if el["type"] == "node":
             kind = t.get("amenity") or t.get("tourism") or ("grocery" if t.get("shop") in ("supermarket", "convenience", "grocery") else "shop")
+            if t.get("railway") == "station": out["stations"].append([*xz(el), t["name"]]); continue
             out["pois"].append([*xz(el), kind, t["name"]]); continue
         if not g or len(g) < 2: continue
         pts = [xz(p) for p in g]
-        if t.get("natural") == "coastline":
+        if t.get("railway") in ("light_rail", "subway"):
+            out["rail"].append({"p": pts, "n": t.get("name", "SkyTrain")})
+        elif t.get("natural") == "coastline":
             coasts.append(pts)
         elif "building" in t and len(pts) >= 4:
             h = t.get("height", "").replace("m", "").strip()
@@ -123,7 +129,7 @@ out geom;"""
     path.write_text(encoded)
     if args.area == "downtown":
         path.with_name("vancouver.json").write_text(encoded)
-    print(args.area, {key: len(out[key]) for key in ("pois", "buildings", "roads", "parks", "water")}, path.stat().st_size // 1024, "KB")
+    print(args.area, {key: len(out[key]) for key in ("pois", "buildings", "roads", "parks", "water", "rail", "stations")}, path.stat().st_size // 1024, "KB")
 
 
 if __name__ == "__main__":

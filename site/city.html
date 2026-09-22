@@ -32,7 +32,7 @@ import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 // ?area=victoria (Alexandre's turf) or kits; default downtown Vancouver
-const AREA = new URLSearchParams(location.search).get("area") || "vancouver", AREA_NAME = { vancouver: "Vancouver", victoria: "Victoria", kits: "Kitsilano" }[AREA] || "Vancouver";
+const AREA = new URLSearchParams(location.search).get("area") || "vancouver", AREA_NAME = { vancouver: "Vancouver", victoria: "Victoria", kits: "Kitsilano", langley: "Langley" }[AREA] || "Vancouver";
 const D = await fetch(`data/${AREA}.json`).then(r => r.ok ? r.json() : fetch("data/vancouver.json").then(r => r.json()));
 const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(devicePixelRatio, 2)); R.setSize(innerWidth, innerHeight);
 R.toneMapping = THREE.ACESFilmicToneMapping; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; document.body.prepend(R.domElement);
@@ -239,6 +239,22 @@ function leave() { S.p.copy(inRoom.back); S.a = inRoom.a + Math.PI; S.p.x += Mat
 const solidOut = solid;
 const solidAny = (x, z) => inRoom ? (Math.abs(x - IX) > inRoom.Wd / 2 - .4 || Math.abs(z) > inRoom.Dp / 2 - .4 || props.some(([a, b, c, d]) => x - IX > a && x - IX < b && z > c && z < d)) : solidOut(x, z);
 
+// SkyTrain: elevated guideway along the real line, platforms and name boards at real stations, one train running the line
+const TRACK_Y = 7, guideG = [], pillars = [];
+for (const r of D.rail || []) { guideG.push(ribbon(r.p, 5, TRACK_Y)); let acc = 0; for (let i = 1; i < r.p.length; i++) { const L = Math.hypot(r.p[i][0] - r.p[i - 1][0], r.p[i][1] - r.p[i - 1][1]); for (acc += L; acc > 30; acc -= 30) { const t = 1 - (acc - 30) / L; pillars.push([r.p[i - 1][0] + (r.p[i][0] - r.p[i - 1][0]) * t, r.p[i - 1][1] + (r.p[i][1] - r.p[i - 1][1]) * t]); } } }
+addMerged(guideG, new THREE.MeshStandardMaterial({ color: 0xb8b8b4, roughness: .7, side: THREE.DoubleSide }));
+if (pillars.length) { const pm = new THREE.InstancedMesh(new THREE.CylinderGeometry(.6, .7, TRACK_Y, 16), new THREE.MeshStandardMaterial({ color: 0xa8a8a4 }), pillars.length), m4 = new THREE.Matrix4(); pillars.forEach(([x, z], i) => pm.setMatrixAt(i, m4.makeTranslation(x, TRACK_Y / 2, z))); scene.add(pm); }
+for (const [x, z, name] of D.stations || []) {
+  const plat = new THREE.Mesh(new THREE.BoxGeometry(14, .5, 6), new THREE.MeshStandardMaterial({ color: 0x3d4a5c })); plat.position.set(x, TRACK_Y + .25, z); scene.add(plat);
+  const c = document.createElement("canvas"); c.width = 512; c.height = 96; const g = c.getContext("2d"); g.fillStyle = "#0c3a7a"; g.fillRect(0, 0, 512, 96); g.fillStyle = "#fff"; g.font = "bold 40px Helvetica"; g.textAlign = "center"; g.fillText(name, 256, 62, 490);
+  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c) })); sign.scale.set(8, 1.5, 1); sign.position.set(x, TRACK_Y + 4, z); scene.add(sign);
+}
+const skytrain = []; if ((D.rail || []).length) { const line = D.rail.reduce((a, b) => b.p.length > a.p.length ? b : a); let L = 0; const seg = []; for (let i = 1; i < line.p.length; i++) { const l = Math.hypot(line.p[i][0] - line.p[i - 1][0], line.p[i][1] - line.p[i - 1][1]); seg.push(l); L += l; }
+  const car = new THREE.Group(); for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new RoundedBoxGeometryLite(12, 3, 2.8), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, metalness: .3, roughness: .4 })); b.position.x = -k * 12.6; const stripe = new THREE.Mesh(new THREE.BoxGeometry(12.02, .5, 2.82), new THREE.MeshStandardMaterial({ color: 0x1f5fbf })); stripe.position.set(-k * 12.6, -.4, 0); car.add(b, stripe); } scene.add(car);
+  skytrain.push({ car, line, seg, L, d: 0, dir: 1 }); }
+function RoundedBoxGeometryLite(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+function trainTick(dt) { for (const t of skytrain) { t.d += 16 * dt * t.dir; if (t.d > t.L) { t.d = t.L; t.dir = -1; } if (t.d < 0) { t.d = 0; t.dir = 1; } let d = t.d, i = 0; while (i < t.seg.length - 1 && d > t.seg[i]) { d -= t.seg[i]; i++; } const a = t.line.p[i], b = t.line.p[i + 1], k = Math.min(1, d / t.seg[i]); t.car.position.set(a[0] + (b[0] - a[0]) * k, TRACK_Y + 2, a[1] + (b[1] - a[1]) * k); t.car.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]) + (t.dir < 0 ? Math.PI : 0); } }
+
 // nearest street name for the HUD
 const roadIdx = new Map(); D.roads.forEach(r => { if (!r.n) return; for (const [x, z] of r.p) { const k = key(Math.floor(x / 60), Math.floor(z / 60)); if (!roadIdx.has(k)) roadIdx.set(k, []); roadIdx.get(k).push([x, z, r.n]); } });
 function street(x, z) { let best = null, bd = 1e9; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const [px, pz, n] of roadIdx.get(key(Math.floor(x / 60) + i, Math.floor(z / 60) + j)) || []) { const d = (px - x) ** 2 + (pz - z) ** 2; if (d < bd) { bd = d; best = n; } } return best || "Downtown"; }
@@ -288,7 +304,7 @@ function frame(now) {
     if (!solidAny(nx, nz)) S.p.set(nx, nz); play(sp ? "walk" : "idle", sp);
   }
   if (window.SIG) { const ph = Math.floor(now / 1000) % 12, on = ph < 5 ? 2 : ph < 7 ? 1 : 0; SIG.forEach((l, k) => l.material.color.setHex(k === on ? [0xff3b30, 0xffc400, 0x34c759][k] : 0x222222)); }
-  netTick(); copTick(dt, now);
+  netTick(); copTick(dt, now); trainTick(dt);
   for (const c of traffic) { c.d += c.v * dt * c.dir; if (c.d > c.l.L) { c.d = c.l.L; c.dir = -1; } if (c.d < 0) { c.d = 0; c.dir = 1; } const q = laneAt(c.l, c.d, c.dir); c.g.position.set(q.x, inRoom ? -100 : 0, q.z); c.g.rotation.y = -q.a;
     if (S.driving && Math.abs(S.car.v) > 12 && Math.hypot(q.x - S.p.x, q.z - S.p.y) < 3) { S.car.v *= -.3; c.v = 0; P.stars = Math.max(P.stars, 1); P.starT = 20; toast("Crash! One star"); }
     if (!S.driving && !inRoom && Math.hypot(q.x - S.p.x, q.z - S.p.y) < 1.6) { P.hp -= 25; S.p.x -= Math.sin(q.a) * 2; S.p.y += Math.cos(q.a) * 2; toast("Hit by a car. Look both ways"); if (P.hp <= 0) { P.hp = 100; toast("Wasted"); } } }
