@@ -11,13 +11,9 @@
 
 <p align="center"><img src="docs/img/unreal-english-bay.png" alt="English Bay and the West End, streamed live into Unreal Engine"></p>
 
-It rains nine months a year. Rent is four grand. Everybody's got a hustle.
+Rent is four grand and it rains nine months a year. Steal a car on Granville, rob the 7-Eleven, lose the cops on the Burrard Bridge. The more trouble you cause, the more stars you get.
 
-Joshua runs downtown. Ben chills and cruises around Kits. Alexandre does deliveries and works an office job across the water in Victoria. Switch between them any time.
-
-Steal a car on Granville. Rob the 7-Eleven. Lose the cops on the Burrard Bridge, or don't. The more trouble you cause, the more stars you get.
-
-This is the real city. The Unreal build streams Google's 3D scan of Vancouver, so you start outside the actual Apple Store on Georgia and walk to the actual Art Gallery.
+It's the real city: the Unreal build streams Google's 3D scan of Vancouver, so you start outside the actual Apple Store on Georgia. Play as Joshua downtown, Ben in Kits or Alexandre in Victoria, and switch any time.
 
 | | | |
 |---|---|---|
@@ -32,7 +28,7 @@ W A S D to move, Shift to run, Space to jump. Mouse to look, click to shoot, F t
 On a phone: stick on the left, drag to look, buttons on the right.
 
 ## Two builds
-The browser build plays anywhere today. The Unreal build is the real-looking one, running on a Mac for now: real Vancouver, a third-person hero and missions at real places. Next up: scan your face with your iPhone and play as yourself.
+The browser build plays anywhere. The Unreal build is the real-looking one, Mac only for now, and you can scan your own face in with an iPhone.
 
 ---
 <sub>Apache 2.0 license. Map data © OpenStreetMap contributors. People by Microsoft Rocketbox (MIT). Car model by vicent091036 (CC-BY 4.0). Privacy: [vancouvervice.heyitsmejosh.com/privacy.html](https://vancouvervice.heyitsmejosh.com/privacy.html).</sub>
