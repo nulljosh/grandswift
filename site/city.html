@@ -21,13 +21,19 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { Sky } from "three/addons/objects/Sky.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 const D = await fetch("data/vancouver.json").then(r => r.json());
 const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(devicePixelRatio, 2)); R.setSize(innerWidth, innerHeight);
 R.toneMapping = THREE.ACESFilmicToneMapping; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; document.body.prepend(R.domElement);
 const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xb8c8d8, 250, 1400);
 const cam = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, .3, 6000);
-scene.add(new THREE.HemisphereLight(0xdde8ff, 0x556070, 1.4));
+scene.add(new THREE.HemisphereLight(0xdde8ff, 0x556070, 1.1)); scene.environment = new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(), .04).texture;
 const sun = new THREE.DirectionalLight(0xfff2e0, 2.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, far: 900 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
 const sky = new Sky(); sky.scale.setScalar(5000); scene.add(sky); const su = sky.material.uniforms; su.turbidity.value = 6; su.rayleigh.value = 1.4; su.mieCoefficient.value = .005; su.mieDirectionalG.value = .85;
 const sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(58), THREE.MathUtils.degToRad(210)); su.sunPosition.value.copy(sunDir);
@@ -37,25 +43,41 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000), new THREE.Mes
 
 // facade texture: concrete, glass bands, lit windows at random
 function facade(base, glass) {
-  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d"); x.fillStyle = base; x.fillRect(0, 0, 256, 256);
-  for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) { x.fillStyle = Math.random() < .08 ? "#f4d99a" : glass; x.fillRect(q * 32 + 5, r * 32 + 7, 22, 20); }
+  const c = document.createElement("canvas"); c.width = c.height = 1024; const x = c.getContext("2d"); x.fillStyle = base; x.fillRect(0, 0, 1024, 1024);
+  for (let r = 0; r < 8; r++) { x.fillStyle = "rgba(0,0,0,.18)"; x.fillRect(0, r * 128 + 118, 1024, 10);
+    for (let q = 0; q < 8; q++) { const lit = Math.random() < .07, gx = q * 128 + 16, gy = r * 128 + 22, gw = 96, gh = 86;
+      const gr = x.createLinearGradient(gx, gy, gx + gw, gy + gh); gr.addColorStop(0, lit ? "#f6dea0" : glass); gr.addColorStop(1, lit ? "#e8c070" : "#0e141a"); x.fillStyle = gr; x.fillRect(gx, gy, gw, gh);
+      x.fillStyle = "rgba(255,255,255,.10)"; x.fillRect(gx + 4, gy + 4, gw * .35, gh - 8); x.strokeStyle = "rgba(40,40,40,.8)"; x.lineWidth = 4; x.strokeRect(gx, gy, gw, gh); x.beginPath(); x.moveTo(gx + gw / 2, gy); x.lineTo(gx + gw / 2, gy + gh); x.stroke(); } }
+  for (let i = 0; i < 4000; i++) { x.fillStyle = `rgba(0,0,0,${Math.random() * .05})`; x.fillRect(Math.random() * 1024, Math.random() * 1024, 3, 3); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 26, 1 / 26); t.anisotropy = 16; t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-const facades = [["#b9b4aa", "#3b4a58"], ["#8f959b", "#27323d"], ["#d8d2c4", "#4a5a66"], ["#6d6358", "#2b3036"], ["#c4c9cf", "#1f3a52"]].map(([b, g]) => new THREE.MeshStandardMaterial({ map: facade(b, g), roughness: .55, metalness: .15 }));
+function storefront() {
+  const c = document.createElement("canvas"); c.width = 1024; c.height = 256; const x = c.getContext("2d"); x.fillStyle = "#2a2d31"; x.fillRect(0, 0, 1024, 256);
+  for (let q = 0; q < 4; q++) { const gr = x.createLinearGradient(0, 40, 0, 256); gr.addColorStop(0, "#9fb4c4"); gr.addColorStop(1, "#243240"); x.fillStyle = gr; x.fillRect(q * 256 + 12, 60, 232, 196); x.fillStyle = ["#c0392b", "#1f5e3b", "#e0a526", "#2a5fb8"][q]; x.fillRect(q * 256 + 12, 18, 232, 34); x.fillStyle = "rgba(255,240,200,.25)"; x.fillRect(q * 256 + 30, 90, 80, 150); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 16, 1 / 4.2); t.anisotropy = 16; t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const shopMat = new THREE.MeshStandardMaterial({ map: storefront(), roughness: .25, metalness: .3 });
+const facades = [["#b9b4aa", "#3b4a58"], ["#8f959b", "#27323d"], ["#d8d2c4", "#4a5a66"], ["#6d6358", "#2b3036"], ["#c4c9cf", "#1f3a52"]].map(([b, g]) => new THREE.MeshStandardMaterial({ map: facade(b, g), roughness: .35, metalness: .35 }));
 const roofMat = new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: .9 });
 
 // buildings: extrude every footprint, merge per material so it's a handful of draw calls
-const groups = facades.map(() => []), roofs = [];
+const groups = facades.map(() => []), roofs = [], shopG = [], roofKit = [];
 const grid = new Map(), CELL = 25, key = (i, j) => i + "," + j;
 D.buildings.forEach((b, n) => {
   if (b.p.length < 3) return;
   const shape = new THREE.Shape(b.p.map(([x, z]) => new THREE.Vector2(x, -z)));
-  const g = new THREE.ExtrudeGeometry(shape, { depth: b.h, bevelEnabled: false }); g.rotateX(-Math.PI / 2);
-  groups[n % facades.length].push(g);
+  const band = Math.min(4.2, b.h);
+  const g0 = new THREE.ExtrudeGeometry(shape, { depth: band, bevelEnabled: false }); g0.rotateX(-Math.PI / 2); shopG.push(g0);
+  if (b.h > band) { const g = new THREE.ExtrudeGeometry(shape, { depth: b.h - band, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, band, 0); groups[n % facades.length].push(g); }
+  if (b.h > 12 && b.p.length >= 4) { const cx = b.p.reduce((s, p) => s + p[0], 0) / b.p.length, cz = b.p.reduce((s, p) => s + p[1], 0) / b.p.length; roofKit.push([cx, b.h, cz, n]); }
   let minx = 1e9, maxx = -1e9, minz = 1e9, maxz = -1e9; for (const [x, z] of b.p) { minx = Math.min(minx, x); maxx = Math.max(maxx, x); minz = Math.min(minz, z); maxz = Math.max(maxz, z); }
   for (let i = Math.floor(minx / CELL); i <= Math.floor(maxx / CELL); i++) for (let j = Math.floor(minz / CELL); j <= Math.floor(maxz / CELL); j++) { const k = key(i, j); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(b); }
 });
 groups.forEach((gs, i) => { if (!gs.length) return; const m = new THREE.Mesh(mergeGeometries(gs), facades[i]); m.castShadow = m.receiveShadow = true; scene.add(m); });
+{ const m = new THREE.Mesh(mergeGeometries(shopG), shopMat); m.castShadow = m.receiveShadow = true; scene.add(m); }
+// rooftops: AC units and round water tanks, instanced
+{ const ac = new THREE.InstancedMesh(new THREE.BoxGeometry(3, 1.6, 2.2), new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: .6, roughness: .4 }), roofKit.length), tank = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.4, 1.4, 3, 32), new THREE.MeshStandardMaterial({ color: 0x6b5a48, roughness: .8 }), roofKit.length), m4 = new THREE.Matrix4();
+  roofKit.forEach(([x, h, z, n], i) => { ac.setMatrixAt(i, m4.makeTranslation(x + (n % 3) - 1, h + .8, z)); tank.setMatrixAt(i, m4.makeTranslation(x - 3, n % 2 ? h + 1.5 : -50, z + 2)); }); ac.castShadow = tank.castShadow = true; scene.add(ac, tank); }
 function inside(b, x, z) { let c = false; const p = b.p; for (let i = 0, j = p.length - 1; i < p.length; j = i++) if ((p[i][1] > z) !== (p[j][1] > z) && x < (p[j][0] - p[i][0]) * (z - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) c = !c; return c; }
 const solid = (x, z) => (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).some(b => inside(b, x, z));
 
@@ -67,12 +89,16 @@ function ribbon(pts, w, y) {
   }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
-const roadG = [], walkG = [], paintG = [];
-for (const r of D.roads) { if (r.k === "footway" || r.k === "pedestrian") walkG.push(ribbon(r.p, r.w, .05)); else { roadG.push(ribbon(r.p, r.w, .06)); if (r.w >= 10) paintG.push(ribbon(r.p, .25, .08)); } }
+const roadG = [], walkG = [], paintG = [], curbG = [], treePts = [];
+function offsetLine(pts, off) { return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1; return [p[0] - dz / l * off, p[1] + dx / l * off]; }); }
+for (const r of D.roads) { if (r.k === "footway" || r.k === "pedestrian") walkG.push(ribbon(r.p, r.w, .05)); else { roadG.push(ribbon(r.p, r.w, .06)); if (r.w >= 10) paintG.push(ribbon(r.p, .25, .08));
+    if (r.k !== "service") for (const side of [1, -1]) { const line = offsetLine(r.p, side * (r.w / 2 + 1.4)); const g = ribbon(line, 2.8, .16); curbG.push(g);
+      if (r.k === "residential" || r.k === "tertiary") { let acc = 0; for (let i = 1; i < line.length; i++) { const L = Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]); for (acc += L; acc > 14; acc -= 14) { const t = 1 - (acc - 14) / L; treePts.push([line[i - 1][0] + (line[i][0] - line[i - 1][0]) * t, line[i - 1][1] + (line[i][1] - line[i - 1][1]) * t]); } } } } } }
 const addMerged = (gs, m) => { if (!gs.length) return; const mesh = new THREE.Mesh(mergeGeometries(gs), m); mesh.receiveShadow = true; scene.add(mesh); };
 addMerged(roadG, new THREE.MeshStandardMaterial({ color: 0x2c2e31, roughness: .85, side: THREE.DoubleSide }));
 addMerged(walkG, new THREE.MeshStandardMaterial({ color: 0x9a978f, roughness: .9, side: THREE.DoubleSide }));
 addMerged(paintG, new THREE.MeshBasicMaterial({ color: 0xe8c64a, side: THREE.DoubleSide }));
+addMerged(curbG, new THREE.MeshStandardMaterial({ color: 0xa8a59d, roughness: .85, side: THREE.DoubleSide }));
 // parks
 const parkG = D.parks.filter(p => p.length >= 3).map(p => { const s = new THREE.ShapeGeometry(new THREE.Shape(p.map(([x, z]) => new THREE.Vector2(x, -z)))); s.rotateX(-Math.PI / 2); s.translate(0, .04, 0); return s; });
 addMerged(parkG, new THREE.MeshStandardMaterial({ color: 0x3f7a3c, roughness: 1 }));
@@ -123,6 +149,9 @@ if (lampPts.length) {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(); lampPts.forEach(([x, z, a], i) => { lp.setMatrixAt(i, m.makeTranslation(x, 3.5, z)); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a); lh.setMatrixAt(i, m.compose(new THREE.Vector3(x + Math.cos(a) * .45, 7, z + Math.sin(a) * .45), q, new THREE.Vector3(1, 1, 1))); });
   scene.add(lp, lh);
 }
+{ const pts = treePts.filter(([x, z]) => !solid(x, z)); const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(.18, .26, 4, 12), new THREE.MeshStandardMaterial({ color: 0x5a4432, roughness: .9 }), pts.length);
+  const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(2.4, 3), new THREE.MeshStandardMaterial({ color: 0x3f6f35, roughness: .85 }), pts.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  pts.forEach(([x, z], i) => { trunk.setMatrixAt(i, m4.makeTranslation(x, 2, z)); const k = .8 + ((x * 13.7 + z * 7.1) % 1 + 1) % 1 * .6; sc.set(k, k * 1.15, k); crown.setMatrixAt(i, m4.compose(new THREE.Vector3(x, 4.8 * k, z), q, sc)); }); trunk.castShadow = crown.castShadow = true; scene.add(trunk, crown); window.TREES = pts.length; }
 console.log("street furniture:", signs, "signs,", signals.length, "signals,", lampPts.length, "lamps");
 
 // interiors: every named place from OSM belongs to the building it sits in; E at a wall walks you inside a room built for that kind of place
@@ -225,6 +254,8 @@ for (let r = 0; r < 60 && solid(S.p.x, S.p.y); r++) S.p.set(Math.cos(r) * r, Mat
 S.car.p.set(S.p.x + 5, S.p.y + 3);
 document.getElementById("load").remove();
 
+const post = !matchMedia("(pointer: coarse)").matches; let composer = null;
+if (post) { composer = new EffectComposer(R); composer.addPass(new RenderPass(scene, cam)); const ao = new GTAOPass(scene, cam, innerWidth, innerHeight); ao.blendIntensity = .9; composer.addPass(ao); composer.addPass(new OutputPass()); composer.addPass(new SMAAPass(innerWidth * R.getPixelRatio(), innerHeight * R.getPixelRatio())); }
 let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, .05); last = now; const k = c => S.keys.has(c);
@@ -251,7 +282,7 @@ function frame(now) {
     if (a.role === "drunk" || a.role === "robber") { a.m.rotation.y = -Math.atan2(dz, dx); if (d > 1.1 && d < 9) { a.m.position.x += dx / d * 1.6 * dt; a.m.position.z += dz / d * 1.6 * dt; } else if (d <= 1.1 && (a.cool -= dt) <= 0) { a.cool = 1.2; P.hp -= a.role === "robber" ? 12 : 6; if (P.hp <= 0) { P.hp = 100; P.cash = Math.floor(P.cash / 2); toast("Knocked out. Lost half your cash"); leave(); break; } } } }
   if (P.starT > 0 && (P.starT -= dt) <= 0) P.stars = 0; if (toastT > 0 && (toastT -= dt) <= 0) document.getElementById("toast").style.display = "none";
   document.getElementById("hud").textContent = `$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
-  R.render(scene, cam); requestAnimationFrame(frame);
+  composer ? composer.render() : R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 const toggle = () => {
@@ -262,7 +293,7 @@ addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle();
 addEventListener("keyup", e => S.keys.delete(e.code));
 addEventListener("mousemove", e => S.dx += e.movementX);
 R.domElement.addEventListener("click", () => R.domElement.requestPointerLock?.());
-addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); });
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); });
 // phone: stick to move, drag to look, Car button
 if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch");
 const stick = document.getElementById("stick"); let sid = null, lid = null, lx = 0;

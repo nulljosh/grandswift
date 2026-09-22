@@ -34,6 +34,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.12.0 store crime: walk into a real 7-Eleven or shop, rob the till (G, two stars) or stop a robbery in progress (F, $200 reward); drunks start fights; cash, health and stars on the real-streets map
 
+- v1.13.0 real-streets detail: 1024px facades with frames and floor lines, storefront glass on every ground floor, rooftop AC and water tanks, raised sidewalks, street trees, glass reflections, AO + SMAA
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
