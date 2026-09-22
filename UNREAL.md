@@ -52,3 +52,4 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 ## Face scan and packs (2026-09-22)
 - Face scan: Live Link Face take unzipped to /Volumes/LaCie/Unreal/Captures. Import with `unreal.CaptureManagerIngestBlueprintLibrary.ingest_live_link_face(dir, CaptureManagerConversionParams(), on_success, on_failure)` (async, callbacks take 3 args). Never call the _sync or MetaHumanCaptureSourceSync versions from the bridge: they block the game thread and deadlock the editor.
 - Gun and car Blueprints copied from Templates/TP_FirstPersonBP and TP_VehicleAdvBP into Content; ChaosVehiclesPlugin enabled in the .uproject. The car and gun meshes live in the Add Feature pack flow, not in those folders, so the pack dialog may still be needed once.
+- Face scan pipeline for anyone: unreal/face_scan.py <zip> <Name> [frame], documented in the face-scan skill. Joshua conformed successfully (import_from_identity SUCCESS).

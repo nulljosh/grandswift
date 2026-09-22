@@ -20,16 +20,17 @@ def mcp(toolset, tool, args):
     call = {"name": "call_tool", "arguments": {"toolset_name": toolset, "tool_name": tool, "arguments": args}}
     return subprocess.run([sys.executable, os.path.join(HERE, "mcp.py"), "tools/call", json.dumps(call)], capture_output=True, text=True, timeout=400).stdout
 
-if len(sys.argv) > 1:
-    print(run(sys.argv[1])); sys.exit()
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        print(run(sys.argv[1])); sys.exit()
 
-A = "EditorToolset.EditorAppToolset"
-mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
-print("waiting for Vancouver to stream in"); time.sleep(90)
-print(run(open(os.path.join(HERE, "qa_walk.py")).read()))
-for _ in range(60):  # up to 2 minutes, polls until the walk reports
-    time.sleep(2); res = run("print(QA_RESULT)")
-    if not res.startswith("RUNNING"): break
-print(res)
-mcp(A, "StopPIE", {})
-sys.exit(0 if res.startswith("PASS") else 1)
+    A = "EditorToolset.EditorAppToolset"
+    mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
+    print("waiting for Vancouver to stream in"); time.sleep(90)
+    print(run(open(os.path.join(HERE, "qa_walk.py")).read()))
+    for _ in range(60):  # up to 2 minutes, polls until the walk reports
+        time.sleep(2); res = run("print(QA_RESULT)")
+        if not res.startswith("RUNNING"): break
+    print(res)
+    mcp(A, "StopPIE", {})
+    sys.exit(0 if res.startswith("PASS") else 1)
