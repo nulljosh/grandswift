@@ -17,7 +17,6 @@ Epic launcher patching Unreal to 5.8.3 with Core Data (initial install stuck, no
 2. Skin Joshua: light freckles, curly ginger hair and glasses (customize the MetaHuman asset)
 3. Cloud rig: set up skeletal mesh and animation blueprint for the scanned face
 4. Build and deploy: finalize MetaHuman, swap onto the player character for third-person gameplay
-5. README shots: recapture the English Bay banner with the objective arrow and marker hidden, and replace the two browser shots (real-streets, kits-beach) with Unreal ones
 5. Sprint with stamina: add stamina bar, hold Shift to sprint (foundation for gunplay and driving)
 6. Guns and cars: integrate weapons and vehicle physics (first-person camera, steering, collisions)
 7. Bake OSM geometry: pre-bake OpenStreetMap Vancouver for instant loading instead of streaming tiles
