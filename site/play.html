@@ -38,7 +38,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 const block = 260, road = 80;
 const vanMap = ["WWRWWWWWWWWWWWWW","WPRPWWWWWWWWWWWW","PPPPPWWWWCWWWWWW","PPPPBBBBBBHBGWWW","WPPBBBBBBBBBBBBW","WYBBBBBBABBBBBBB","WWYBBBBBBBBBBBBB","WWWWBBBBBBBSOBBB","WWWWWWBBBBBBBBBB","WWWWWRWIRWWWWWEW","BBYYBBBBBBBBBBBB","BBBBBBBBBBBBBBBB","WWWWWRWWWWWWWWWW","WWWWWRWWWWWWWWWW","WWWBBBBBWWWWWWWW","WWWBBLBBWWWWWWWW","WWWBBBBBWWWWWWWW","WWWWWWWWWWWWWWWW"];
 const cols = 16, rows = vanMap.length, W = cols * block, H = rows * block;
-const aves = ["","","","W Hastings","W Pender","W Georgia","Robson","Smithe","Pacific","False Creek","W 2nd","W 4th"];
+const aves = ["Burrard Inlet","Coal Harbour","Canada Place Way","W Hastings","W Pender","W Georgia","Robson","Smithe","Pacific","False Creek","W 2nd","W 4th"];
 const streets = ["Chilco","Denman","Bidwell","Nicola","Bute","Thurlow","Burrard","Hornby","Granville","Seymour","Richards","Homer","Cambie","Beatty","Quebec","Main"];
 const cell = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? null : vanMap[Math.floor(y / block)][Math.floor(x / block)];
 const solid = (x, y) => { const k = cell(x, y); if (!k || k === "W") return true; if (k === "P" || k === "R" || k === "Y") return false; return x % block > road && y % block > road; };
@@ -51,7 +51,7 @@ function streetName(x, y) {
   if (k === "R") return r >= 12 ? "Ferry Causeway" : c === 5 ? "Burrard Bridge" : "Granville Bridge";
   if (r >= 14) return ["Belleville St","Government St","Douglas St"][(r - 14) % 3] + ", Victoria";
   const ix = x % block <= road, iy = y % block <= road, a = aves[r] || "", s = streets[c] || "";
-  return (ix && iy ? `${s} & ${a}` : ix ? s : a) + (near ? `, by ${near.name}` : "") + ", Vancouver";
+  return ([ix && iy ? [s, a].filter(Boolean).join(" & ") : ix ? s : a].filter(Boolean)[0] || "Waterfront") + (near ? `, by ${near.name}` : "") + ", Vancouver";
 }
 const NAMES = { C: "Canada Place", S: "BC Place", E: "Science World", L: "BC Legislature", H: "Harbour Centre", G: "Gastown Steam Clock", A: "Vancouver Art Gallery", O: "Rogers Arena", I: "Granville Island" };
 const LANDMARKS = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) LANDMARKS.push({ x: (c + .65) * block, y: (r + .65) * block, name: NAMES[k] }); }));
@@ -99,7 +99,7 @@ const persist = () => { try { localStorage.gs = JSON.stringify(save); } catch {}
 const level = () => Math.floor(Math.sqrt(G.xp / 100)) + 1;
 const ACH = { first: "First Blood", thief: "Grand Theft Auto", five: "Five Star Menace", copkill: "Cop Killer", island: "Island Hopper", tourist: "Tourist: every landmark", courier: "Courier: 5 deliveries", taxi: "Night Shift: first fare", ghost: "Ghost: lost a 3 star chase", champ: "Level 5" };
 function card(title, body) { G.paused = true; document.getElementById("cardT").textContent = title; document.getElementById("cardB").textContent = body; document.getElementById("card").style.display = "flex"; }
-let toastT = 0; const toast = t => { const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
+let toastT = 0; const toast = t => { if (!t) return; const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
 const unlock = k => { if (save.ach[k]) return; save.ach[k] = 1; persist(); toast("Achievement: " + ACH[k]); bang(.3); gainXP(100); };
 const gainXP = n => { const l = level(); G.xp += n; save.xp = G.xp; persist(); if (level() > l) toast("Level up! " + level()); if (level() >= 5) unlock("champ"); };
 // ?demo=1: embedded on the landing page, no welcome card, never touches the real save
