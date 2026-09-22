@@ -486,7 +486,7 @@ let carM = [], pedM = [];
 const reCrowd = () => { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); };
 gltf.load("models/hero.glb", g => { JOSH = g; if (G.heroes[G.cur].name === "Joshua") dressHero("Joshua"); }, undefined, e => console.warn("hero body failed", e));
 // crowd: 12 realistic people (Microsoft Rocketbox, MIT), each with its own walk and idle
-const PEOPLE = ["male_adult_01", "female_adult_01", "male_adult_03", "female_adult_03", "male_adult_05", "female_adult_05", "male_adult_07", "female_adult_07", "male_adult_09", "female_adult_09", "male_adult_11", "female_adult_11"].slice(0, TOUCH ? 6 : 12);
+const PEOPLE = ["male_adult_01", "female_adult_01", "male_adult_03", "female_adult_03", "male_adult_05", "female_adult_05", "male_adult_07", "female_adult_07", "male_adult_09", "female_adult_09", "male_adult_11", "female_adult_11"].slice(0, navigator.webdriver ? 2 : TOUCH ? 6 : 12); // automated tests: 2 bodies keep CI fast on GPU-less runners
 const BODY = {}; let peopleReady = false;
 PEOPLE.forEach(n => gltf.load(`models/people/${n}.glb`, g => { BODY[n] = g; CROWD.splice(0, CROWD.length, ...Object.values(BODY).map(src => ({ src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "idle" } }))); if (!peopleReady && Object.keys(BODY).length >= Math.min(4, PEOPLE.length)) { peopleReady = true; reCrowd(); } }, undefined, e => console.warn("person failed", n, e)));
 // each hero has a body; Tab swaps it

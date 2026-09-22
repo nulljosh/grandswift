@@ -1,5 +1,6 @@
 name: CI
 on: [push, pull_request]
+concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }
 jobs:
   native-shells:
     runs-on: ubuntu-latest
@@ -29,6 +30,7 @@ jobs:
       - run: python3 tests/osm.py
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
