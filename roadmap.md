@@ -40,6 +40,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.15.0 traffic on the real streets: 140 cars drive real road centre lines, keep right, turn at road ends, can hit you
 
+- v1.16.0 cops on the real streets: police cars spawn by stars, chase you through real downtown with flashing bars, bust you (fine a third of your cash); ramming traffic earns a star; stars cool one at a time out of sight
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
