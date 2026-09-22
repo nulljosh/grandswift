@@ -23,3 +23,8 @@ The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unre
 - Claude is registered with `claude mcp add --transport http unreal http://127.0.0.1:18000/mcp -s user`. New sessions see it; run `/mcp` to check.
 - First launch needed Xcode's Metal toolchain: `xcodebuild -downloadComponent MetalToolchain`.
 - Cesium for Unreal comes from Fab in the Epic launcher (Install to Engine, 5.8).
+
+## Vancouver is in (2026-09-22)
+- Google 3D Tiles stream into `Lvl_ThirdPerson`: CesiumGeoreference at Granville & Georgia (49.2833, -123.1187, 80 m) plus a Cesium3DTileset on ion asset 2275207 with the token from `.env`. No Cesium ion panel login needed.
+- The MCP can't `import unreal`. Drive it with `unreal/mcp.py` (raw HTTP client) through `call_tool`: SceneTools `add_to_scene_from_class`, ObjectTools `set_properties`. Property names are lowerCamel (`ionAssetId`, `originLatitude`) and `values` is a JSON string.
+- First launch off the LaCie takes about 5 minutes (shader compile). No window until it finishes.
