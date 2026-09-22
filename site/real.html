@@ -12,6 +12,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/
 </head><body>
 <div id="hud"></div><div id="credit"></div>
 <script type="module">
+// claim every key so the Mac app (WKWebView) never plays the "unhandled key" beep
+addEventListener("keydown", e => { if (!e.target.closest?.("input,textarea,select") && !e.metaKey) e.preventDefault(); }, { capture: true });
 // Real Vancouver: Google Photorealistic 3D Tiles via Cesium ion, walk and drive on top.
 // ponytail: ground and walls come from raycasts into the tiles, no physics engine
 import * as THREE from "three";

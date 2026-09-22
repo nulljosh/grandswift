@@ -15,6 +15,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/
 <div id="load">Building real Vancouver...</div><div id="hud"></div><div id="toast" style="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none"></div><div id="credit">Map data © OpenStreetMap contributors</div>
 <div id="stick"></div><button id="car">Car</button>
 <script type="module">
+// claim every key so the Mac app (WKWebView) never plays the "unhandled key" beep
+addEventListener("keydown", e => { if (!e.target.closest?.("input,textarea,select") && !e.metaKey) e.preventDefault(); }, { capture: true });
 // Real streets: downtown Vancouver built from OpenStreetMap (tools/osm.py). 1 unit = 1 metre, +x east, +z south.
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -258,7 +260,7 @@ gl.load(MODELS + "ferrari.glb", g => {
 });
 gl.load(MODELS + "ferrari.glb", g => { const c = g.scene; c.rotation.y = Math.PI / 2; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); const b = c.getObjectByName("body"); if (b) b.material = new THREE.MeshPhysicalMaterial({ color: 0xc0392b, metalness: .5, roughness: .25, clearcoat: 1 }); carG.add(c); });
 window.PERSON = (tintHex) => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); if (tintHex) c.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(tintHex), .7); } }); g.add(c); } return g; };
-function play(n) { if (!mixer || !acts.walk) return; acts.walk.timeScale = n === "idle" ? 0 : n === "run" ? 1.9 : 1; if (n === "idle" && cur !== "idle") acts.walk.time = .2; cur = n; }
+function play(n, speed = 0) { if (!mixer || !acts.walk) return; acts.walk.timeScale = n === "idle" ? 0 : Math.abs(speed) / 1.45 * Math.sign(speed || 1); if (n === "idle" && cur !== "idle") acts.walk.time = .2; cur = n; } // Mixamo walk covers ~1.45 m per cycle-second: feet match the ground
 
 // start on Granville at Georgia, facing north toward the harbour; nudge onto open ground if the survey puts us in a lobby
 const S = { p: new THREE.Vector2(0, 0), a: -Math.PI / 2, driving: false, car: { p: new THREE.Vector2(6, 4), a: -Math.PI / 2, v: 0 }, keys: new Set(), dx: 0 };
@@ -279,7 +281,7 @@ function frame(now) {
   } else {
     S.a += ((r ? 1 : 0) - (l ? 1 : 0)) * 2.2 * dt + S.dx * .004; S.dx = 0;
     const sp = (f ? (k("ShiftLeft") ? 7 : 3.2) : 0) - (b ? 1.6 : 0), nx = S.p.x + Math.cos(S.a) * sp * dt, nz = S.p.y + Math.sin(S.a) * sp * dt;
-    if (!solidAny(nx, nz)) S.p.set(nx, nz); play(sp > 4 ? "run" : sp ? "walk" : "idle");
+    if (!solidAny(nx, nz)) S.p.set(nx, nz); play(sp ? "walk" : "idle", sp);
   }
   if (window.SIG) { const ph = Math.floor(now / 1000) % 12, on = ph < 5 ? 2 : ph < 7 ? 1 : 0; SIG.forEach((l, k) => l.material.color.setHex(k === on ? [0xff3b30, 0xffc400, 0x34c759][k] : 0x222222)); }
   netTick(); copTick(dt, now);
@@ -307,7 +309,10 @@ const toggle = () => {
   if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.2, S.car.p.y + Math.cos(S.car.a) * 2.2); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; };
 addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
-addEventListener("mousemove", e => S.dx += e.movementX);
+// the Mac app (WKWebView, no "Safari/" in its UA) sends raw deltas through GS_mouse instead
+const IN_MAC_APP = /Macintosh/.test(navigator.userAgent) && !/Safari\//.test(navigator.userAgent);
+window.GS_mouse = (dx) => { S.dx += dx; };
+addEventListener("mousemove", e => { if (IN_MAC_APP) return; S.dx += e.movementX; });
 R.domElement.addEventListener("click", () => R.domElement.requestPointerLock?.());
 addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); });
 // phone: stick to move, drag to look, Car button

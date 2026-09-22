@@ -44,6 +44,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.17.0 real people: Remy from Mixamo (converted in Blender, Draco compressed) is the hero on the real streets
 
+- v1.18.0 no more key beeps in the Mac app, native mouse lock in the Mac app (WKWebView has no Pointer Lock), walk and run cycles matched to real speed so feet stop sliding; Blender MCP hooked up
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
