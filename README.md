@@ -1,4 +1,25 @@
-# Rainjack
+<p align="center"><img src="docs/img/icon.png" width="96" alt="Rainjack icon"></p>
+<h1 align="center">Rainjack</h1>
+<p align="center"><b>A crime game set in the real Vancouver. Built in a day with Claude.</b></p>
+<p align="center">
+<a href="https://rainjack.heyitsmejosh.com"><img src="https://img.shields.io/badge/play-in%20your%20browser-c0392b?style=flat-square" alt="Play"></a>
+<a href="https://github.com/nulljosh/rainjack/releases/latest"><img src="https://img.shields.io/github/v/release/nulljosh/rainjack?style=flat-square&color=222" alt="Release"></a>
+<a href="https://github.com/nulljosh/rainjack/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nulljosh/rainjack/ci.yml?style=flat-square&label=CI" alt="CI"></a>
+<img src="https://img.shields.io/badge/platforms-web%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Android-555?style=flat-square" alt="Platforms">
+<img src="https://img.shields.io/badge/license-MIT-555?style=flat-square" alt="MIT">
+<img src="https://img.shields.io/badge/map-OpenStreetMap-7ebc6f?style=flat-square" alt="OpenStreetMap">
+</p>
+<p align="center">
+<a href="https://rainjack.heyitsmejosh.com/play.html">Play now</a> · <a href="https://rainjack.heyitsmejosh.com/city.html">Real streets</a> · <a href="https://rainjack.heyitsmejosh.com/real.html">Real Vancouver (3D tiles)</a> · <a href="https://github.com/nulljosh/rainjack/releases/latest">Download apps</a>
+</p>
+
+| | | |
+|---|---|---|
+| <img src="docs/img/real-streets.png" alt="Howe Street, built from OpenStreetMap"> | <img src="docs/img/7-eleven.png" alt="Robbing a real downtown 7-Eleven"> | <img src="docs/img/kits-beach.png" alt="Kits Beach"> |
+| Real downtown streets from OpenStreetMap | Walk into a real 7-Eleven and rob it | Kits Beach, with a real ocean |
+
+Walk real downtown Vancouver, street by street. Rob a 7-Eleven on the corner where it actually is, outrun the cops across the Burrard Bridge, then switch to Alexandre in Victoria. It runs in any browser, phones included, and friends share one live city.
+
 
 A crime game set in Vancouver and Victoria. It runs in any browser, phones included, and there's a native Mac app too.
 
