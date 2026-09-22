@@ -27,8 +27,9 @@ A = "EditorToolset.EditorAppToolset"
 mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
 print("waiting for Vancouver to stream in"); time.sleep(90)
 print(run(open(os.path.join(HERE, "qa_walk.py")).read()))
-time.sleep(25)  # the walk runs on ticks for about 20 seconds
-res = run("print(QA_RESULT)")
+for _ in range(60):  # up to 2 minutes, polls until the walk reports
+    time.sleep(2); res = run("print(QA_RESULT)")
+    if not res.startswith("RUNNING"): break
 print(res)
 mcp(A, "StopPIE", {})
 sys.exit(0 if res.startswith("PASS") else 1)
