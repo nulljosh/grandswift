@@ -196,7 +196,7 @@ function shoot() {
 }
 function swapHero() {
   G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo, ammoW: [...G.ammoW] };
-  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
+  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; dressHero(h.name); G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
   G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
   G.msg = "Now playing " + h.name; msgT = 3; toast(PERKS[h.name]?.blurb || h.name);
 }
@@ -457,7 +457,7 @@ function rigFor(n, color, c) {
   const s = SkeletonUtils.clone(c.src.scene); s.updateMatrixWorld(true);
   const h = new THREE.Box3().setFromObject(s).getSize(new THREE.Vector3()).y || 1; s.scale.multiplyScalar(24 / h); s.rotation.y = c.turn;
   s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (c.shirt && o.material.color && c.shirt.test(o.material.name)) o.material.color.lerp(new THREE.Color(color), c.src.scene === undefined ? .7 : .45); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
-  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const [k, name] of Object.entries(c.map)) { const clip = c.src.animations.find(a => a.name === name) || c.src.animations[0]; if (clip) acts[k] = mixer.clipAction(clip); }
+  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const [k, name] of Object.entries(c.map)) { let clip = c.src.animations.find(a => a.name === name) || c.src.animations[0]; if (!clip) continue; if (c.strip) { clip = clip.clone(); clip.tracks = clip.tracks.filter(t => !/^Bip01\.position$/.test(t.name)); } acts[k] = mixer.clipAction(clip); }
   n.mix = { mixer, acts, cur: "walk" }; acts.walk?.play(); mixer.setTime(Math.random() * 2); n.add(s); n.gl = s;
 }
 function soldierFor(n, color, src = SOLDIER) {
@@ -512,12 +512,21 @@ gltf.load(MODELS + "Soldier.glb", g => {
   if (!hero.gl) hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (!hero.gl) hero.body = null; if (!hero.gl) soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); if (hero.mix?.acts.run === undefined) tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13.5, 3);
 }, undefined, e => console.warn("character model failed, keeping shapes", e));
 const reCrowd = () => { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); };
-gltf.load("models/remy.glb", g => {
-  const remy = { src: g, turn: Math.PI / 2, shirt: /shirt|top|Body/i, map: { walk: g.animations[0]?.name, run: g.animations[0]?.name, idle: g.animations[0]?.name } };
-  CROWD.push(remy); reCrowd();
-  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (hero.gl) hero.remove(hero.gl); hero.body = null; hero.mix = null; rigFor(hero, 0xffffff, { ...remy, shirt: null }); hero.mix.acts.idle = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
-}, undefined, e => console.warn("Remy failed", e));
-gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
+gltf.load("models/hero.glb", g => { JOSH = g; if (G.heroes[G.cur].name === "Joshua") dressHero("Joshua"); }, undefined, e => console.warn("hero body failed", e));
+// crowd: 12 realistic people (Microsoft Rocketbox, MIT), each with its own walk and idle
+const PEOPLE = ["male_adult_01", "female_adult_01", "male_adult_03", "female_adult_03", "male_adult_05", "female_adult_05", "male_adult_07", "female_adult_07", "male_adult_09", "female_adult_09", "male_adult_11", "female_adult_11"].slice(0, TOUCH ? 6 : 12);
+const BODY = {}; let peopleReady = false;
+PEOPLE.forEach(n => gltf.load(`models/people/${n}.glb`, g => { BODY[n] = g; CROWD.splice(0, CROWD.length, ...Object.values(BODY).map(src => ({ src, turn: 0, strip: true, map: { walk: "walk", run: "walk", idle: "idle" } }))); if (!peopleReady && Object.keys(BODY).length >= Math.min(4, PEOPLE.length)) { peopleReady = true; reCrowd(); } }, undefined, e => console.warn("person failed", n, e)));
+// each hero has a body; Tab swaps it
+const HERO_BODY = { Joshua: "hero", Ben: "male_adult_05", Alexandre: "male_adult_09" };
+function dressHero(name) {
+  const key = HERO_BODY[name], src = key === "hero" ? JOSH : BODY[key]; if (!src) return;
+  if (hero.gl) hero.remove(hero.gl); hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; hero.mix = null;
+  rigFor(hero, 0xffffff, key === "hero" ? { src, turn: Math.PI / 2, map: { walk: src.animations[0]?.name, run: src.animations[0]?.name, idle: src.animations[0]?.name } } : { src, turn: 0, strip: true, map: { walk: "walk", run: "walk", idle: "walk" } });
+  hero.mix.acts.run = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
+}
+let JOSH = null;
+if (false) gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
   const names = [...new Set(g.scene.getObjectsByProperty("isMesh", true).map(m => m.material.name))]; console.log("HVGirl materials", names.join(","));
   CROWD.push({ src: g, turn: Math.PI / 2, shirt: /T-shirt|short/i, map: { walk: "Walking", run: "Walking", idle: "Idle" } }); reCrowd();
 }, undefined, e => console.warn("HVGirl failed", e));

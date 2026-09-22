@@ -245,7 +245,7 @@ const gl = new GLTFLoader(); gl.setDRACOLoader(new DRACOLoader().setDecoderPath(
 const MODELS = "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/";
 const hero = new THREE.Group(); scene.add(hero); let mixer = null, acts = {}, cur = "";
 // hero: Remy from Mixamo (a real-looking guy), walk cycle in place; height normalised to 1.8 m, paused when standing
-gl.load("models/remy.glb", g => {
+gl.load("models/hero.glb", g => {
   const s = g.scene; s.updateMatrixWorld(true); const h = new THREE.Box3().setFromObject(s).getSize(new THREE.Vector3()).y || 1; s.scale.multiplyScalar(1.8 / h); s.rotation.y = Math.PI / 2;
   s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); hero.add(s);
   mixer = new THREE.AnimationMixer(s); const walk = mixer.clipAction(g.animations[0]); acts = { walk, run: walk, idle: walk }; walk.play();

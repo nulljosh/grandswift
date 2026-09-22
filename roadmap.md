@@ -48,6 +48,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.19.0 Remy is the hero and part of the crowd in the main game too; Mac app mouse deltas batched per frame for smooth look
 
+- v1.20.0 diverse crowd: 12 realistic people (Microsoft Rocketbox, MIT) with their own walk and idle, 6 on phones; each hero has their own body and Tab swaps it; privacy policy page
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
