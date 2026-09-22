@@ -1,4 +1,4 @@
-package com.jaybulb.rainjack;
+package com.jaybulb.vancouvervice;
 
 import android.app.Activity;
 import android.graphics.Color;

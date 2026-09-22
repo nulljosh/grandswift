@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" font-family="-apple-system, Helvetica, Arial, sans-serif">
+<rect width="900" height="420" fill="#fff"/>
+<g font-size="14" fill="#111" text-anchor="middle">
+<g stroke="#c8c8cc" stroke-width="2" fill="none">
+<path d="M170 110 L330 110"/><path d="M170 210 L330 210"/><path d="M170 310 L330 310"/>
+<path d="M470 110 L600 210"/><path d="M470 210 L600 210"/><path d="M470 310 L600 210"/><path d="M740 210 L810 120"/><path d="M740 210 L810 300"/>
+</g>
+<g fill="#f5f5f7" stroke="#111" stroke-width="1.5">
+<rect x="30" y="85" width="140" height="50" rx="10"/><rect x="30" y="185" width="140" height="50" rx="10"/><rect x="30" y="285" width="140" height="50" rx="10"/>
+<rect x="330" y="85" width="140" height="50" rx="10"/><rect x="330" y="185" width="140" height="50" rx="10"/><rect x="330" y="285" width="140" height="50" rx="10"/>
+<rect x="600" y="185" width="140" height="50" rx="10"/><rect x="760" y="95" width="120" height="50" rx="10"/><rect x="760" y="275" width="120" height="50" rx="10"/>
+</g>
+<text x="100" y="115">OpenStreetMap</text><text x="100" y="215">Google 3D tiles</text><text x="100" y="315">People and cars</text>
+<text x="400" y="115">tools/osm.py</text><text x="400" y="215">Cesium</text><text x="400" y="315">Blender</text>
+<text x="670" y="215">site/ game</text><text x="820" y="125">Native apps</text><text x="820" y="305">Online worker</text>
+<text x="450" y="40" font-size="18" font-weight="600">Vancouver Vice</text>
+</g></svg>

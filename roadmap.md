@@ -4,7 +4,7 @@ The goal: a GTA-style game set in the real Vancouver, good enough that friends p
 
 ## Where we are (end of 2026-09-21)
 
-Built in one day. Live at vancouvervice.heyitsmejosh.com, repo nulljosh/vancouvervice (local folder is still `~/Documents/Code/rainjack`).
+Built in one day. Live at vancouvervice.heyitsmejosh.com, repo nulljosh/vancouvervice (local folder is still `~/Documents/Code/vancouvervice`).
 
 - **Main game** (`site/play.html`): simplified Vancouver and Victoria. Fists, pistol, shotgun, SMG. Cars that smoke, burn and explode. Five-star cops that shoot back. Five story missions then endless side jobs. Three heroes with perks (Joshua in Gastown, Ben in Kits, Alexandre in Victoria), switched with a GTA V style camera flight. XP, levels, ten achievements, saves, live Vancouver weather, radio stations, neighbourhood crowds, strangers who bump, chat or fight.
 - **Real streets** (`site/city.html`): downtown built from OpenStreetMap. 3,359 real buildings, 8,378 named streets, signs, traffic lights, streetlights, 140 cars in traffic, cop chases, walk-in interiors for 2,609 real places, 7-Eleven robberies, online play for everyone on the page. Victoria (`?area=victoria`, Tab flies there), Kits and Langley data exist. SkyTrain guideway, stations and one moving train are scaffolded.
@@ -70,7 +70,7 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 
 ## How to pick this up
 
-Open Claude Code in `~/Documents/Code/rainjack` and paste:
+Open Claude Code in `~/Documents/Code/vancouvervice` and paste:
 
 ```
 /loop Work through roadmap.md for Vancouver Vice, top to bottom. One item per round: build it, test it headless (node tests/web.mjs, node tests/city.mjs), deploy with npx wrangler deploy, commit, tag a release, update the landing page and README if it's user-facing, and check it off here. Keep usage lean: one Haiku subagent at most. Self-grade honestly against GTA 3 after each round.

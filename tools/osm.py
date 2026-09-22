@@ -84,7 +84,7 @@ def main():
 out geom;"""
 
     for endpoint in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
-        req = urllib.request.Request(endpoint, data=urllib.parse.urlencode({"data": query}).encode(), headers={"User-Agent": "rainjack-game/1.0"})
+        req = urllib.request.Request(endpoint, data=urllib.parse.urlencode({"data": query}).encode(), headers={"User-Agent": "vancouvervice-game/1.0"})
         try:
             with urllib.request.urlopen(req, timeout=180) as response:
                 data = json.load(response)
