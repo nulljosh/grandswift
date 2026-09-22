@@ -23,7 +23,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 <div id="hud"></div><div id="bubbles"></div><div id="tip"></div><div id="toast"></div><div id="card" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000b;z-index:5"><div style="max-width:520px;padding:28px 30px;background:#15171c;border-radius:14px;border:1px solid #333"><h2 id="cardT" style="margin:0 0 10px;font-size:28px"></h2><div id="cardB" style="font-weight:500;line-height:1.6;white-space:pre-line;opacity:.9"></div><button id="cardGo" style="margin-top:18px;font:600 17px Helvetica,sans-serif;padding:10px 24px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer">Let's go</button></div></div><div id="hp"><i></i></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
 <div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="savebtn">Save game</button><button id="fs">Full screen</button><button onclick="try{const s=JSON.parse(localStorage.gs||'{}');delete s.game;localStorage.gs=JSON.stringify(s)}catch{};location.reload()">New game</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><button id="exitbtn">Exit game</button>
-<p style="opacity:.8">Joshua: +50% mission cash, cops cool off fast. Ben: fastest runner, two-punch knockouts. Alexandre: steady aim, faster cars, tougher.<br>W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q or 1-4 weapons, R radio in a car, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
+<p style="opacity:.6;font-size:12px">Car: Ferrari 458 Italia by vicent091036, CC-BY 4.0. Character: Soldier from the three.js examples (Mixamo).</p><p style="opacity:.8">Joshua: +50% mission cash, cops cool off fast. Ben: fastest runner, two-punch knockouts. Alexandre: steady aim, faster cars, tougher.<br>W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q or 1-4 weapons, R radio in a car, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 // Web port of main.swift. Same map and rules, three.js renderer. Keep the two in step.
@@ -35,6 +35,9 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 const block = 260, road = 80;
 const vanMap = ["WWRWWWWWWWWWWWWW","WPRPWWWWWWWWWWWW","PPPPPWWWWCWWWWWW","PPPPBBBBBBHBGWWW","WPPBBBBBBBBBBBBW","WYBBBBBBABBBBBBB","WWYBBBBBBBBBBBBB","WWWWBBBBBBBSOBBB","WWWWWWBBBBBBBBBB","WWWWWRWIRWWWWWEW","BBYYBBBBBBBBBBBB","BBBBBBBBBBBBBBBB","WWWWWRWWWWWWWWWW","WWWWWRWWWWWWWWWW","WWWBBBBBWWWWWWWW","WWWBBLBBWWWWWWWW","WWWBBBBBWWWWWWWW","WWWWWWWWWWWWWWWW"];
 const cols = 16, rows = vanMap.length, W = cols * block, H = rows * block;
@@ -189,7 +192,7 @@ function shoot() {
 }
 function swapHero() {
   G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo, ammoW: [...G.ammoW] };
-  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; hero.body.material.color.setHex(HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua"; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
+  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
   G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
   G.msg = "Now playing " + h.name; msgT = 3; toast(PERKS[h.name]?.blurb || h.name);
 }
@@ -214,7 +217,7 @@ function radioTick() {
 }
 // --- save: autosave progress every few seconds
 function saveGame() { if (DEMO) return; save.game = { score: G.score, step: G.step, mission: mission ? mission.n : 0, heroes: G.heroes.map((h, i) => i === G.cur ? { ...h, p: G.player, a: G.pa, driving: null } : { ...h, driving: null }), cur: G.cur, ammoW: G.ammoW }; persist(); }
-function loadGame() { const g = save.game; if (!g || !Array.isArray(g.heroes) || (g.heroes.length < 2 || g.heroes.length > 3) || !g.heroes.every(h => h?.p && isFinite(h.p.x) && isFinite(h.p.y)) || solid(g.heroes[g.cur ?? 0].p.x, g.heroes[g.cur ?? 0].p.y)) { if (g) { delete save.game; persist(); } return false; } Object.assign(G, { score: g.score, step: g.step, cur: g.cur, ammoW: g.ammoW }); G.heroes = g.heroes.length === 3 ? g.heroes : [g.heroes[0], { name: "Ben", p: { x: 6 * block + 40, y: 10 * block + 40 }, a: 0, driving: null, ammo: 60 }, g.heroes[1]]; if (g.heroes.length === 2 && g.cur === 1) G.cur = 2; G.player = { ...G.heroes[G.cur].p }; G.pa = G.heroes[G.cur].a; hero.body.material.color.setHex(HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); hero.hood.visible = G.heroes[G.cur].name === "Joshua"; if (G.step >= 5) { restoring = true; startMission(g.mission); restoring = false; } return true; }
+function loadGame() { const g = save.game; if (!g || !Array.isArray(g.heroes) || (g.heroes.length < 2 || g.heroes.length > 3) || !g.heroes.every(h => h?.p && isFinite(h.p.x) && isFinite(h.p.y)) || solid(g.heroes[g.cur ?? 0].p.x, g.heroes[g.cur ?? 0].p.y)) { if (g) { delete save.game; persist(); } return false; } Object.assign(G, { score: g.score, step: g.step, cur: g.cur, ammoW: g.ammoW }); G.heroes = g.heroes.length === 3 ? g.heroes : [g.heroes[0], { name: "Ben", p: { x: 6 * block + 40, y: 10 * block + 40 }, a: 0, driving: null, ammo: 60 }, g.heroes[1]]; if (g.heroes.length === 2 && g.cur === 1) G.cur = 2; G.player = { ...G.heroes[G.cur].p }; G.pa = G.heroes[G.cur].a; tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); hero.hood.visible = G.heroes[G.cur].name === "Joshua" && !hero.gl; if (G.step >= 5) { restoring = true; startMission(g.mission); restoring = false; } return true; }
 setInterval(() => { if (!G.paused) saveGame(); }, 5000);
 const AMB = { on: false };
 function ambientStart() {
@@ -414,10 +417,23 @@ const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 64), new THREE.MeshBa
 for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.font = "bold 44px Helvetica"; x.textAlign = "center"; x.fillStyle = "#000a"; x.fillRect(0, 10, 512, 76); x.fillStyle = "#fff"; x.fillText(l.name, 256, 64);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(160, 30, 1); sp.position.set(l.x, l.name === "Harbour Centre" ? 540 : 150, l.y); scene.add(sp); }
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 48), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
+// real models: an animated rigged person and a real car. Shapes above are the fallback until these load (or if they fail).
+const MODELS = "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/";
+let SOLDIER = null, FERRARI = null;
+const gltf = new GLTFLoader(); gltf.setDRACOLoader(new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/"));
+function soldierFor(n, color) {
+  const s = SkeletonUtils.clone(SOLDIER.scene); s.scale.setScalar(13); s.rotation.y = Math.PI / 2;
+  s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(color), .5); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
+  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const clip of SOLDIER.animations) acts[clip.name.toLowerCase()] = mixer.clipAction(clip);
+  n.mix = { mixer, acts, cur: "walk" }; acts.walk?.play(); n.mix.mixer.setTime(Math.random() * 2); n.add(s); n.gl = s;
+}
+function setAnim(n, name) { const m = n.mix; if (!m || m.cur === name || !m.acts[name]) return; m.acts[m.cur]?.fadeOut(.2); m.acts[name].reset().fadeIn(.2).play(); m.cur = name; }
+function tint(n, hex) { n.traverse?.(o => { if (o.isMesh && o.parent !== n && n.gl && o.material?.color && n.gl.getObjectById(o.id)) o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(hex), .5); }); if (!n.gl) n.body?.material.color.setHex(hex); }
 // smooth torso from a lathe profile: hips, waist, chest, shoulders
 const TORSO = new THREE.LatheGeometry([[0, 0], [2.6, 0], [2.9, 1.2], [2.5, 3.8], [2.9, 6.2], [3.3, 8.4], [3.1, 9.4], [1.2, 10.2], [0, 10.3]].map(([x, y]) => new THREE.Vector2(x, y)), 48);
 const SKIN = [0xf1c9a5, 0xd9a680, 0xb67b53, 0x8d5a3b, 0x5c3a24], HAIR = [0x1c140f, 0x3b2616, 0x6b4a2b, 0xb58a4c, 0x8f8f8f], PANTS = [0x2b3440, 0x1f1f24, 0x4a3b2a, 0x3b4f6b, 0x5a5a5a];
 function person(color) {
+  if (SOLDIER) { const n = new THREE.Group(); n.legs = [new THREE.Group(), new THREE.Group()]; n.arms = [new THREE.Group(), new THREE.Group()]; soldierFor(n, color); n.scale.setScalar(.92 + Math.random() * .16); scene.add(n); return n; }
   const cap = (r, l, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 8, 20), typeof c === "number" ? mat(c) : c); m.castShadow = true; return m; };
   const skin = SKIN[Math.floor(Math.random() * SKIN.length)], hairC = HAIR[Math.floor(Math.random() * HAIR.length)], pants = PANTS[Math.floor(Math.random() * PANTS.length)];
   const n = new THREE.Group(), body = new THREE.Mesh(TORSO, mat(color)); body.position.y = 8.2; body.scale.z = .62; body.castShadow = true;
@@ -431,8 +447,17 @@ function person(color) {
   n.add(body, head); scene.add(n); return n;
 }
 // Joshua wears the Vancouver uniform: a yellow rain jacket with the hood up
-const hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); hero.hood = hood; } const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
+let hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); hero.hood = hood; } const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
 function carMesh(c) {
+  if (FERRARI && c.kind !== 2) {
+    const n = new THREE.Group(), car = FERRARI.clone(true); car.scale.setScalar(9.2); car.rotation.y = Math.PI / 2; car.position.y = -8;
+    const col = c.cop ? 0x1a2a6c : c.kind === 1 ? 0xf2c21b : c.color; car.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.name === "body" || o.material?.name === "body") o.material = paint(col); } });
+    const body = car.getObjectByName("body"); if (body) body.material = paint(col);
+    n.add(car);
+    if (c.kind === 1) { const sgn = boxM(6, 3, 10, 0xffffff); sgn.position.y = 7; n.add(sgn); }
+    if (c.cop) { n.bar = boxM(4, 2.5, 14, 0xff0000); n.bar.position.set(-2, 5.5, 0); n.add(n.bar); }
+    scene.add(n); return n;
+  }
   const [l, w] = kinds[c.kind], h = c.kind === 2 ? 26 : 10, n = boxM(l, h, w, paint(c.kind === 2 ? 0x3355aa : c.color));
   const cab = boxM(c.kind === 2 ? l - 6 : 22, c.kind === 2 ? 8 : 9, w - 3, glass); cab.position.set(c.kind === 2 ? 0 : -3, c.kind === 2 ? 4 : h / 2 + 3.5, 0); n.add(cab);
   for (const [x, z] of [[l / 2 - 8, w / 2], [l / 2 - 8, -w / 2], [-l / 2 + 8, w / 2], [-l / 2 + 8, -w / 2]]) { const wh = new THREE.Mesh(new THREE.TorusGeometry(3.6, 1.6, 16, 32), mat(0x111111)); wh.position.set(x, -h / 2 + 1, z); n.add(wh); }
@@ -442,6 +467,12 @@ function carMesh(c) {
   scene.add(n); return n;
 }
 let carM = [], pedM = [];
+gltf.load(MODELS + "Soldier.glb", g => {
+  SOLDIER = g;
+  pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null);
+  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13, 3);
+}, undefined, e => console.warn("character model failed, keeping shapes", e));
+gltf.load(MODELS + "ferrari.glb", g => { FERRARI = g.scene; carM.forEach(m => scene.remove(m)); carM = []; }, undefined, e => console.warn("car model failed, keeping shapes", e));
 const puffMat = new THREE.SpriteMaterial({ color: 0x555555, transparent: true, opacity: .55, depthWrite: false }), fireMat = new THREE.SpriteMaterial({ color: 0xff7a1a, transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending });
 const boomMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true })); boomMesh.visible = false; scene.add(boomMesh);
 function sync(now) {
@@ -459,11 +490,13 @@ function sync(now) {
   const bm = booms[booms.length - 1]; if (bm && (bm.t += 1 / 60) < .6) { boomMesh.visible = true; boomMesh.position.set(bm.x, 20, bm.y); boomMesh.scale.setScalar(10 + bm.t * 140); boomMesh.material.opacity = 1 - bm.t / .6; } else boomMesh.visible = false;
   G.peds.forEach(p => { const m = p.m; m.position.set(p.p.x, 0, p.p.y);
     if (p.dead) { const f = Math.min(1, p.dead * 3); m.rotation.set(f * Math.PI / 2, -p.a, 0, "YXZ"); m.position.y = f * 3; return; }
+    if (m.mix && dist(p.p, G.player) < 600) { setAnim(m, p.scared > 0 || p.angry || p.walkUp ? "run" : p.say ? "idle" : "walk"); m.mix.mixer.update(1 / 60); }
     m.rotation.set(0, -p.a, 0); m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); m.arms[1].rotation.z = p.punching > 0 ? 1.5 : 0; });
   const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
   hero.visible = G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
   hero.arms[1].rotation.z = performance.now() - (G.punchAt || 0) < 200 ? 1.6 : 0; hero.arms[0].rotation.z = G.weapon ? .9 : 0; gun.visible = !!G.weapon;
-  const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
+  const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); if (hero.mix) { setAnim(hero, moving ? (fast ? "run" : "walk") : "idle"); hero.mix.mixer.update(1 / 60); }
+  hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
   const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
   while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;
   const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60);

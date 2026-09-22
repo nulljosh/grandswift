@@ -17,6 +17,9 @@ Fists that land: people fight back or run, and they fall over when they go down.
 ## A living city
 Each neighbourhood has its own people and its own lines: the Downtown Eastside, Gastown, the West End and Coal Harbour, Yaletown, Kitsilano and Victoria. Strangers walk up to bump you, chat, or pick a fight. Traffic keeps to the right lane. You hear cars go by, birds, gulls, and rain, and the rain comes and goes.
 
+## Credits
+Car model: Ferrari 458 Italia by vicent091036, CC-BY 4.0. Character: Soldier from the three.js examples (Mixamo). Both load from the three.js repo on jsDelivr.
+
 ## Three heroes
 Joshua runs Gastown in a yellow rain jacket. He earns 50% more per mission and the cops lose interest in him twice as fast. Ben hangs out in Kitsilano. He's the fastest runner, jumps highest, and drops people in two punches. Alexandre works downtown Victoria. He aims steadier, drives faster, and takes less damage.
 
