@@ -79,6 +79,7 @@ function hood(x, y) {
   if (r <= 5 && c <= 7) return HOODS.westend; if (r >= 7 && c >= 9 && c <= 12) return HOODS.yaletown;
   return HOODS.downtown;
 }
+const carBlocked = (x, y) => solid(x, y) || cell(x, y) === "P" || cell(x, y) === "Y";
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const rnd = (a, b) => a + Math.random() * (b - a);
 function roadPoint() { for (;;) { const p = { x: rnd(10, W - 10), y: rnd(10, H - 10) }; if (!solid(p.x, p.y)) return p; } }
@@ -130,7 +131,8 @@ const tut = TOUCH
 const MISSIONS = ["deliver", "taxi", "evade"]; let mission = null;;
 const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) spots.push({ x: c * block + 40, y: r * block + 40 }); }));
 G.target = { x: 9 * block + 170, y: 2 * block + 40 }; const walkFrom = { ...G.player };
-for (let i = 0; i < 55; i++) { const p = roadPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 5 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
+const streetPoint = () => { for (;;) { const p = roadPoint(); if (!carBlocked(p.x, p.y)) return p; } };
+for (let i = 0; i < 55; i++) { const p = streetPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 5 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
 for (let i = 0; i < 100; i++) G.peds.push(sidewalkPed(roadPoint()));
 G.cars.forEach(c => c.ai && lane(c));
 
@@ -152,7 +154,7 @@ function explode(c) {
   const i = G.cars.indexOf(c); if (G.driving === i) G.driving = null; G.cars.splice(i, 1); if (G.driving !== null && G.driving > i) G.driving--;
   if (G.hp <= 0) wasted();
 }
-function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx, ny)) { if (Math.abs(c.v) > 200) { bang(.4); damageCar(c, Math.abs(c.v) / 14); } c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
+function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (c === G.cars[G.driving] ? solid(nx, ny) : carBlocked(nx, ny)) { if (Math.abs(c.v) > 200) { bang(.4); damageCar(c, Math.abs(c.v) / 14); } c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
 function toggleCar() {
   if (G.driving !== null) { const c = G.cars[G.driving]; G.driving = null; G.player = { x: c.p.x - Math.sin(c.a) * 30, y: c.p.y + Math.cos(c.a) * 30 }; if (solid(G.player.x, G.player.y)) G.player = { ...c.p }; return; }
   let best = null; G.cars.forEach((c, i) => { if (!c.cop && dist(c.p, G.player) < 45 && (best === null || dist(c.p, G.player) < dist(G.cars[best].p, G.player))) best = i; });
@@ -196,7 +198,7 @@ function shoot() {
 }
 function swapHero() {
   G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo, ammoW: [...G.ammoW] };
-  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
+  G.cur = (G.cur + 1) % G.heroes.length; const h = G.heroes[G.cur]; tint(hero, HERO_LOOK[h.name] ?? 0xe8b21a); hero.hood.visible = h.name === "Joshua" && !hero.gl; dressHero(h.name); G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
   G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
   G.msg = "Now playing " + h.name; msgT = 3; toast(PERKS[h.name]?.blurb || h.name);
 }
@@ -221,7 +223,8 @@ function radioTick() {
 }
 // --- save: autosave progress every few seconds
 function saveGame() { if (DEMO) return; save.game = { score: G.score, step: G.step, mission: mission ? mission.n : 0, heroes: G.heroes.map((h, i) => i === G.cur ? { ...h, p: G.player, a: G.pa, driving: null } : { ...h, driving: null }), cur: G.cur, ammoW: G.ammoW }; persist(); }
-function loadGame() { const g = save.game; if (!g || !Array.isArray(g.heroes) || (g.heroes.length < 2 || g.heroes.length > 3) || !g.heroes.every(h => h?.p && isFinite(h.p.x) && isFinite(h.p.y)) || solid(g.heroes[g.cur ?? 0].p.x, g.heroes[g.cur ?? 0].p.y)) { if (g) { delete save.game; persist(); } return false; } Object.assign(G, { score: g.score, step: g.step, cur: g.cur, ammoW: g.ammoW }); G.heroes = g.heroes.length === 3 ? g.heroes : [g.heroes[0], { name: "Ben", p: { x: 6 * block + 40, y: 10 * block + 40 }, a: 0, driving: null, ammo: 60 }, g.heroes[1]]; if (g.heroes.length === 2 && g.cur === 1) G.cur = 2; G.player = { ...G.heroes[G.cur].p }; G.pa = G.heroes[G.cur].a; tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); hero.hood.visible = G.heroes[G.cur].name === "Joshua" && !hero.gl; if (G.step >= 5) { restoring = true; startMission(g.mission); restoring = false; } return true; }
+function loadGame() { const g = save.game; if (!g || !Array.isArray(g.heroes) || (g.heroes.length < 2 || g.heroes.length > 3) || !g.heroes.every(h => h?.p && isFinite(h.p.x) && isFinite(h.p.y)) || solid(g.heroes[g.cur ?? 0].p.x, g.heroes[g.cur ?? 0].p.y)) { if (g) { delete save.game; persist(); } return false; } Object.assign(G, { score: g.score, step: g.step, cur: g.cur, ammoW: g.ammoW }); G.heroes = g.heroes.length === 3 ? g.heroes : [g.heroes[0], { name: "Ben", p: { x: 6 * block + 40, y: 10 * block + 40 }, a: 0, driving: null, ammo: 60 }, g.heroes[1]]; if (g.heroes.length === 2 && g.cur === 1) G.cur = 2; G.player = { ...G.heroes[G.cur].p }; G.pa = G.heroes[G.cur].a; tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); hero.hood.visible = G.heroes[G.cur].name === "Joshua" && !hero.gl; if (cell(G.player.x, G.player.y) === "P") G.player = { ...[{ x: 11 * block + 40, y: 3 * block + 40 }, { x: 6 * block + 40, y: 10 * block + 40 }, { x: 5 * block + 40, y: 15 * block + 40 }][G.cur] };
+  if (G.step >= 5) { restoring = true; startMission(g.mission); restoring = false; } return true; }
 setInterval(() => { if (!G.paused) saveGame(); }, 5000);
 const AMB = { on: false };
 function ambientStart() {
@@ -327,8 +330,8 @@ function tick(dt) {
   G.cars.forEach((c, i) => {
     if (!c.ai || i === G.driving) return; c.v = 150;
     const ax = c.p.x + Math.cos(c.a) * 45, ay = c.p.y + Math.sin(c.a) * 45;
-    if (solid(ax, ay) || G.cars.some((o, j) => j !== i && Math.hypot(o.p.x - ax, o.p.y - ay) < 25)) {
-      const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(c.p.x + Math.cos(a) * 45, c.p.y + Math.sin(a) * 45));
+    if (carBlocked(ax, ay) || G.cars.some((o, j) => j !== i && Math.hypot(o.p.x - ax, o.p.y - ay) < 25)) {
+      const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !carBlocked(c.p.x + Math.cos(a) * 45, c.p.y + Math.sin(a) * 45));
       c.a = d.length ? d[Math.floor(Math.random() * d.length)] : c.a + Math.PI; c.v = 0; lane(c);
     }
     move(c, dt);
@@ -457,7 +460,7 @@ function rigFor(n, color, c) {
   const s = SkeletonUtils.clone(c.src.scene); s.updateMatrixWorld(true);
   const h = new THREE.Box3().setFromObject(s).getSize(new THREE.Vector3()).y || 1; s.scale.multiplyScalar(24 / h); s.rotation.y = c.turn;
   s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (c.shirt && o.material.color && c.shirt.test(o.material.name)) o.material.color.lerp(new THREE.Color(color), c.src.scene === undefined ? .7 : .45); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
-  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const [k, name] of Object.entries(c.map)) { const clip = c.src.animations.find(a => a.name === name) || c.src.animations[0]; if (clip) acts[k] = mixer.clipAction(clip); }
+  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const [k, name] of Object.entries(c.map)) { let clip = c.src.animations.find(a => a.name === name) || c.src.animations[0]; if (!clip) continue; if (c.strip) { clip = clip.clone(); clip.tracks = clip.tracks.filter(t => !/^Bip01\.position$/.test(t.name)); } acts[k] = mixer.clipAction(clip); }
   n.mix = { mixer, acts, cur: "walk" }; acts.walk?.play(); mixer.setTime(Math.random() * 2); n.add(s); n.gl = s;
 }
 function soldierFor(n, color, src = SOLDIER) {
@@ -489,7 +492,7 @@ function person(color) {
 // Joshua wears the Vancouver uniform: a yellow rain jacket with the hood up
 let hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); hero.hood = hood; } const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
 function carMesh(c) {
-  if (FERRARI && c.kind !== 2) {
+  if (FERRARI && c.kind === 3) {
     const n = new THREE.Group(), car = FERRARI.clone(true); car.scale.setScalar(9.2); car.rotation.y = Math.PI / 2; car.position.y = -8;
     const col = c.cop ? 0x1a2a6c : c.kind === 1 ? 0xf2c21b : c.color; car.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.name === "body" || o.material?.name === "body") o.material = paint(col); } });
     const body = car.getObjectByName("body"); if (body) body.material = paint(col);
@@ -512,12 +515,21 @@ gltf.load(MODELS + "Soldier.glb", g => {
   if (!hero.gl) hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (!hero.gl) hero.body = null; if (!hero.gl) soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); if (hero.mix?.acts.run === undefined) tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13.5, 3);
 }, undefined, e => console.warn("character model failed, keeping shapes", e));
 const reCrowd = () => { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); };
-gltf.load("models/remy.glb", g => {
-  const remy = { src: g, turn: Math.PI / 2, shirt: /shirt|top|Body/i, map: { walk: g.animations[0]?.name, run: g.animations[0]?.name, idle: g.animations[0]?.name } };
-  CROWD.push(remy); reCrowd();
-  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (hero.gl) hero.remove(hero.gl); hero.body = null; hero.mix = null; rigFor(hero, 0xffffff, { ...remy, shirt: null }); hero.mix.acts.idle = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
-}, undefined, e => console.warn("Remy failed", e));
-gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
+gltf.load("models/hero.glb", g => { JOSH = g; if (G.heroes[G.cur].name === "Joshua") dressHero("Joshua"); }, undefined, e => console.warn("hero body failed", e));
+// crowd: 12 realistic people (Microsoft Rocketbox, MIT), each with its own walk and idle
+const PEOPLE = ["male_adult_01", "female_adult_01", "male_adult_03", "female_adult_03", "male_adult_05", "female_adult_05", "male_adult_07", "female_adult_07", "male_adult_09", "female_adult_09", "male_adult_11", "female_adult_11"].slice(0, TOUCH ? 6 : 12);
+const BODY = {}; let peopleReady = false;
+PEOPLE.forEach(n => gltf.load(`models/people/${n}.glb`, g => { BODY[n] = g; CROWD.splice(0, CROWD.length, ...Object.values(BODY).map(src => ({ src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "idle" } }))); if (!peopleReady && Object.keys(BODY).length >= Math.min(4, PEOPLE.length)) { peopleReady = true; reCrowd(); } }, undefined, e => console.warn("person failed", n, e)));
+// each hero has a body; Tab swaps it
+const HERO_BODY = { Joshua: "hero", Ben: "male_adult_05", Alexandre: "male_adult_09" };
+function dressHero(name) {
+  const key = HERO_BODY[name], src = key === "hero" ? JOSH : BODY[key]; if (!src) return;
+  if (hero.gl) hero.remove(hero.gl); hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; hero.mix = null;
+  rigFor(hero, 0xffffff, key === "hero" ? { src, turn: Math.PI / 2, map: { walk: src.animations[0]?.name, run: src.animations[0]?.name, idle: src.animations[0]?.name } } : { src, turn: Math.PI / 2, strip: true, map: { walk: "walk", run: "walk", idle: "walk" } });
+  hero.mix.acts.run = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
+}
+let JOSH = null;
+if (false) gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
   const names = [...new Set(g.scene.getObjectsByProperty("isMesh", true).map(m => m.material.name))]; console.log("HVGirl materials", names.join(","));
   CROWD.push({ src: g, turn: Math.PI / 2, shirt: /T-shirt|short/i, map: { walk: "Walking", run: "Walking", idle: "Idle" } }); reCrowd();
 }, undefined, e => console.warn("HVGirl failed", e));
