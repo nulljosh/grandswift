@@ -8,8 +8,10 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 - v0.3.0 first person SceneKit, traffic, lane lines, Dock icon, app bundle
 - v0.4.0 guns, car types, sidewalk walkers, synth sound, Victoria, Joshua/Alexandre swap, headless QA (`GS_QA=1 ./grandswift`, 15 checks)
 
+- v1.0.0 tutorial, delivery missions, mouse look, day/night cycle, README, 22 QA checks
+
 ## Next (gap vs GTA 3/4)
-- [ ] Mouse look
+- [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke
 - [ ] Missions (a pickup, a chase, a hit), cash pickups, respawn at hospital
 - [ ] Weapon switching (fists, pistol, shotgun), cops shooting back

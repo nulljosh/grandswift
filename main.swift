@@ -66,10 +66,12 @@ final class Game: ObservableObject {
     var keys = Set<UInt16>()
     var player = CGPoint(x: 8 * block + 40, y: 5 * block + 40), pa: CGFloat = 0
     var cars: [Car] = [], peds: [Ped] = []
+    var mouseDX: CGFloat = 0
     var driving: Int? = nil
     var wanted = 0, score = 0, last = Date()
 
     init() {
+        walkFrom = player
         let colors: [Color] = [.red, .yellow, .orange, .green, .white, .pink]
         for i in 0..<25 { cars.append(Car(p: roadPoint(), a: CGFloat(i % 4) * .pi / 2, color: i % 5 == 1 ? .yellow : colors[i % colors.count], ai: i % 3 != 0, kind: i % 7 == 0 ? 2 : i % 5 == 1 ? 1 : i % 6 == 0 ? 3 : 0)) }
         for _ in 0..<60 { peds.append(sidewalkPed(roadPoint())) }
@@ -94,7 +96,7 @@ final class Game: ObservableObject {
             c.a += ((right ? 1 : 0) - (left ? 1 : 0)) * 2.8 * dt * (c.v / 300)
             move(&c, dt); cars[i] = c; player = c.p
         } else {
-            pa += ((right ? 1 : 0) - (left ? 1 : 0)) * 4 * dt
+            pa += ((right ? 1 : 0) - (left ? 1 : 0)) * 3 * dt + mouseDX * 0.004; mouseDX = 0
             let s: CGFloat = (fwd ? 140 : 0) - (back ? 80 : 0)
             let n = CGPoint(x: player.x + cos(pa) * s * dt, y: player.y + sin(pa) * s * dt)
             if !solid(n) { player = n }
@@ -127,6 +129,7 @@ final class Game: ObservableObject {
             if dist(c.p, player) < 30 && (driving == nil || abs(cars[driving!].v) < 60) { busted() ; return }
         }
         if wanted > 0 && .random(in: 0...1) < 0.0008 { wanted -= 1; if let j = cars.lastIndex(where: \.cop) { cars.remove(at: j) } }
+        progress()
         Sound.siren = wanted > 0 && cars.contains { $0.cop && dist($0.p, player) < 900 }
         if driving == nil { Sound.engine = 0 }
         flash = max(0, flash - Double(dt)); if !msg.isEmpty && Int(now.timeIntervalSince1970 * 60) % 240 == 0 { msg = "" }
@@ -141,6 +144,22 @@ final class Game: ObservableObject {
     struct Hero { var name: String; var p: CGPoint; var a: CGFloat = 0; var driving: Int?; var ammo = 60 }
     var heroes = [Hero(name: "Joshua", p: CGPoint(x: 8 * block + 40, y: 5 * block + 40), driving: nil), Hero(name: "Alexandre", p: CGPoint(x: 5 * block + 40, y: 15 * block + 40), driving: nil)]
     var cur = 0
+    // tutorial steps, then endless delivery missions to landmarks
+    let tut = ["Walk with W A S D", "Aim with the mouse (click to lock), shoot with Space or click", "Find a car and press E to get in", "Drive to the yellow beacon", "Press Tab to switch to Alexandre", "Tutorial done. Deliver cars to the beacon for cash"]
+    var step = 0, walkFrom = CGPoint.zero
+    var target = CGPoint(x: 9 * block + 170, y: 2 * block + 40)
+    static let spots: [CGPoint] = vanMap.indices.flatMap { r in vanMap[r].indices.compactMap { c in "CSEL".contains(vanMap[r][c]) ? CGPoint(x: CGFloat(c) * block + 40, y: CGFloat(r) * block + 40) : nil } }
+    func progress() {
+        switch step {
+        case 0: if dist(player, walkFrom) > 100 { step = 1 }
+        case 1: if ammo < 60 { step = 2 }
+        case 2: if driving != nil { step = 3 }
+        case 3: if dist(player, target) < 120 { step = 4; score += 100; Sound.bang(0.3) }
+        case 4: if cur == 1 { step = 5; newTarget() }
+        default: if driving != nil && dist(player, target) < 120 { score += 250; msg = "Delivered! +$250"; Sound.bang(0.3); newTarget() }
+        }
+    }
+    func newTarget() { target = (Game.spots.filter { dist($0, player) > 600 }.randomElement() ?? target) }
     func swapHero() {
         heroes[cur] = Hero(name: heroes[cur].name, p: player, a: pa, driving: driving, ammo: ammo)
         cur ^= 1; let h = heroes[cur]
@@ -253,7 +272,17 @@ final class World {
         return n
     }
 
+    lazy var beacon: SCNNode = {
+        let n = SCNNode(geometry: SCNCylinder(radius: 14, height: 600)); n.geometry!.firstMaterial!.diffuse.contents = NSColor.systemYellow.withAlphaComponent(0.35)
+        n.geometry!.firstMaterial!.emission.contents = NSColor.systemYellow; n.geometry!.firstMaterial!.lightingModel = .constant; scene.rootNode.addChildNode(n); return n
+    }()
     func sync(_ g: Game) {
+        beacon.position = SCNVector3(g.target.x, 300, g.target.y); beacon.isHidden = g.step < 2
+        // day/night: 4 minute cycle
+        let day = (sin(Date().timeIntervalSince1970 * 2 * .pi / 240) + 1) / 2
+        let skyC = NSColor(red: 0.08 + 0.54 * day, green: 0.1 + 0.64 * day, blue: 0.2 + 0.66 * day, alpha: 1)
+        scene.background.contents = skyC; scene.fogColor = skyC
+        scene.rootNode.childNodes.first { $0.light?.type == .directional }?.light?.intensity = 200 + 800 * day
         if carNodes.count != g.cars.count { carNodes.forEach { $0.removeFromParentNode() }; carNodes = g.cars.map(carNode); carNodes.forEach(scene.rootNode.addChildNode) }
         if pedNodes.count != g.peds.count {
             pedNodes.forEach { $0.removeFromParentNode() }
@@ -308,7 +337,7 @@ struct GameView: View {
                 RoundedRectangle(cornerRadius: 4).fill(Color(white: 0.12)).frame(width: 40, height: 180).rotationEffect(.degrees(-20)).offset(x: -80, y: -20) }.padding(40).allowsHitTesting(false) }
         }
         .overlay(alignment: .topLeading) {
-            Text("\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
+            Text((g.step < g.tut.count ? "▶ " + g.tut[g.step] + "\n" : "") + "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white).padding(12).shadow(radius: 2)
         }
         .overlay(alignment: .topTrailing) {
@@ -325,8 +354,13 @@ struct GameView: View {
         }
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { e in
-                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
+                if e.type == .keyDown { if e.keyCode == 14 && !e.isARepeat { g.toggleCar() }; if e.keyCode == 53 { CGAssociateMouseAndMouseCursorPosition(1); NSCursor.unhide() }; if e.keyCode == 49 { g.shoot() }; if e.keyCode == 48 && !e.isARepeat { g.swapHero() }; g.keys.insert(e.keyCode) } else { g.keys.remove(e.keyCode) }
                 return nil
+            }
+            NSApp.windows.forEach { $0.acceptsMouseMovedEvents = true }
+            NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged, .leftMouseDown]) { e in
+                if e.type == .leftMouseDown { CGAssociateMouseAndMouseCursorPosition(0); NSCursor.hide(); g.shoot() } else { g.mouseDX += e.deltaX }
+                return e
             }
         }
     }
@@ -406,6 +440,12 @@ func runQA() -> Never {
     let jp = g.player; g.swapHero()
     check(g.heroes[g.cur].name == "Alexandre" && streetName(g.player).contains("Victoria"), "Tab swaps to Alexandre in Victoria")
     g.swapHero(); check(dist(g.player, jp) < 1, "swap back restores Joshua's spot")
+    let t = Game(); t.walkFrom = t.player; t.player.x += 150; run(t, 1); check(t.step == 1, "tutorial: walking advances")
+    t.shoot(); run(t, 1); check(t.step == 2, "tutorial: shooting advances")
+    let tc = t.cars.firstIndex { !$0.cop }!; t.cars[tc].p = CGPoint(x: t.player.x + 20, y: t.player.y); t.toggleCar(); run(t, 1); check(t.step == 3, "tutorial: entering car advances")
+    t.cars[t.driving!].p = t.target; run(t, 1); check(t.step == 4, "tutorial: reaching beacon advances")
+    t.swapHero(); run(t, 1); check(t.step == 5, "tutorial: swap finishes it")
+    check(!Game.spots.isEmpty && Game.spots.allSatisfy { !solid($0) }, "mission beacons are on road")
     run(g, 3600); check(g.peds.count > 20 && !g.player.x.isNaN, "60s soak, no NaN, city stays populated")
     print(fails.isEmpty ? "QA OK" : "QA FAILED: \(fails.count)"); exit(fails.isEmpty ? 0 : 1)
 }
