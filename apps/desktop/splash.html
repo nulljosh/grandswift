@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Rainjack</title>
+<style>
+html,body{height:100%;margin:0;background:#111;color:#fff;font:16px system-ui}body{display:grid;place-content:center;text-align:center;-webkit-app-region:drag}img{width:96px;height:96px;margin:auto}h1{font-size:24px;margin:12px 0 4px}p{max-width:320px;margin:8px;color:#ccc}
+</style>
+<img src="assets/icon.png" alt=""><h1>Rainjack</h1><p role="status">Loading Vancouver…</p>
+<script>if(new URLSearchParams(location.search).has('error'))document.querySelector('p').textContent='Could not load Vancouver. Check your connection and restart Rainjack.';</script>
+</html>

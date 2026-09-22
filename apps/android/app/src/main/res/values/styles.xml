@@ -1,0 +1,7 @@
+<resources>
+    <color name="launch_background">#111111</color>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:colorAccent">#E8B21A</item>
+    </style>
+</resources>
