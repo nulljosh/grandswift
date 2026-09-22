@@ -475,6 +475,7 @@ func runQA() -> Never {
     check(dist(c0, g.player) > 50 || g.cars[g.driving!].v != 0, "car accelerates")
     g.toggleCar(); check(g.driving == nil && !solid(g.player), "E exits car onto road")
     // shoot a ped placed in front of us
+    g.cars.removeAll { dist($0.p, g.player) < 150 }; g.driving = nil // nothing in the line of fire but the target
     g.peds.append(Ped(p: CGPoint(x: g.player.x + cos(g.pa) * 60, y: g.player.y + sin(g.pa) * 60), a: 0))
     let n0 = g.peds.count, a0 = g.ammo; g.shoot()
     check(g.ammo == a0 - 1 && g.peds.count == n0 - 1, "gun hits ped in crosshair")

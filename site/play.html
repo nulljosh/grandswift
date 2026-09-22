@@ -419,7 +419,8 @@ function person(color) {
   n.add(neck, hair); n.scale.setScalar(.92 + Math.random() * .16);
   n.add(body, head); scene.add(n); return n;
 }
-const hero = person(0xbf1f1a); const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
+// Joshua wears the Vancouver uniform: a yellow rain jacket with the hood up
+const hero = person(0xe8b21a); { const hood = new THREE.Mesh(new THREE.SphereGeometry(3, 48, 24, 0, Math.PI * 2, 0, Math.PI * .62), mat(0xe8b21a)); hood.position.y = 21.4; hood.scale.set(1, 1.1, .98); hero.add(hood); } const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
 function carMesh(c) {
   const [l, w] = kinds[c.kind], h = c.kind === 2 ? 26 : 10, n = boxM(l, h, w, paint(c.kind === 2 ? 0x3355aa : c.color));
   const cab = boxM(c.kind === 2 ? l - 6 : 22, c.kind === 2 ? 8 : 9, w - 3, glass); cab.position.set(c.kind === 2 ? 0 : -3, c.kind === 2 ? 4 : h / 2 + 3.5, 0); n.add(cab);
