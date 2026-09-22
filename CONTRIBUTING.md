@@ -15,6 +15,7 @@ Then open http://localhost:8765/play.html (main game) or /city.html (real street
     node tests/city.mjs     # real streets
     python3 tests/osm.py    # map data
     node tests/native.mjs   # app shells
+    node tests/online.mjs   # online play against the live server
 
 CI runs all of these plus a build for every platform on every push.
 

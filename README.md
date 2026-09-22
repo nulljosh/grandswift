@@ -11,7 +11,7 @@
 
 | | | |
 |---|---|---|
-| <img src="docs/img/real-streets.png" alt="Downtown Vancouver"> | <img src="docs/img/7-eleven.png" alt="Robbing a 7-Eleven"> | <img src="docs/img/kits-beach.png" alt="Kits Beach"> |
+| <img src="docs/img/real-streets.png" alt="Downtown Vancouver"> | <img src="docs/img/crowd.png" alt="A crowd on the waterfront"> | <img src="docs/img/kits-beach.png" alt="Kits Beach"> |
 
 It rains nine months a year. Rent is four grand. Everybody's got a hustle.
 

@@ -68,3 +68,10 @@ jobs:
         working-directory: apps/apple
       - run: xcodebuild -project VancouverVice.xcodeproj -scheme VancouverVice -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet
         working-directory: apps/apple
+  online:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tests/online.mjs
