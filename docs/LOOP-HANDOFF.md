@@ -1,18 +1,23 @@
-# Vancouver Vice loop handoff (updated 2026-09-22, morning)
+# Vancouver Vice loop handoff (2026-09-22, morning)
 
 ## What the loop is
-A self-paced loop that works through `roadmap.md` one item per round: build it, test it headless, deploy, commit, tag, update the landing page and changelog, self-grade against GTA 3.
+
+The loop runs autonomous single-item sprints on Vancouver Vice Unreal. One small feature per round: build it, verify it with a screenshot, commit, push, report back in under 8 words. If weekly usage hits 98%, the loop stops and updates this file before exiting.
 
 ## Where things stand
-Version 1.26 is live at vancouvervice.heyitsmejosh.com. Web tests, city tests and online tests (10 of 10) pass. Native apps build for every platform in CI. Unreal 5.8.2 is installed at `/Volumes/LaCie/UE_5.8` and the project lives at `/Volumes/LaCie/Unreal/VancouverVice` with Cesium for Unreal in its Plugins folder. `unreal/open.sh` opens it with the MCP server on port 18000. Resume prompt: `docs/RESUME-PROMPT.txt`. The Cesium web token still needs `https://vancouvervice.heyitsmejosh.com` added (Joshua, in the Cesium dashboard). Weekly Claude usage was at 92 percent when the loop stopped; it resets Saturday night.
+
+Unreal 5.8.2 runs on the LaCie drive. MCP server on 18000 streams real Vancouver from Google 3D Tiles. Player starts at Granville and Georgia. Three heroes wired: Joshua downtown, Ben in Kitsilano, Alexandre in Victoria. No cars yet, no robberies, no cops, no missions. Landing page boots the Unreal level. Commits adb54af and 4e7fa76 pushed and live.
 
 ## Next, in order
-1. Unreal: run `unreal/setup_vancouver.py` through the MCP, then heroes, a car, a 7-Eleven, cops and stars.
-2. Funny chaos list from the roadmap, one or two per round (bike lane rage is first).
-3. Move missions and heroes onto the real streets.
-4. Ride the SkyTrain.
+
+1. Drivable car: rig a vehicle model, test steering and braking, spawn near player, cops chase you when you hit things
+2. Three heroes: swap bodies on Tab, each gets unique appearance and mission set (Joshua street crime, Ben relaxation, Alexandre delivery)
+3. Seven-Eleven robbery: enter a store, point gun, get cash, get wanted star, cops arrive
+4. Cops and wanted stars: five-star system matching GTA, AI chases escalate with stars, wanted level shows in HUD
+5. More landmarks: add real Vancouver places (English Bay, Pacific Central, Rogers Arena, Science Centre, UBC), make them navigable and mission-relevant
 
 ## Restart prompt
+
 ```
-/loop Work through roadmap.md for Vancouver Vice, top to bottom. One item per round: build it, test it headless (node tests/web.mjs, node tests/city.mjs, node tests/online.mjs), deploy with npx wrangler deploy, commit, tag a release, update the landing page, README and CHANGELOG if it's user-facing, and check it off in roadmap.md. Keep usage lean: one Haiku subagent at most. Self-grade honestly against GTA 3 after each round.
+/loop Vancouver Vice Unreal build (~/Documents/Code/vancouvervice, UNREAL.md has the MCP recipe via unreal/mcp.py). FIRST check usage via the hook line / ~/.claude/scripts/usage.sh: if weekly_all >= 98%, commit, update docs/LOOP-HANDOFF.md, and stop the loop. Otherwise do ONE small item per round, in order: drivable car; three heroes (Joshua, Ben, Alexandre); a 7-Eleven to rob; cops and wanted stars; then more real Vancouver landmarks and missions. Verify each with a CaptureViewport screenshot, commit+push, then tell Joshua in under 8 words. No subagents.
 ```
