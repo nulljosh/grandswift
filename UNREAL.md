@@ -16,3 +16,10 @@ The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unre
 - https://dev.epicgames.com/documentation/unreal-engine/unreal-mcp-in-unreal-editor
 - https://cesium.com/learn/unreal/unreal-photorealistic-3d-tiles/
 - https://github.com/per-simmons/unreal-agent-harness
+
+## Current setup (2026-09-22)
+- Engine: `/Volumes/LaCie/UE_5.8` (5.8.2). Project: `/Volumes/LaCie/Unreal/VancouverVice`.
+- Open it with `unreal/open.sh`. That starts the MCP server on port 18000 (port 8000 belongs to the local LLM server).
+- Claude is registered with `claude mcp add --transport http unreal http://127.0.0.1:18000/mcp -s user`. New sessions see it; run `/mcp` to check.
+- First launch needed Xcode's Metal toolchain: `xcodebuild -downloadComponent MetalToolchain`.
+- Cesium for Unreal comes from Fab in the Epic launcher (Install to Engine, 5.8).
