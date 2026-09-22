@@ -44,3 +44,28 @@ jobs:
         with: { node-version: 22 }
       - run: npm install --no-save playwright@1.63.0 && npx playwright install --with-deps chromium
       - run: node tests/city.mjs
+  desktop-build:
+    strategy: { fail-fast: false, matrix: { os: [windows-latest, macos-15, ubuntu-latest] } }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install
+        working-directory: apps/desktop
+      - name: Build unpacked app (unsigned)
+        shell: bash
+        working-directory: apps/desktop
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+        run: npx electron-builder --dir --publish never -c.forceCodeSigning=false -c.mac.notarize=false
+  apple-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+        working-directory: apps/apple
+      - run: xcodebuild -project Rainjack.xcodeproj -scheme Rainjack -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build -quiet
+        working-directory: apps/apple
+      - run: xcodebuild -project Rainjack.xcodeproj -scheme Rainjack -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet
+        working-directory: apps/apple
