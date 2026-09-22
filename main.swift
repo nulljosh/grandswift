@@ -482,7 +482,10 @@ func runQA() -> Never {
 }
 
 @main struct GrandSwift: App {
-    init() { if ProcessInfo.processInfo.environment["GS_QA"] != nil { runQA() }; NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon(); Sound.start()
+    init() { if ProcessInfo.processInfo.environment["GS_QA"] != nil { runQA() }; NSApplication.shared.setActivationPolicy(.regular); // one copy at a time: newest launch kills any older instance
+        let me = ProcessInfo.processInfo.processIdentifier
+        NSWorkspace.shared.runningApplications.filter { $0.executableURL?.lastPathComponent == "grandswift" && $0.processIdentifier != me }.forEach { $0.forceTerminate() }
+        NSApp.applicationIconImage = appIcon(); Sound.start()
         if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) }; DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
     var body: some Scene { WindowGroup("Grand Swift") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }
