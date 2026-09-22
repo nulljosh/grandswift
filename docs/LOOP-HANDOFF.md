@@ -11,7 +11,7 @@ Unreal 5.8.2 on the LaCie drive. MCP server on 18000 streams real Vancouver via 
 ## Next, in order
 
 1. Drivable car: rig vehicle, test steering/braking, spawn near player, cops chase on collision
-2. sprint with stamina (hold Shift), guns from the First Person pack: add FP camera toggle option, test weapon aim and movement
+2. Sprint with stamina (hold Shift), then guns from the First Person pack and car stealing from the Vehicle pack.
 3. Vehicle stealing pack: let player steal cars, vehicle variety, damage states visible
 4. Finish MetaHuman: complete Joshua's face scan into a full body model with animations
 5. Bake OSM geometry: pre-bake OpenStreetMap Vancouver for instant loading instead of streaming tiles
