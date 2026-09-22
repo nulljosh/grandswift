@@ -1,0 +1,34 @@
+"""Auto player / QA for the Unreal build. Needs the editor open with Content/Python/init_unreal.py (the QA bridge).
+Usage: python3 qa.py            -> starts Play, runs the walk test, prints PASS/FAIL, stops Play
+       python3 qa.py 'print(1)' -> runs one Python snippet inside the editor
+"""
+import os, sys, time, json, subprocess
+D = "/tmp/vv_qa"; HERE = os.path.dirname(os.path.abspath(__file__))
+
+def run(src, timeout=60):
+    os.makedirs(D, exist_ok=True)
+    out = os.path.join(D, "out.txt")
+    if os.path.exists(out): os.remove(out)
+    open(os.path.join(D, "cmd.py"), "w").write(src)
+    end = time.time() + timeout
+    while time.time() < end:
+        if os.path.exists(out): time.sleep(0.2); return open(out).read()
+        time.sleep(0.5)
+    raise SystemExit("editor did not answer (is the QA bridge loaded?)")
+
+def mcp(toolset, tool, args):
+    call = {"name": "call_tool", "arguments": {"toolset_name": toolset, "tool_name": tool, "arguments": args}}
+    return subprocess.run([sys.executable, os.path.join(HERE, "mcp.py"), "tools/call", json.dumps(call)], capture_output=True, text=True, timeout=400).stdout
+
+if len(sys.argv) > 1:
+    print(run(sys.argv[1])); sys.exit()
+
+A = "EditorToolset.EditorAppToolset"
+mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
+print("waiting for Vancouver to stream in"); time.sleep(90)
+print(run(open(os.path.join(HERE, "qa_walk.py")).read()))
+time.sleep(25)  # the walk runs on ticks for about 20 seconds
+res = run("print(QA_RESULT)")
+print(res)
+mcp(A, "StopPIE", {})
+sys.exit(0 if res.startswith("PASS") else 1)
