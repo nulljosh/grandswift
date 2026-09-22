@@ -7,6 +7,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: swiftc -O -parse-as-library main.swift -o rainjack
       - run: GS_QA=1 ./rainjack
+  map-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 tests/osm.py
   web:
     runs-on: ubuntu-latest
     steps:
@@ -15,10 +22,3 @@ jobs:
         with: { node-version: 22 }
       - run: npm install --no-save playwright@1 && npx playwright install --with-deps chromium
       - run: node tests/web.mjs
-  map-data:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      - run: python3 tests/osm.py
