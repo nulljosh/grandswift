@@ -375,8 +375,43 @@ enum Sound {
     }
 }
 
+// Dogfood run: GS_QA=1 ./grandswift plays the sim headless and asserts the core loop works.
+func runQA() -> Never {
+    var fails: [String] = []
+    func check(_ ok: Bool, _ what: String) { print(ok ? "PASS" : "FAIL", what); if !ok { fails.append(what) } }
+    func run(_ g: Game, _ n: Int) { for _ in 0..<n { g.last = Date().addingTimeInterval(-1 / 60); g.tick() } }
+    let g = Game()
+    check(!solid(g.player), "spawn is on road")
+    check(g.peds.allSatisfy { !solid($0.p) }, "all peds spawn on walkable ground")
+    let trafficStart = g.cars.filter(\.ai).map(\.p)
+    run(g, 120)
+    check(zip(trafficStart, g.cars.filter(\.ai).map(\.p)).contains { dist($0, $1) > 20 }, "traffic moves")
+    check(g.peds.allSatisfy { !solid($0.p) }, "peds stay off buildings/water after 2s")
+    let p0 = g.player; g.keys = [13]; run(g, 60); g.keys = []
+    check(dist(p0, g.player) > 30, "player walks forward")
+    for _ in 0..<600 { g.keys = [13]; run(g, 1) }; g.keys = []
+    check(!solid(g.player), "player never ends inside a building")
+    // put a car next to player and jack it
+    let ci = g.cars.firstIndex { !$0.cop }!; g.cars[ci].p = CGPoint(x: g.player.x + 20, y: g.player.y); g.cars[ci].v = 0; g.cars[ci].ai = false
+    g.toggleCar(); check(g.driving != nil, "E enters nearby car")
+    let c0 = g.player; g.keys = [13]; run(g, 90); g.keys = []
+    check(dist(c0, g.player) > 50 || g.cars[g.driving!].v != 0, "car accelerates")
+    g.toggleCar(); check(g.driving == nil && !solid(g.player), "E exits car onto road")
+    // shoot a ped placed in front of us
+    g.peds.append(Ped(p: CGPoint(x: g.player.x + cos(g.pa) * 60, y: g.player.y + sin(g.pa) * 60), a: 0))
+    let n0 = g.peds.count, a0 = g.ammo; g.shoot()
+    check(g.ammo == a0 - 1 && g.peds.count == n0 - 1, "gun hits ped in crosshair")
+    check(g.wanted > 0, "shooting raises wanted level")
+    run(g, 60); check(g.cars.contains(where: \.cop), "cops spawn when wanted")
+    let jp = g.player; g.swapHero()
+    check(g.heroes[g.cur].name == "Alexandre" && streetName(g.player).contains("Victoria"), "Tab swaps to Alexandre in Victoria")
+    g.swapHero(); check(dist(g.player, jp) < 1, "swap back restores Joshua's spot")
+    run(g, 3600); check(g.peds.count > 20 && !g.player.x.isNaN, "60s soak, no NaN, city stays populated")
+    print(fails.isEmpty ? "QA OK" : "QA FAILED: \(fails.count)"); exit(fails.isEmpty ? 0 : 1)
+}
+
 @main struct GrandSwift: App {
-    init() { NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon(); Sound.start()
+    init() { if ProcessInfo.processInfo.environment["GS_QA"] != nil { runQA() }; NSApplication.shared.setActivationPolicy(.regular); NSApp.applicationIconImage = appIcon(); Sound.start()
         if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) }; DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
     var body: some Scene { WindowGroup("Grand Swift") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }
