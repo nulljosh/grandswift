@@ -8,12 +8,13 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/
 #credit{position:fixed;right:10px;bottom:6px;font-size:11px;opacity:.8}
 #stick{position:fixed;left:24px;bottom:40px;width:120px;height:120px;border-radius:50%;background:#fff2;border:2px solid #fff5;display:none;touch-action:none}
 .touch #stick{display:block}
-#car{position:fixed;right:24px;bottom:50px;width:70px;height:70px;border-radius:50%;border:2px solid #fff6;background:#0006;color:#fff;font:700 14px Helvetica;display:none}.touch #car{display:block}
+#pbtns{position:fixed;right:18px;bottom:36px;display:none;grid-template-columns:repeat(2,70px);gap:10px}.touch #pbtns{display:grid}
+#pbtns button{width:70px;height:70px;border-radius:50%;border:2px solid #fff6;background:#0006;color:#fff;font:700 14px Helvetica;touch-action:none}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
 <div id="load">Building real Vancouver...</div><div id="hud"></div><div id="toast" style="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none"></div><div id="credit">Map data © OpenStreetMap contributors</div>
-<div id="stick"></div><button id="car">Car</button>
+<div id="stick"></div><div id="pbtns"><button data-a="punch">Punch</button><button data-a="rob">Rob</button><button data-a="menu">Menu</button><button id="car">Car</button></div>
 <script type="module">
 // claim every key so the Mac app (WKWebView) never plays the "unhandled key" beep
 addEventListener("keydown", e => { if (!e.target.closest?.("input,textarea,select") && !e.metaKey) e.preventDefault(); }, { capture: true });
@@ -323,6 +324,7 @@ addEventListener("touchmove", e => { for (const t of e.changedTouches) { if (t.i
 addEventListener("touchend", e => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; ["KeyW", "KeyS", "KeyA", "KeyD"].forEach(c => S.keys.delete(c)); } if (t.identifier === lid) lid = null; } });
 R.domElement.addEventListener("touchstart", e => { lid = e.changedTouches[0].identifier; lx = e.changedTouches[0].clientX; }, { passive: true });
 document.getElementById("car").onclick = toggle;
+document.querySelectorAll("#pbtns button[data-a]").forEach(b => b.addEventListener("touchstart", e => { e.preventDefault(); const a = b.dataset.a; if (a === "punch") punch(); if (a === "rob") rob(); if (a === "menu") location.href = "play.html"; }, { passive: false }));
 // online: one shared Vancouver. Everyone on this page sees everyone else, live.
 const others = new Map(), NAME = ["Joshua", "Ben", "Alexandre", "Stranger"][Math.floor(Math.random() * 4)] + " " + Math.floor(Math.random() * 90 + 10);
 function tag(text) { const c = document.createElement("canvas"); c.width = 256; c.height = 64; const x = c.getContext("2d"); x.fillStyle = "#000a"; x.fillRect(0, 8, 256, 48); x.fillStyle = "#fff"; x.font = "bold 30px Helvetica"; x.textAlign = "center"; x.fillText(text, 128, 42); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); sp.scale.set(2, .5, 1); sp.position.y = 2.3; return sp; }
