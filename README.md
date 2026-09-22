@@ -6,7 +6,7 @@
 <a href="https://github.com/nulljosh/vancouvervice/releases/latest"><img src="https://img.shields.io/github/v/release/nulljosh/vancouvervice?style=flat-square&color=222" alt="Release"></a>
 <a href="https://github.com/nulljosh/vancouvervice/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/nulljosh/vancouvervice/ci.yml?style=flat-square&label=build" alt="Build"></a>
 <img src="https://img.shields.io/badge/phone%20%7C%20Mac%20%7C%20PC-555?style=flat-square" alt="Phone, Mac, PC">
-<img src="https://img.shields.io/badge/license-MIT-555?style=flat-square" alt="MIT">
+<img src="https://img.shields.io/badge/license-Apache_2.0-555?style=flat-square" alt="Apache 2.0">
 </p>
 
 | | | |
@@ -33,6 +33,6 @@ On a phone: stick on the left, drag to look, buttons on the right.
 Better looking people. A real story. The whole Lower Mainland. And a version built in Unreal Engine that looks like the real thing.
 
 ---
-<sub>MIT license. Map data © OpenStreetMap contributors. People by Microsoft Rocketbox (MIT). Car model by vicent091036 (CC-BY 4.0). Privacy: [vancouvervice.heyitsmejosh.com/privacy.html](https://vancouvervice.heyitsmejosh.com/privacy.html).</sub>
+<sub>Apache 2.0 license. Map data © OpenStreetMap contributors. People by Microsoft Rocketbox (MIT). Car model by vicent091036 (CC-BY 4.0). Privacy: [vancouvervice.heyitsmejosh.com/privacy.html](https://vancouvervice.heyitsmejosh.com/privacy.html).</sub>
 
 <sub>[Changelog](CHANGELOG.md) · [Roadmap](roadmap.md) · [How it works](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)</sub>
