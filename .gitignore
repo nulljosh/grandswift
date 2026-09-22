@@ -10,3 +10,11 @@ apps/desktop/dist
 apps/android/.gradle
 apps/android/app/build
 apps/android/build
+
+apps/android/keystore.properties
+apps/android/*.jks
+apps/android/*.keystore
+apps/android/local.properties
+apps/desktop/.env
+apps/desktop/*.p12
+apps/desktop/*.pfx
