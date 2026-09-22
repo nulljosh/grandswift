@@ -30,7 +30,8 @@ The GTA 4+ version. Real Vancouver, real engine, Claude building it through Unre
 - First launch off the LaCie takes about 5 minutes (shader compile). No window until it finishes.
 
 ## Heroes (Joshua's call, 2026-09-22)
-- Game opens as Joshua running around downtown Vancouver (player start at Granville & Georgia, street level, z -6540; street is about z -6660 to -6700. A hidden Plane "Spawn Catch Pad" at z -6690 catches the player before tile collision streams in).
+- Game opens as Joshua running around downtown Vancouver (player start at Granville & Georgia, street level, z -6350 (lower clips the street and spawns a floating camera instead of the mannequin); street is about z -6660 to -6700. A hidden Plane "Spawn Catch Pad" at z -6690 catches the player before tile collision streams in).
 - Switch to Ben: chilling or driving around Kitsilano.
 - Switch to Alexandre: delivery jobs, and working in an office in downtown Victoria on Vancouver Island.
 - The template arena still floats about 69 m above Granville & Georgia. Delete it once the character can walk on the tiles.
+- Tile detail: maximumScreenSpaceError 8 (sharp). Lumen and virtual shadows are off in Config/DefaultEngine.ini for frame rate.
