@@ -25,7 +25,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 - v1.7.0 real models: animated rigged people (walk, run, idle) and real car models (Ferrari 458, CC-BY), shapes as fallback
 
 ## Next
-- [ ] Civilian character pack (CC0) to replace the soldier model everywhere (gap vs GTA 3/4)
+- [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)
+- [ ] Detailed CC0 civilian characters with faces and clothes (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke
 - [ ] Missions (a pickup, a chase, a hit), cash pickups, respawn at hospital

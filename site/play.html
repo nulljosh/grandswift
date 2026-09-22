@@ -23,7 +23,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 <div id="hud"></div><div id="bubbles"></div><div id="tip"></div><div id="toast"></div><div id="card" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000b;z-index:5"><div style="max-width:520px;padding:28px 30px;background:#15171c;border-radius:14px;border:1px solid #333"><h2 id="cardT" style="margin:0 0 10px;font-size:28px"></h2><div id="cardB" style="font-weight:500;line-height:1.6;white-space:pre-line;opacity:.9"></div><button id="cardGo" style="margin-top:18px;font:600 17px Helvetica,sans-serif;padding:10px 24px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer">Let's go</button></div></div><div id="hp"><i></i></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
 <div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="savebtn">Save game</button><button id="fs">Full screen</button><button onclick="try{const s=JSON.parse(localStorage.gs||'{}');delete s.game;localStorage.gs=JSON.stringify(s)}catch{};location.reload()">New game</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><button id="exitbtn">Exit game</button>
-<p style="opacity:.6;font-size:12px">Car: Ferrari 458 Italia by vicent091036, CC-BY 4.0. Character: Soldier from the three.js examples (Mixamo).</p><p style="opacity:.8">Joshua: +50% mission cash, cops cool off fast. Ben: fastest runner, two-punch knockouts. Alexandre: steady aim, faster cars, tougher.<br>W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q or 1-4 weapons, R radio in a car, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
+<p style="opacity:.6;font-size:12px">Car: Ferrari 458 Italia by vicent091036, CC-BY 4.0. Characters: Soldier and Xbot from the three.js examples (Mixamo).</p><p style="opacity:.8">Joshua: +50% mission cash, cops cool off fast. Ben: fastest runner, two-punch knockouts. Alexandre: steady aim, faster cars, tougher.<br>W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q or 1-4 weapons, R radio in a car, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 // Web port of main.swift. Same map and rules, three.js renderer. Keep the two in step.
@@ -419,21 +419,21 @@ for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 48), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
 // real models: an animated rigged person and a real car. Shapes above are the fallback until these load (or if they fail).
 const MODELS = "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/";
-let SOLDIER = null, FERRARI = null;
+let SOLDIER = null, XBOT = null, FERRARI = null;
 const gltf = new GLTFLoader(); gltf.setDRACOLoader(new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/"));
-function soldierFor(n, color) {
-  const s = SkeletonUtils.clone(SOLDIER.scene); s.scale.setScalar(13); s.rotation.y = Math.PI / 2;
-  s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(color), .5); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
-  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const clip of SOLDIER.animations) acts[clip.name.toLowerCase()] = mixer.clipAction(clip);
+function soldierFor(n, color, src = SOLDIER) {
+  const civ = src === XBOT, s = SkeletonUtils.clone(src.scene); s.scale.setScalar(civ ? 13.5 : 13); s.rotation.y = -Math.PI / 2;
+  s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (civ) { const joint = /joint/i.test(o.material.name); o.material.color = new THREE.Color(joint ? 0x2a2a2e : color); o.material.roughness = joint ? .5 : .6; o.material.metalness = .05; } else o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(color), .5); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
+  const mixer = new THREE.AnimationMixer(s), acts = {}; for (const clip of src.animations) acts[clip.name.toLowerCase()] = mixer.clipAction(clip);
   n.mix = { mixer, acts, cur: "walk" }; acts.walk?.play(); n.mix.mixer.setTime(Math.random() * 2); n.add(s); n.gl = s;
 }
 function setAnim(n, name) { const m = n.mix; if (!m || m.cur === name || !m.acts[name]) return; m.acts[m.cur]?.fadeOut(.2); m.acts[name].reset().fadeIn(.2).play(); m.cur = name; }
-function tint(n, hex) { n.traverse?.(o => { if (o.isMesh && o.parent !== n && n.gl && o.material?.color && n.gl.getObjectById(o.id)) o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(hex), .5); }); if (!n.gl) n.body?.material.color.setHex(hex); }
+function tint(n, hex) { if (!n.gl) return n.body?.material.color.setHex(hex); n.gl.traverse(o => { if (o.isMesh && !/joint/i.test(o.material.name)) o.material.color = new THREE.Color(hex); }); }
 // smooth torso from a lathe profile: hips, waist, chest, shoulders
 const TORSO = new THREE.LatheGeometry([[0, 0], [2.6, 0], [2.9, 1.2], [2.5, 3.8], [2.9, 6.2], [3.3, 8.4], [3.1, 9.4], [1.2, 10.2], [0, 10.3]].map(([x, y]) => new THREE.Vector2(x, y)), 48);
 const SKIN = [0xf1c9a5, 0xd9a680, 0xb67b53, 0x8d5a3b, 0x5c3a24], HAIR = [0x1c140f, 0x3b2616, 0x6b4a2b, 0xb58a4c, 0x8f8f8f], PANTS = [0x2b3440, 0x1f1f24, 0x4a3b2a, 0x3b4f6b, 0x5a5a5a];
 function person(color) {
-  if (SOLDIER) { const n = new THREE.Group(); n.legs = [new THREE.Group(), new THREE.Group()]; n.arms = [new THREE.Group(), new THREE.Group()]; soldierFor(n, color); n.scale.setScalar(.92 + Math.random() * .16); scene.add(n); return n; }
+  if (XBOT || SOLDIER) { const n = new THREE.Group(); n.legs = [new THREE.Group(), new THREE.Group()]; n.arms = [new THREE.Group(), new THREE.Group()]; soldierFor(n, color, XBOT || SOLDIER); n.scale.setScalar(.92 + Math.random() * .16); scene.add(n); return n; }
   const cap = (r, l, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 8, 20), typeof c === "number" ? mat(c) : c); m.castShadow = true; return m; };
   const skin = SKIN[Math.floor(Math.random() * SKIN.length)], hairC = HAIR[Math.floor(Math.random() * HAIR.length)], pants = PANTS[Math.floor(Math.random() * PANTS.length)];
   const n = new THREE.Group(), body = new THREE.Mesh(TORSO, mat(color)); body.position.y = 8.2; body.scale.z = .62; body.castShadow = true;
@@ -469,9 +469,10 @@ function carMesh(c) {
 let carM = [], pedM = [];
 gltf.load(MODELS + "Soldier.glb", g => {
   SOLDIER = g;
-  pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null);
-  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13, 3);
+  if (!XBOT) { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); }
 }, undefined, e => console.warn("character model failed, keeping shapes", e));
+gltf.load(MODELS + "Xbot.glb", g => { XBOT = g;
+  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a, XBOT); gun.position.set(6, 13.5, 3); pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); }, undefined, e => console.warn("civilian model failed", e));
 gltf.load(MODELS + "ferrari.glb", g => { FERRARI = g.scene; carM.forEach(m => scene.remove(m)); carM = []; }, undefined, e => console.warn("car model failed, keeping shapes", e));
 const puffMat = new THREE.SpriteMaterial({ color: 0x555555, transparent: true, opacity: .55, depthWrite: false }), fireMat = new THREE.SpriteMaterial({ color: 0xff7a1a, transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending });
 const boomMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true })); boomMesh.visible = false; scene.add(boomMesh);
