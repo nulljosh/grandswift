@@ -28,6 +28,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 const block = 260, road = 80;
 const vanMap = ["WWRWWWWWWWWWWWWW","WPRPWWWWWWWWWWWW","PPPPPWWWWCWWWWWW","PPPPBBBBBBHBGWWW","WPPBBBBBBBBBBBBW","WYBBBBBBABBBBBBB","WWYBBBBBBBBBBBBB","WWWWBBBBBBBSOBBB","WWWWWWBBBBBBBBBB","WWWWWRWIRWWWWWEW","BBYYBBBBBBBBBBBB","BBBBBBBBBBBBBBBB","WWWWWRWWWWWWWWWW","WWWWWRWWWWWWWWWW","WWWBBBBBWWWWWWWW","WWWBBLBBWWWWWWWW","WWWBBBBBWWWWWWWW","WWWWWWWWWWWWWWWW"];
 const cols = 16, rows = vanMap.length, W = cols * block, H = rows * block;
@@ -228,16 +233,16 @@ vanMap.forEach((row, by) => [...row].forEach((k, bx) => {
   const lx = cx + road / 2, lz = cz + road / 2, w = block - road - 20;
   { const curb = boxM(block - road, 4, block - road, 0x8a8a86); curb.position.set(lx, 2, lz); scene.add(curb); }
   let n;
-  if (k === "C") { n = boxM(w, 60, w, 0xffffff); n.position.y = 30; for (let i = 0; i < 4; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(30, 70, 8), mat(0xffffff)); s.position.set(i * 40 - 60, 65, 0); n.add(s); } }
+  if (k === "C") { n = boxM(w, 60, w, 0xffffff); n.position.y = 30; for (let i = 0; i < 4; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(30, 70, 64), mat(0xffffff)); s.position.set(i * 40 - 60, 65, 0); n.add(s); } }
   else if (k === "S") { n = new THREE.Mesh(new THREE.SphereGeometry(w / 2, 64, 32), mat(0xe6e6e6)); n.scale.y = .4; }
   else if (k === "E") { n = new THREE.Mesh(new THREE.SphereGeometry(w / 2.4, 64, 32), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: .9, roughness: .3 })); n.position.y = w / 2.4; }
   else if (k === "H") { n = boxM(60, 480, 60, 0xb8b8b0); n.position.y = 240; const top = new THREE.Mesh(new THREE.CylinderGeometry(55, 45, 30, 64), mat(0x8c8c85)); top.position.y = 250; n.add(top); }
   else if (k === "G") { n = new THREE.Group(); for (let i = 0; i < 3; i++) { const b = boxM(w / 3 - 6, 55 + i * 10, w, 0x8e4a32); b.position.set((i - 1) * w / 3, 27 + i * 5, 0); n.add(b); }
     const clock = boxM(8, 40, 8, 0x3b2a1a); clock.position.set(-w / 2 - 20, 20 - 0, -w / 2 - 20); const cap = boxM(10, 6, 10, 0xc9a13a); cap.position.y = 23; clock.add(cap); n.add(clock); }
-  else if (k === "A") { n = boxM(w, 55, w * .7, 0xd9d2c0); n.position.y = 27; for (let i = 0; i < 6; i++) { const col = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 50, 10), mat(0xf2eee4)); col.position.set(-w / 2 + 15 + i * (w - 30) / 5, -2, w * .35 + 4); n.add(col); } const d = new THREE.Mesh(new THREE.SphereGeometry(22, 16, 10), mat(0xbfb8a6)); d.position.y = 32; n.add(d); }
+  else if (k === "A") { n = boxM(w, 55, w * .7, 0xd9d2c0); n.position.y = 27; for (let i = 0; i < 6; i++) { const col = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 50, 32), mat(0xf2eee4)); col.position.set(-w / 2 + 15 + i * (w - 30) / 5, -2, w * .35 + 4); n.add(col); } const d = new THREE.Mesh(new THREE.SphereGeometry(22, 64, 32), mat(0xbfb8a6)); d.position.y = 32; n.add(d); }
   else if (k === "O") { n = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, 45, 96), mat(0x5a5f66)); n.position.y = 22; }
   else if (k === "I") { n = new THREE.Group(); [0xc0392b, 0x2e6fa8, 0xe0a526, 0x3d8c55].forEach((c, i) => { const b = boxM(w / 2 - 8, 26, w / 2 - 8, c); b.position.set((i % 2 - .5) * w / 2, 13, (Math.floor(i / 2) - .5) * w / 2); n.add(b); }); }
-  else if (k === "L") { n = boxM(w, 50, w * .6, 0xccbf99); n.position.y = 25; const d = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 12), mat(0x669980)); d.position.y = 35; n.add(d); }
+  else if (k === "L") { n = boxM(w, 50, w * .6, 0xccbf99); n.position.y = 25; const d = new THREE.Mesh(new THREE.SphereGeometry(30, 64, 32), mat(0x669980)); d.position.y = 35; n.add(d); }
   else {
     const h = 80 + (bx * 37 + by * 91) % 7 * 60 + (by >= 3 && by <= 7 && bx >= 6 && bx <= 12 ? 200 : 0), tone = .45 + (bx * 7 + by) % 5 * .09;
     const t = windows(`rgb(${tone * 230},${tone * 255},${Math.min(255, tone * 280)})`); t.repeat.set(1, h / 40);
@@ -245,10 +250,10 @@ vanMap.forEach((row, by) => [...row].forEach((k, bx) => {
   }
   n.position.x = lx; n.position.z = lz; scene.add(n);
 }));
-const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 24), new THREE.MeshBasicMaterial({ color: 0xff3030, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
+const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 64), new THREE.MeshBasicMaterial({ color: 0xff3030, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
 for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.font = "bold 44px Helvetica"; x.textAlign = "center"; x.fillStyle = "#000a"; x.fillRect(0, 10, 512, 76); x.fillStyle = "#fff"; x.fillText(l.name, 256, 64);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(160, 30, 1); sp.position.set(l.x, l.name === "Harbour Centre" ? 540 : 150, l.y); scene.add(sp); }
-const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 16), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
+const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 48), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
 function person(color) {
   const cap = (r, l, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 8, 20), typeof c === "number" ? mat(c) : c); m.castShadow = true; return m; };
   const n = new THREE.Group(), body = cap(3.4, 6, color); body.position.y = 13; body.scale.z = .7;
@@ -297,8 +302,18 @@ function drawHud() {
   mx.fillStyle = "#ffd23f"; mx.fillRect(G.target.x / block * 10 - 2, G.target.y / block * 10 - 2, 4, 4);
   mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(G.player.x / block * 10, G.player.y / block * 10, 3, 0, 7); mx.fill();
 }
+// ponytail: post stack off on phones (GPU), MSAA alone there
+const post = !matchMedia("(pointer: coarse)").matches;
+let composer = null;
+if (post) {
+  composer = new EffectComposer(R); composer.setPixelRatio(devicePixelRatio);
+  composer.addPass(new RenderPass(scene, cam));
+  const ao = new GTAOPass(scene, cam, innerWidth, innerHeight); ao.blendIntensity = .8; ao.updateGtaoMaterial({ radius: 12, distanceFallOff: 1, thickness: 4 }); composer.addPass(ao);
+  composer.addPass(new OutputPass());
+  composer.addPass(new SMAAPass(innerWidth * devicePixelRatio, innerHeight * devicePixelRatio));
+}
 let last = performance.now();
-function frame(now) { const dt = Math.min((now - last) / 1000, .05); last = now; if (!G.paused) tick(dt); sync(now); drawHud(); R.render(scene, cam); requestAnimationFrame(frame); }
+function frame(now) { const dt = Math.min((now - last) / 1000, .05); last = now; if (!G.paused) tick(dt); sync(now); drawHud(); composer ? composer.render() : R.render(scene, cam); requestAnimationFrame(frame); }
 requestAnimationFrame(frame);
 
 // ---- input
@@ -318,7 +333,7 @@ addEventListener("mousemove", e => { if (G.paused) return; G.mouseDX += e.moveme
 document.addEventListener("pointerlockchange", () => { if (!document.pointerLockElement && !G.paused && G.step > 0) setPause(true); });
 document.getElementById("resume").onclick = () => setPause(false);
 document.getElementById("fs").onclick = () => document.documentElement.requestFullscreen?.();
-addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); });
+addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); });
 // touch: left stick moves, drag anywhere else to look, buttons map to keys
 if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch");
 const stick = document.getElementById("stick"), knob = document.getElementById("knob"); let stickId = null, lookId = null, lookX = 0;
