@@ -28,7 +28,12 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.9.0 renamed to Rainjack: repo nulljosh/rainjack, rainjack.heyitsmejosh.com (old domain redirects), apps and docs; Android activity was never committed (gitignore matched it), fixed
 
+- v1.10.0 Real streets (site/city.html): downtown Vancouver built from OpenStreetMap, 3,359 real buildings at real heights, 8,378 streets with names, parks; walk and drive with collision against the real footprints (tools/osm.py)
+
 ## Next
+- [ ] Move missions, cops, crowds and stars onto the real-streets map
+- [ ] Coastline and water from OSM, Kits and Victoria
+- [ ] Online: one shared server, see each other in the city
 - [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)
 - [ ] Detailed CC0 civilian characters with faces and clothes (gap vs GTA 3/4)
 - [x] Mouse look
