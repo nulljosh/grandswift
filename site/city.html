@@ -13,7 +13,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="load">Building real Vancouver...</div><div id="hud"></div><div id="toast" style="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none"></div><div id="credit">Map data © OpenStreetMap contributors</div>
+<div id="load">Building the city...</div><div id="hud"></div><div id="toast" style="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none"></div><div id="credit">Map data © OpenStreetMap contributors</div>
 <div id="stick"></div><div id="pbtns"><button data-a="punch">Punch</button><button data-a="rob">Rob</button><button data-a="menu">Menu</button><button id="car">Car</button></div>
 <script type="module">
 // claim every key so the Mac app (WKWebView) never plays the "unhandled key" beep
@@ -31,7 +31,9 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const D = await fetch("data/vancouver.json").then(r => r.json());
+// ?area=victoria (Alexandre's turf) or kits; default downtown Vancouver
+const AREA = new URLSearchParams(location.search).get("area") || "vancouver", AREA_NAME = { vancouver: "Vancouver", victoria: "Victoria", kits: "Kitsilano" }[AREA] || "Vancouver";
+const D = await fetch(`data/${AREA}.json`).then(r => r.ok ? r.json() : fetch("data/vancouver.json").then(r => r.json()));
 const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(Math.min(devicePixelRatio, 2)); R.setSize(innerWidth, innerHeight);
 R.toneMapping = THREE.ACESFilmicToneMapping; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; document.body.prepend(R.domElement);
 const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xb8c8d8, 250, 1400);
@@ -268,6 +270,7 @@ const S = { p: new THREE.Vector2(0, 0), a: -Math.PI / 2, driving: false, car: { 
 for (let r = 0; r < 60 && solid(S.p.x, S.p.y); r++) S.p.set(Math.cos(r) * r, Math.sin(r) * r);
 S.car.p.set(S.p.x + 5, S.p.y + 3);
 document.getElementById("load").remove();
+if (AREA === "victoria") { toast("Victoria. Alexandre's town. Tab to fly back to Vancouver"); }
 
 const post = !matchMedia("(pointer: coarse)").matches; let composer = null;
 if (post) { composer = new EffectComposer(R); composer.addPass(new RenderPass(scene, cam)); const ao = new GTAOPass(scene, cam, innerWidth, innerHeight); ao.blendIntensity = .9; composer.addPass(ao); composer.addPass(new OutputPass()); composer.addPass(new SMAAPass(innerWidth * R.getPixelRatio(), innerHeight * R.getPixelRatio())); }
@@ -300,7 +303,7 @@ function frame(now) {
   for (const a of actors) { if (a.dead) continue; const dx = S.p.x - a.m.position.x, dz = S.p.y - a.m.position.z, d = Math.hypot(dx, dz);
     if (a.role === "drunk" || a.role === "robber") { a.m.rotation.y = -Math.atan2(dz, dx); if (d > 1.1 && d < 9) { a.m.position.x += dx / d * 1.6 * dt; a.m.position.z += dz / d * 1.6 * dt; } else if (d <= 1.1 && (a.cool -= dt) <= 0) { a.cool = 1.2; P.hp -= a.role === "robber" ? 12 : 6; if (P.hp <= 0) { P.hp = 100; P.cash = Math.floor(P.cash / 2); toast("Knocked out. Lost half your cash"); leave(); break; } } } }
   if (P.starT > 0 && (P.starT -= dt) <= 0) { P.stars = Math.max(0, P.stars - 1); if (P.stars) P.starT = 15; } if (toastT > 0 && (toastT -= dt) <= 0) document.getElementById("toast").style.display = "none";
-  document.getElementById("hud").textContent = `${others.size ? others.size + 1 + " online   " : ""}$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
+  document.getElementById("hud").textContent = `${others.size ? others.size + 1 + " online   " : ""}$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, ${AREA_NAME}`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
   composer ? composer.render() : R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -308,7 +311,7 @@ const toggle = () => {
   if (inRoom) { if (S.p.y > inRoom.Dp / 2 - 3) leave(); return; }
   if (!S.driving && S.p.distanceTo(S.car.p) >= 5) { for (const d of [1.2, 2, 3]) { const x = S.p.x + Math.cos(S.a) * d, z = S.p.y + Math.sin(S.a) * d; const b = (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).find(bb => inside(bb, x, z)); if (b) return enter(b); } return; }
   if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.2, S.car.p.y + Math.cos(S.car.a) * 2.2); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; };
-addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
+addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; if (e.code === "Tab" && !e.repeat) { document.getElementById("load").textContent; const next = AREA === "victoria" ? "vancouver" : "victoria"; document.body.insertAdjacentHTML("beforeend", `<div style="position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;font-size:26px;z-index:9">Flying to ${next === "victoria" ? "Victoria" : "Vancouver"}...</div>`); setTimeout(() => location.search = "?area=" + next, 600); } S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
 // the Mac app (WKWebView, no "Safari/" in its UA) sends raw deltas through GS_mouse instead
 const IN_MAC_APP = /Vancouver ViceApp/.test(navigator.userAgent);
