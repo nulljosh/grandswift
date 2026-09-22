@@ -25,4 +25,4 @@ The game is web code. Native shells host it on each platform: C# on Windows, C o
 ## Limits
 Hand-built GTA content (story, voice, animation, physics) is still the gap. The roadmap lists it honestly against GTA 3 through 6.
 
-MIT license.
+Apache 2.0 license.
