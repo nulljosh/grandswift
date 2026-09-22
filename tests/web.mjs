@@ -13,6 +13,8 @@ async function page(vp = { viewport: { width: 1200, height: 750 } }, pre) {
   await p.goto("http://localhost:8765/play.html"); await p.waitForFunction(() => window.G && window.GS, null, { timeout: 30000 }); await p.waitForTimeout(800); return p;
 }
 const W = ms => new Promise(r => setTimeout(r, ms));
+// every edge case gets a hard limit so one hang can't freeze CI
+const within = (ms, what, fn) => Promise.race([fn(), new Promise((_, rej) => setTimeout(() => rej(new Error("timed out")), ms))]).catch(e => { check(false, `${what} (${e.message})`); });
 
 // landing page
 { const p = await b.newPage(); await p.goto("http://localhost:8765/"); check(await p.locator("text=Play in your browser").count() === 1, "landing links to the game"); check(await p.locator("#device iframe").count() === 1, "landing has the live demo"); check(await p.evaluate(() => [...document.images].every(i => i.complete && i.naturalWidth)), "landing images load"); await p.close(); }
@@ -67,12 +69,8 @@ await p.close();
 p = await page(undefined, () => localStorage.gs = JSON.stringify({ game: { heroes: [{ p: { x: -500, y: 99999 } }, { p: { x: 1, y: 1 } }], cur: 0, score: 5 } }));
 check(await p.evaluate(() => !GS.solid(G.player.x, G.player.y)), "save pointing into the sea is ignored");
 await p.close();
-p = await page(undefined, () => { Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } }); });
-check(await p.evaluate(() => !!window.G) && p.errs.length === 0, "blocked storage still plays");
-await p.close();
-p = await page(undefined, () => { window.fetch = () => Promise.reject(new Error("offline")); });
-await W(1000); check(await p.evaluate(() => !!window.G) && p.errs.length === 0, "offline weather falls back quietly");
-await p.close();
+await within(90000, "blocked storage still plays", async () => { const q = await page(undefined, () => { Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } }); }); check(await q.evaluate(() => !!window.G) && q.errs.length === 0, "blocked storage still plays"); await q.close(); });
+await within(90000, "offline weather falls back quietly", async () => { const q = await page(undefined, () => { window.fetch = () => Promise.reject(new Error("offline")); }); await W(1000); check(await q.evaluate(() => !!window.G) && q.errs.length === 0, "offline weather falls back quietly"); await q.close(); });
 
 // phone
 p = await page({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
