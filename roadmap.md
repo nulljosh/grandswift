@@ -76,3 +76,6 @@ Open Claude Code in `~/Documents/Code/vancouvervice` and paste:
 ```
 /loop Work through roadmap.md for Vancouver Vice, top to bottom. One item per round: build it, test it headless (node tests/web.mjs, node tests/city.mjs), deploy with npx wrangler deploy, commit, tag a release, update the landing page and README if it's user-facing, and check it off here. Keep usage lean: one Haiku subagent at most. Self-grade honestly against GTA 3 after each round.
 ```
+
+- [ ] Apple Store heist opener: Apple employees chase the player out the door (AI pawns that run at the player during mission one, no navmesh needed, AddMovementInput toward player), Mac mini props to grab
+- [ ] Glasses on Joshua (attach a glasses mesh to the head socket)
