@@ -36,10 +36,13 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.13.0 real-streets detail: 1024px facades with frames and floor lines, storefront glass on every ground floor, rooftop AC and water tanks, raised sidewalks, street trees, glass reflections, AO + SMAA
 
+- v1.14.0 online: one shared Vancouver on a Cloudflare Durable Object, players see each other live on the real streets with name tags; landing and README updated
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
-- [ ] Online: one shared server, see each other in the city
+- [x] Online: one shared server (v1.14.0)
+- [ ] Online chat, shared cops and stars
 - [x] Civilians and heroes use the Xbot figure in neighbourhood and hero colours (v1.7.1)
 - [ ] Detailed CC0 civilian characters with faces and clothes (gap vs GTA 3/4)
 - [x] Mouse look

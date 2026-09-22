@@ -14,6 +14,9 @@ W A S D move, Shift run, Space jump, mouse look (click to lock), click or Enter 
 ## What's in it
 Fists that land: people fight back or run, and they fall over when they go down. A Real Vancouver beta (`site/real.html`) streams the actual city from Google's photorealistic 3D tiles through Cesium.
 
+## Real streets, online
+`site/city.html` is downtown Vancouver built from OpenStreetMap by `tools/osm.py`: 3,359 buildings at real heights, 8,378 named streets with signs, traffic lights and streetlights, and 2,609 real places you can walk into, each with an interior that fits (rob the till at 7-Eleven, or stop the robbery). One Cloudflare Durable Object (`worker.js`) is the shared world: everyone on the page sees everyone else live.
+
 ## A living city
 Each neighbourhood has its own people and its own lines: the Downtown Eastside, Gastown, the West End and Coal Harbour, Yaletown, Kitsilano and Victoria. Strangers walk up to bump you, chat, or pick a fight. Traffic keeps to the right lane. You hear cars go by, birds, gulls, and rain, and the rain comes and goes.
 

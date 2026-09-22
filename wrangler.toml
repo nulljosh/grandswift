@@ -1,5 +1,16 @@
 name = "rainjack"
+main = "worker.js"
 compatibility_date = "2026-09-01"
 routes = [{ pattern = "rainjack.heyitsmejosh.com", custom_domain = true }]
+
 [assets]
 directory = "./site"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "WORLD"
+class_name = "World"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["World"]

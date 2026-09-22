@@ -270,6 +270,7 @@ function frame(now) {
     if (!solidAny(nx, nz)) S.p.set(nx, nz); play(sp > 4 ? "run" : sp ? "walk" : "idle");
   }
   if (window.SIG) { const ph = Math.floor(now / 1000) % 12, on = ph < 5 ? 2 : ph < 7 ? 1 : 0; SIG.forEach((l, k) => l.material.color.setHex(k === on ? [0xff3b30, 0xffc400, 0x34c759][k] : 0x222222)); }
+  netTick();
   mixer?.update(dt);
   hero.visible = !S.driving; hero.position.set(S.p.x, 0, S.p.y); hero.rotation.y = -S.a; hero.scale.setScalar(1);
   carG.position.set(S.car.p.x, 0, S.car.p.y); carG.rotation.y = -S.car.a;
@@ -281,7 +282,7 @@ function frame(now) {
   for (const a of actors) { if (a.dead) continue; const dx = S.p.x - a.m.position.x, dz = S.p.y - a.m.position.z, d = Math.hypot(dx, dz);
     if (a.role === "drunk" || a.role === "robber") { a.m.rotation.y = -Math.atan2(dz, dx); if (d > 1.1 && d < 9) { a.m.position.x += dx / d * 1.6 * dt; a.m.position.z += dz / d * 1.6 * dt; } else if (d <= 1.1 && (a.cool -= dt) <= 0) { a.cool = 1.2; P.hp -= a.role === "robber" ? 12 : 6; if (P.hp <= 0) { P.hp = 100; P.cash = Math.floor(P.cash / 2); toast("Knocked out. Lost half your cash"); leave(); break; } } } }
   if (P.starT > 0 && (P.starT -= dt) <= 0) P.stars = 0; if (toastT > 0 && (toastT -= dt) <= 0) document.getElementById("toast").style.display = "none";
-  document.getElementById("hud").textContent = `$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
+  document.getElementById("hud").textContent = `${others.size ? others.size + 1 + " online   " : ""}$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
   composer ? composer.render() : R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -302,5 +303,21 @@ addEventListener("touchmove", e => { for (const t of e.changedTouches) { if (t.i
 addEventListener("touchend", e => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; ["KeyW", "KeyS", "KeyA", "KeyD"].forEach(c => S.keys.delete(c)); } if (t.identifier === lid) lid = null; } });
 R.domElement.addEventListener("touchstart", e => { lid = e.changedTouches[0].identifier; lx = e.changedTouches[0].clientX; }, { passive: true });
 document.getElementById("car").onclick = toggle;
-window.S = S; window.solid = solid; window.enter = enter; window.punch = punch; window.rob = rob; window.P = P; window.actorsNow = () => actors; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
+// online: one shared Vancouver. Everyone on this page sees everyone else, live.
+const others = new Map(), NAME = ["Joshua", "Ben", "Alexandre", "Stranger"][Math.floor(Math.random() * 4)] + " " + Math.floor(Math.random() * 90 + 10);
+function tag(text) { const c = document.createElement("canvas"); c.width = 256; c.height = 64; const x = c.getContext("2d"); x.fillStyle = "#000a"; x.fillRect(0, 8, 256, 48); x.fillStyle = "#fff"; x.font = "bold 30px Helvetica"; x.textAlign = "center"; x.fillText(text, 128, 42); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); sp.scale.set(2, .5, 1); sp.position.y = 2.3; return sp; }
+function ghost(n) { const g = new THREE.Group(); const src = hero.children[0]; if (src) g.add(src.clone(true)); else { const b = new THREE.Mesh(new THREE.CapsuleGeometry(.3, 1.1, 8, 16), new THREE.MeshStandardMaterial({ color: 0x2a6fdb })); b.position.y = .9; g.add(b); } g.add(tag(n)); scene.add(g); return g; }
+let ws = null, online = 0;
+function connect() {
+  try { ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"); } catch { return; }
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === "hello") online = m.players;
+    if (m.t === "p") { let o = others.get(m.id); if (!o) { o = { g: ghost(m.n || "Player"), x: m.x, z: m.z, a: m.a }; others.set(m.id, o); } Object.assign(o, { tx: m.x, tz: m.z, ta: m.a, seen: performance.now() }); }
+    if (m.t === "bye") { const o = others.get(m.id); if (o) { scene.remove(o.g); others.delete(m.id); } } };
+  ws.onclose = () => setTimeout(connect, 3000);
+}
+if (location.host) connect();
+setInterval(() => { if (ws?.readyState === 1) ws.send(JSON.stringify({ x: +S.p.x.toFixed(1), z: +S.p.y.toFixed(1), a: +S.a.toFixed(2), d: S.driving, n: NAME })); }, 100);
+function netTick() { const now = performance.now(); for (const [id, o] of others) { if (now - o.seen > 10000) { scene.remove(o.g); others.delete(id); continue; } o.x += ((o.tx ?? o.x) - o.x) * .2; o.z += ((o.tz ?? o.z) - o.z) * .2; o.a = o.ta ?? o.a; o.g.position.set(o.x, inRoom ? -100 : 0, o.z); o.g.rotation.y = -o.a; } }
+window.S = S; window.solid = solid; window.others = others; window.enter = enter; window.punch = punch; window.rob = rob; window.P = P; window.actorsNow = () => actors; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
 </script></body></html>
