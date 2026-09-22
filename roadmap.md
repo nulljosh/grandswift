@@ -76,3 +76,4 @@ Open Claude Code in `~/Documents/Code/vancouvervice` and paste:
 ```
 /loop Work through roadmap.md for Vancouver Vice, top to bottom. One item per round: build it, test it headless (node tests/web.mjs, node tests/city.mjs), deploy with npx wrangler deploy, commit, tag a release, update the landing page and README if it's user-facing, and check it off here. Keep usage lean: one Haiku subagent at most. Self-grade honestly against GTA 3 after each round.
 ```
+- [ ] Scan yourself in: iPhone TrueDepth (Face ID camera) capture via Live Link Face, MetaHuman identity from depth, drop the player into Vancouver as themselves
