@@ -9,17 +9,19 @@
 <img src="https://img.shields.io/badge/license-Apache_2.0-555?style=flat-square" alt="Apache 2.0">
 </p>
 
-| | | |
-|---|---|---|
-| <img src="docs/img/real-streets.png" alt="Downtown Vancouver"> | <img src="docs/img/crowd.png" alt="A crowd on the waterfront"> | <img src="docs/img/kits-beach.png" alt="Kits Beach"> |
+<p align="center"><img src="docs/img/unreal-english-bay.png" alt="English Bay and the West End, streamed live into Unreal Engine"></p>
 
 It rains nine months a year. Rent is four grand. Everybody's got a hustle.
 
-Joshua runs Gastown. Ben owns Kits. Alexandre handles business across the water in Victoria. Switch between them any time.
+Joshua runs downtown. Ben chills and cruises around Kits. Alexandre does deliveries and works an office job across the water in Victoria. Switch between them any time.
 
-Steal a car on Granville. Rob the 7-Eleven on the corner. Lose the cops on the Burrard Bridge, or don't. The more trouble you cause, the more stars you get, and the more cops come looking.
+Steal a car on Granville. Rob the 7-Eleven. Lose the cops on the Burrard Bridge, or don't. The more trouble you cause, the more stars you get.
 
-Real streets. Real neighbourhoods. Real weather, pulled from the actual sky over Vancouver. Your friends can drop into the same city with you.
+This is the real city. The Unreal build streams Google's 3D scan of Vancouver, so you start outside the actual Apple Store on Georgia and walk to the actual Art Gallery.
+
+| | | |
+|---|---|---|
+| <img src="docs/img/unreal-downtown.png" alt="Downtown towers in Unreal"> | <img src="docs/img/real-streets.png" alt="Downtown in the browser build"> | <img src="docs/img/kits-beach.png" alt="Kits Beach in the browser build"> |
 
 ## Play
 **[Play in your browser](https://vancouvervice.heyitsmejosh.com)**, on your phone or your computer. Or grab the app for Mac, Windows, Linux, iPhone or Android from [releases](https://github.com/nulljosh/vancouvervice/releases/latest).
@@ -29,8 +31,8 @@ W A S D to move, Shift to run, Space to jump. Mouse to look, click to shoot, F t
 
 On a phone: stick on the left, drag to look, buttons on the right.
 
-## Coming
-Better looking people. A real story. The whole Lower Mainland. And a version built in Unreal Engine that looks like the real thing.
+## Two builds
+The browser build plays anywhere today. The Unreal build is the real-looking one, running on a Mac for now: real Vancouver, a third-person hero and missions at real places. Next up: scan your face with your iPhone and play as yourself.
 
 ---
 <sub>Apache 2.0 license. Map data © OpenStreetMap contributors. People by Microsoft Rocketbox (MIT). Car model by vicent091036 (CC-BY 4.0). Privacy: [vancouvervice.heyitsmejosh.com/privacy.html](https://vancouvervice.heyitsmejosh.com/privacy.html).</sub>
