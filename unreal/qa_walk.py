@@ -1,11 +1,13 @@
-# Runs inside the editor during Play. Walks the real character through waypoints (metres from spawn), then reports.
+# Runs inside the editor during Play. Plays mission one: runs out of the Apple Store to its target, passes when BP_Missions says it is complete.
 import unreal, math
 if "QA" in globals() and QA.get("h"):
     unreal.unregister_slate_post_tick_callback(QA["h"])  # never stack two drivers
 world = unreal.UnrealEditorSubsystem().get_game_world()
 pawn = unreal.GameplayStatics.get_player_pawn(world, 0)
 start = pawn.get_actor_location()
-ROUTE = [(20, 0), (20, 20), (0, 20), (0, 0)]  # a 20 m square
+MISSIONS = unreal.GameplayStatics.get_actor_of_class(world, unreal.load_asset("/Game/VancouverVice/BP_Missions").generated_class())
+T = MISSIONS.get_editor_property("Targets")[0]
+ROUTE = [((T.x - start.x) / 100, (T.y - start.y) / 100)]  # mission one target, metres from spawn
 QA = {"i": 0, "t": 0.0, "leg": 0.0, "min_z": start.z, "hits": 0}
 QA_RESULT = "RUNNING"
 
@@ -27,7 +29,9 @@ def _step(dt):
     if d < 150:
         QA["hits"] += 1; QA["i"] += 1; QA["leg"] = 0.0
         if QA["i"] == len(ROUTE):
-            return _finish(f"PASS walked {len(ROUTE)} waypoints in {QA['t']:.0f}s, lowest z {QA['min_z']:.0f}")
+            QA["i"] -= 1  # hold at the target until the game ticks the mission over
+            if MISSIONS.get_editor_property("Index") >= 1:
+                return _finish(f"PASS mission one complete in {QA['t']:.0f}s, lowest z {QA['min_z']:.0f}")
         return
     if QA["leg"] > 20:
         return _finish(f"FAIL stuck {d/100:.1f} m from waypoint {QA['i']} after {QA['hits']} reached")

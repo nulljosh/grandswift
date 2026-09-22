@@ -1,12 +1,12 @@
-; BP_Missions. BeginPlay: city starts coarse so the streets under the player appear fast.
+; BP_Missions. BeginPlay: city starts medium so the streets under the player appear fast.
 ; Tick: sharpen to max once the first load finishes, then run the mission list.
 (event EventBeginPlay
   (bind tiles (Utilities|Casting|CastToCesium3DTileset :Object (Actor|GetActorOfClass :ActorClass "/Script/CesiumRuntime.Cesium3DTileset")))
-  (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 32.0))
+  (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 8.0))
 
 (event EventTick (DeltaSeconds)
   (bind tiles (Utilities|Casting|CastToCesium3DTileset :Object (Actor|GetActorOfClass :ActorClass "/Script/CesiumRuntime.Cesium3DTileset")))
-  (if (and (not (Variables|Default|GetSharpened)) (>= (Class|Cesium3DTileset|GetLoadProgress :self tiles) 99.0))
+  (if (and (not (Variables|Default|GetSharpened)) (>= (Class|Cesium3DTileset|GetLoadProgress :self tiles) 60.0))
     (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 4.0)
     (Variables|Default|SetSharpened true))
   (bind targets (Variables|Default|GetTargets))
