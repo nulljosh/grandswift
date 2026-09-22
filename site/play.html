@@ -236,6 +236,16 @@ function streetLife(dt) {
   for (const p of G.peds) if (p.sayT > 0 && (p.sayT -= dt) <= 0) p.say = null;
 }
 let restoring = false;
+// Stanley Park geese: walk into the park and a gang of Canada geese comes for you. Punch or run.
+const GEESE = []; let geeseT = 0;
+function geeseTick(dt) {
+  const inPark = cell(G.player.x, G.player.y) === "P" && G.driving === null;
+  if (inPark && GEESE.length === 0 && (geeseT -= dt) <= 0) { for (let i = 0; i < 5; i++) GEESE.push({ p: { x: G.player.x + (Math.random() - .5) * 160, y: G.player.y + (Math.random() - .5) * 160 }, hp: 1, cool: 0 }); toast("HONK. The Stanley Park geese have chosen violence"); }
+  if (!inPark && GEESE.length) { GEESE.length = 0; geeseT = 20; }
+  for (const g of GEESE) { if (g.hp <= 0) continue; const dx = G.player.x - g.p.x, dy = G.player.y - g.p.y, d = Math.hypot(dx, dy); if (d > 9) { g.p.x += dx / d * 85 * dt; g.p.y += dy / d * 85 * dt; } else if ((g.cool -= dt) <= 0) { g.cool = .9; hurt(3); chirp(700, 380, .18, .06, "square"); } }
+  if (performance.now() - (G.punchAt || 0) < 60) GEESE.forEach(g => { if (g.hp > 0 && dist(g.p, G.player) < 30) { g.hp = 0; g.p.y += 200; } });
+  if (GEESE.length && GEESE.every(g => g.hp <= 0)) { GEESE.length = 0; geeseT = 40; G.score += 25; toast("You beat the geese. +$25 and your dignity"); gainXP(15); }
+}
 function startMission(n) {
   const story = STORY[n], kind = story ? story.kind : MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
   if (kind === "deliver") { newTarget(); mission.text = "Deliver a car to the beacon"; }
@@ -308,7 +318,7 @@ function tick(dt) {
   if (G.hp < 100 && G.wanted === 0) G.hp = Math.min(100, G.hp + dt * 5);
   G.aimT = G.driving === null ? findTarget(G.weapon ? 600 : 28) : null; G.hurtT -= dt; toastT -= dt; if (toastT <= 0) document.getElementById("toast").style.display = "none";
   for (const c of [...G.cars]) if (c.burnT && (c.burnT -= dt) <= 0) explode(c);
-  streetLife(dt);
+  streetLife(dt); geeseTick(dt);
   // tutorial then missions
   const s = G.step;
   if (s === 0 && dist(G.player, walkFrom) > 100) G.step = 1;
@@ -400,6 +410,8 @@ vanMap.forEach((row, by) => [...row].forEach((k, bx) => {
 }));
 const rainGeo = new THREE.BufferGeometry(), rainN = 2500, rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN * 3; i++) rp[i] = (Math.random() - .5) * 800; rainGeo.setAttribute("position", new THREE.BufferAttribute(rp, 3));
 const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0xaabbcc, size: 1.6, transparent: true, opacity: .6 })); rain.visible = false; scene.add(rain);
+const gooseMeshes = [];
+function gooseMesh() { const g = new THREE.Group(), body = new THREE.Mesh(new THREE.SphereGeometry(3, 24, 16), mat(0x5a4a3a)); body.scale.set(1.4, .9, .9); body.position.y = 4; const neck = new THREE.Mesh(new THREE.CylinderGeometry(.6, .7, 5, 12), mat(0x111111)); neck.position.set(3, 7, 0); neck.rotation.z = -.4; const head = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12), mat(0x111111)); head.position.set(4.2, 9.4, 0); const cheek = new THREE.Mesh(new THREE.SphereGeometry(.7, 12, 8), mat(0xffffff)); cheek.position.set(4.4, 9.2, .7); g.add(body, neck, head, cheek); scene.add(g); return g; }
 const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 64), new THREE.MeshBasicMaterial({ color: 0xff3030, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
 for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.font = "bold 44px Helvetica"; x.textAlign = "center"; x.fillStyle = "#000a"; x.fillRect(0, 10, 512, 76); x.fillStyle = "#fff"; x.fillText(l.name, 256, 64);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(160, 30, 1); sp.position.set(l.x, l.name === "Harbour Centre" ? 540 : 150, l.y); scene.add(sp); }
@@ -529,6 +541,7 @@ function sync(now) {
   const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60); }
   const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
   sun.position.set(G.player.x - 400, 900, G.player.y + 300); sun.target.position.set(G.player.x, 0, G.player.y);
+  while (gooseMeshes.length < GEESE.length) gooseMeshes.push(gooseMesh()); gooseMeshes.forEach((m, i) => { const g = GEESE[i]; m.visible = !!g && g.hp > 0; if (g) { m.position.set(g.p.x, 0, g.p.y); m.rotation.y = -Math.atan2(G.player.y - g.p.y, G.player.x - g.p.x); } });
   beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade") && !(mission?.kind === "hit");
   const day = (Math.sin(now / 1000 * 2 * Math.PI / 240) + 1) / 2;
   if (!RAIN.live && (RAIN.t -= 1 / 60) <= 0) { RAIN.on = !RAIN.on; RAIN.t = RAIN.on ? 45 + Math.random() * 45 : 60 + Math.random() * 90; if (RAIN.on) toast("It's raining. Of course it is."); }

@@ -2,6 +2,9 @@
 
 All the releases, newest first. Every version is tagged on GitHub with builds attached.
 
+## 1.26 (2026-09-22)
+The Stanley Park geese have chosen violence. New icon (skyline, the Harbour Centre lookout, the SeaBus). Online play test suite. play.html split into files. Everything renamed to vancouvervice. Whitepaper and architecture diagram.
+
 ## 1.25 (2026-09-21)
 SkyTrain on the real-streets map: raised track, the real downtown stations with name boards, a train running the line. Langley map. Roadmap rewritten with the full gap list against GTA 3 through 6. Proper repo docs.
 
