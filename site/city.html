@@ -12,7 +12,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="load">Building real Vancouver...</div><div id="hud"></div><div id="credit">Map data © OpenStreetMap contributors</div>
+<div id="load">Building real Vancouver...</div><div id="hud"></div><div id="toast" style="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none"></div><div id="credit">Map data © OpenStreetMap contributors</div>
 <div id="stick"></div><button id="car">Car</button>
 <script type="module">
 // Real streets: downtown Vancouver built from OpenStreetMap (tools/osm.py). 1 unit = 1 metre, +x east, +z south.
@@ -127,7 +127,22 @@ console.log("street furniture:", signs, "signs,", signals.length, "signals,", la
 
 // interiors: every named place from OSM belongs to the building it sits in; E at a wall walks you inside a room built for that kind of place
 const poisIn = new Map(); for (const [x, z, kind, name] of D.pois || []) for (const b of grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []) if (inside(b, x, z)) { if (!poisIn.has(b)) poisIn.set(b, []); poisIn.get(b).push({ x, z, kind, name }); break; }
-const IX = 20000, room = new THREE.Group(); scene.add(room); let inRoom = null, props = [];
+const IX = 20000, room = new THREE.Group(); scene.add(room); let inRoom = null, props = [], actors = [];
+// money, health, heat for the street-level stuff
+const P = { cash: 0, hp: 100, stars: 0, starT: 0 };
+let toastT = 0; const toast = t => { const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
+function punch() {
+  if (!inRoom) return; let best = null, bd = 2.2; for (const a of actors) { if (a.dead) continue; const d = Math.hypot(a.m.position.x - S.p.x, a.m.position.z - S.p.y); if (d < bd) { bd = d; best = a; } }
+  if (!best) return; best.hp--; best.m.position.x += Math.cos(S.a) * .4; best.m.position.z += Math.sin(S.a) * .4;
+  if (best.role === "guest" || best.role === "clerk") { P.stars = Math.max(P.stars, 1); P.starT = 20; if (best.role === "guest") best.role = "drunk"; }
+  if (best.hp <= 0) { best.dead = true; best.m.rotation.x = Math.PI / 2; best.m.position.y = .3;
+    if (best.role === "robber") { P.cash += 200; toast("You stopped the robbery. The clerk slips you $200"); }
+    else if (best.role === "drunk") toast("He's done"); else { P.stars = Math.min(5, P.stars + 1); P.starT = 30; toast("That's going to bring the cops"); } }
+}
+function rob() {
+  if (!inRoom) return; const clerk = actors.find(a => a.role === "clerk" && !a.dead); if (!clerk || Math.hypot(clerk.m.position.x - S.p.x, clerk.m.position.z - S.p.y) > 3.2) return toast("Get closer to the clerk");
+  if (clerk.robbed) return toast("Till's empty"); clerk.robbed = true; const take = 60 + Math.floor(Math.random() * 240); P.cash += take; P.stars = Math.max(P.stars, 2); P.starT = 40; toast(`You emptied the till: $${take}. Two stars. Get out`);
+}
 const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .6 });
 function prop(w, h, d, c, x, z, y = 0, solidProp = true) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof c === "number" ? M(c) : c); m.position.set(IX + x, y + h / 2, z); m.castShadow = m.receiveShadow = true; room.add(m); if (solidProp) props.push([x - w / 2 - .3, x + w / 2 + .3, z - d / 2 - .3, z + d / 2 + .3]); return m; }
 function label(text, sub, x, z, y, w = 7) { const c = document.createElement("canvas"); c.width = 1024; c.height = 220; const g = c.getContext("2d"); g.fillStyle = "#15171c"; g.fillRect(0, 0, 1024, 220); g.fillStyle = "#fff"; g.font = "bold 90px Helvetica, Arial"; g.textAlign = "center"; g.fillText(text, 512, 110, 980); g.font = "500 44px Helvetica, Arial"; g.fillStyle = "#e8b21a"; g.fillText(sub, 512, 180, 980); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 220 / 1024), new THREE.MeshBasicMaterial({ map: t })); m.position.set(IX + x, y, z); room.add(m); return m; }
@@ -171,7 +186,13 @@ function buildRoom(kind, name) {
     prop(4, 1.1, 1.2, 0x3a3f45, 0, -Dp / 2 + 3); for (const x of [-6, -3.6]) prop(1.8, 3, .1, new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: .9, roughness: .25 }), x, -Dp / 2 + .1, 0, false); prop(.6, 1.6, .6, 0x2e6b33, 7, -4);
   }
   // a couple of people inside
-  if (window.PERSON) for (let i = 0; i < 3; i++) { const p = window.PERSON(); p.position.set(IX + r(-6, 6), 0, r(-2, 5)); p.rotation.y = r(0, 6); room.add(p); }
+  actors = [];
+  const addActor = (role, x, z, tintHex) => { if (!window.PERSON) return; const m = window.PERSON(tintHex); m.position.set(IX + x, 0, z); room.add(m); actors.push({ m, role, x, z, hp: 3, a: Math.PI / 2, cool: 0 }); };
+  if (["shop", "grocery", "pharmacy"].includes(kind)) {
+    addActor("clerk", 6.5, 3.6, 0x2e6fb8);
+    if (Math.random() < .5) { addActor("robber", 5.2, 5.2, 0x151515); toast("Robbery in progress! F to take him down"); }
+    else if (Math.random() < .35) { addActor("drunk", -5, 4, 0x8a5a2a); }
+  } else for (let i = 0; i < 3; i++) addActor(Math.random() < .12 ? "drunk" : "guest", r(-6, 6), r(-2, 5), 0x888888);
   return { Wd, Dp };
 }
 function enter(b) {
@@ -195,7 +216,7 @@ const hero = new THREE.Group(); scene.add(hero); let mixer = null, acts = {}, cu
 gl.load(MODELS + "Soldier.glb", g => { const s = g.scene; s.rotation.y = -Math.PI / 2; s.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(0xe8b21a), .6); } }); hero.add(s); mixer = new THREE.AnimationMixer(s); for (const c of g.animations) acts[c.name.toLowerCase()] = mixer.clipAction(c); });
 const carG = new THREE.Group(); scene.add(carG);
 gl.load(MODELS + "ferrari.glb", g => { const c = g.scene; c.rotation.y = Math.PI / 2; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); const b = c.getObjectByName("body"); if (b) b.material = new THREE.MeshPhysicalMaterial({ color: 0xc0392b, metalness: .5, roughness: .25, clearcoat: 1 }); carG.add(c); });
-window.PERSON = () => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); g.add(c); } return g; };
+window.PERSON = (tintHex) => { const g = new THREE.Group(); const src = hero.children[0]; if (src) { const c = src.clone(true); if (tintHex) c.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffffff).lerp(new THREE.Color(tintHex), .7); } }); g.add(c); } return g; };
 function play(n) { if (!mixer || cur === n || !acts[n]) return; acts[cur]?.fadeOut(.2); acts[n].reset().fadeIn(.2).play(); cur = n; }
 
 // start on Granville at Georgia, facing north toward the harbour; nudge onto open ground if the survey puts us in a lobby
@@ -226,7 +247,10 @@ function frame(now) {
   sun.position.set(S.p.x + sunDir.x * 400, sunDir.y * 400, S.p.y + sunDir.z * 400); sun.target.position.set(S.p.x, 0, S.p.y); sky.position.copy(cam.position);
   let hint = ""; if (!inRoom && !S.driving) { const x = S.p.x + Math.cos(S.a) * 2, z = S.p.y + Math.sin(S.a) * 2; const b = (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).find(bb => inside(bb, x, z)); if (b) { const q = (poisIn.get(b) || [])[0]; hint = `\nE to go into ${q ? q.name : b.n || "the building"}`; } }
   room.children.forEach(o => { if (o.name === "spin") o.rotation.y += dt; });
-  document.getElementById("hud").textContent = (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nReal streets from OpenStreetMap. W A S D, Shift run, mouse look, E car`;
+  for (const a of actors) { if (a.dead) continue; const dx = S.p.x - a.m.position.x, dz = S.p.y - a.m.position.z, d = Math.hypot(dx, dz);
+    if (a.role === "drunk" || a.role === "robber") { a.m.rotation.y = -Math.atan2(dz, dx); if (d > 1.1 && d < 9) { a.m.position.x += dx / d * 1.6 * dt; a.m.position.z += dz / d * 1.6 * dt; } else if (d <= 1.1 && (a.cool -= dt) <= 0) { a.cool = 1.2; P.hp -= a.role === "robber" ? 12 : 6; if (P.hp <= 0) { P.hp = 100; P.cash = Math.floor(P.cash / 2); toast("Knocked out. Lost half your cash"); leave(); break; } } } }
+  if (P.starT > 0 && (P.starT -= dt) <= 0) P.stars = 0; if (toastT > 0 && (toastT -= dt) <= 0) document.getElementById("toast").style.display = "none";
+  document.getElementById("hud").textContent = `$${P.cash}   ${"★".repeat(P.stars)}   HP ${P.hp}\n` + (inRoom ? `Inside ${inRoom.name} (${KIND[inRoom.kind] || "Lobby"})` : `${street(S.p.x, S.p.y)}, Vancouver`) + hint + `\n${S.driving ? Math.round(Math.abs(S.car.v) * 3.6) + " km/h" : "On foot"}\nW A S D, Shift run, mouse look, E car or door, F punch, G rob the till`;
   R.render(scene, cam); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -234,7 +258,7 @@ const toggle = () => {
   if (inRoom) { if (S.p.y > inRoom.Dp / 2 - 3) leave(); return; }
   if (!S.driving && S.p.distanceTo(S.car.p) >= 5) { for (const d of [1.2, 2, 3]) { const x = S.p.x + Math.cos(S.a) * d, z = S.p.y + Math.sin(S.a) * d; const b = (grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []).find(bb => inside(bb, x, z)); if (b) return enter(b); } return; }
   if (S.driving) { S.driving = false; S.p.set(S.car.p.x - Math.sin(S.car.a) * 2.2, S.car.p.y + Math.cos(S.car.a) * 2.2); } else if (S.p.distanceTo(S.car.p) < 5) S.driving = true; };
-addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
+addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
 addEventListener("mousemove", e => S.dx += e.movementX);
 R.domElement.addEventListener("click", () => R.domElement.requestPointerLock?.());
@@ -247,5 +271,5 @@ addEventListener("touchmove", e => { for (const t of e.changedTouches) { if (t.i
 addEventListener("touchend", e => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; ["KeyW", "KeyS", "KeyA", "KeyD"].forEach(c => S.keys.delete(c)); } if (t.identifier === lid) lid = null; } });
 R.domElement.addEventListener("touchstart", e => { lid = e.changedTouches[0].identifier; lx = e.changedTouches[0].clientX; }, { passive: true });
 document.getElementById("car").onclick = toggle;
-window.S = S; window.solid = solid; window.enter = enter; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
+window.S = S; window.solid = solid; window.enter = enter; window.punch = punch; window.rob = rob; window.P = P; window.actorsNow = () => actors; window.leave = leave; window.poisIn = poisIn; window.inRoomState = () => inRoom;
 </script></body></html>

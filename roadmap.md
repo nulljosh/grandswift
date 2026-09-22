@@ -32,6 +32,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.11.0 street signs at 641 real intersections, 212 working traffic lights, 1,571 streetlights; walk into any building: 2,609 real named places from OSM, each with an interior built for its kind (cafe, bar, shop, grocery, bank, hotel, museum, cinema, library, lobby) and its real name on the wall
 
+- v1.12.0 store crime: walk into a real 7-Eleven or shop, rob the till (G, two stars) or stop a robbery in progress (F, $200 reward); drunks start fights; cash, health and stars on the real-streets map
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
