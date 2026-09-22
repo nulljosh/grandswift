@@ -26,6 +26,8 @@ struct Web: UIViewRepresentable {
         WindowGroup { Web().ignoresSafeArea().background(Color.black)
             #if os(iOS)
             .statusBarHidden()
+            #else
+            .onAppear { DispatchQueue.main.async { if let w = NSApp.windows.first, !w.styleMask.contains(.fullScreen) { w.toggleFullScreen(nil) } } }
             #endif
         }
     }

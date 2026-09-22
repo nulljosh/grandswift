@@ -6,7 +6,8 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
 #hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
 #map{position:fixed;right:14px;top:14px;border:1px solid #fff4}
-#cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
+#cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.85;pointer-events:none;font:300 34px Helvetica,sans-serif;text-shadow:0 0 3px #000}
+#tip{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);background:#000b;padding:10px 16px;border-radius:10px;font-size:16px;max-width:90vw;text-align:center;pointer-events:none}
 .bub{position:fixed;transform:translate(-50%,-100%);background:#fff;color:#111;padding:5px 10px;border-radius:12px;font:600 13px Helvetica,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px #0005}
 #toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none;text-align:center}
 #hp{position:fixed;left:14px;bottom:14px;width:180px;height:10px;background:#0008;border-radius:5px;overflow:hidden}#hp i{display:block;height:100%;background:#c0392b}
@@ -19,10 +20,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 #pause{position:fixed;inset:0;background:#000a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}
 </style></head><body>
-<div id="hud"></div><div id="bubbles"></div><div id="toast"></div><div id="hp"><i></i></div>
+<div id="hud"></div><div id="bubbles"></div><div id="tip"></div><div id="toast"></div><div id="card" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000b;z-index:5"><div style="max-width:520px;padding:28px 30px;background:#15171c;border-radius:14px;border:1px solid #333"><h2 id="cardT" style="margin:0 0 10px;font-size:28px"></h2><div id="cardB" style="font-weight:500;line-height:1.6;white-space:pre-line;opacity:.9"></div><button id="cardGo" style="margin-top:18px;font:600 17px Helvetica,sans-serif;padding:10px 24px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer">Let's go</button></div></div><div id="hp"><i></i></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
-<div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="fs">Full screen</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><a href="./" style="color:#fff">Back to site</a>
-<p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q fists/pistol, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
+<div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="savebtn">Save game</button><button id="fs">Full screen</button><button onclick="try{const s=JSON.parse(localStorage.gs||'{}');delete s.game;localStorage.gs=JSON.stringify(s)}catch{};location.reload()">New game</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><button id="exitbtn">Exit game</button>
+<p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q or 1-4 weapons, R radio in a car, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 // Web port of main.swift. Same map and rules, three.js renderer. Keep the two in step.
@@ -85,10 +86,11 @@ const kinds = [[40, 20, 420], [40, 20, 400], [80, 24, 260], [38, 18, 600]];
 const colors = [0xd33, 0xeec21b, 0xe67e22, 0x2e9e4f, 0xeeeeee, 0xe86aa6];
 
 // ---- game state
-const G = { keys: new Set(), player: { x: 8 * block + 40, y: 5 * block + 40 }, pa: 0, cars: [], peds: [], driving: null, wanted: 0, score: 0, ammo: 60, msg: "", flash: 0, hp: 100, z: 0, vz: 0, weapon: 1, heat: 0, xp: 0, aimT: null, hurtT: 0, paused: false, step: 0, cur: 0, mouseDX: 0 };
+const G = { keys: new Set(), player: { x: 8 * block + 40, y: 5 * block + 40 }, pa: 0, cars: [], peds: [], driving: null, wanted: 0, score: 0, ammo: 60, ammoW: [0, 60, 16, 120], shotAt: 0, msg: "", flash: 0, hp: 100, z: 0, vz: 0, weapon: 1, heat: 0, xp: 0, aimT: null, hurtT: 0, paused: false, step: 0, cur: 0, mouseDX: 0 };
 G.heroes = [{ name: "Joshua", p: { ...G.player }, a: 0, driving: null, ammo: 60 }, { name: "Alexandre", p: { x: 5 * block + 40, y: 15 * block + 40 }, a: 0, driving: null, ammo: 60 }];
 // GTA style heat: crimes add heat, stars are thresholds, heat cools only when no cop can see you
 const STARS = [1, 20, 60, 140, 260];
+const WEAPONS = [{ name: "Fists" }, { name: "Pistol", dmg: 1, range: 600, rate: 250, max: 90 }, { name: "Shotgun", dmg: 3, range: 220, rate: 800, pellets: 3, max: 30 }, { name: "SMG", dmg: 1, range: 450, rate: 90, max: 240 }];
 const addHeat = (h, min = 0) => { G.heat = Math.max(G.heat + h, STARS[min - 1] ?? 0); G.wanted = STARS.filter(t => G.heat >= t).length; };
 // XP, levels, achievements (saved per browser)
 let save = {}; try { save = JSON.parse(localStorage.gs || "{}"); } catch {}
@@ -96,10 +98,16 @@ save.ach ??= {}; save.xp ??= 0; save.deliveries ??= 0; save.seen ??= {}; G.xp = 
 const persist = () => { try { localStorage.gs = JSON.stringify(save); } catch {} };
 const level = () => Math.floor(Math.sqrt(G.xp / 100)) + 1;
 const ACH = { first: "First Blood", thief: "Grand Theft Auto", five: "Five Star Menace", copkill: "Cop Killer", island: "Island Hopper", tourist: "Tourist: every landmark", courier: "Courier: 5 deliveries", taxi: "Night Shift: first fare", ghost: "Ghost: lost a 3 star chase", champ: "Level 5" };
+function card(title, body) { G.paused = true; document.getElementById("cardT").textContent = title; document.getElementById("cardB").textContent = body; document.getElementById("card").style.display = "flex"; }
 let toastT = 0; const toast = t => { const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; toastT = 3; };
 const unlock = k => { if (save.ach[k]) return; save.ach[k] = 1; persist(); toast("Achievement: " + ACH[k]); bang(.3); gainXP(100); };
 const gainXP = n => { const l = level(); G.xp += n; save.xp = G.xp; persist(); if (level() > l) toast("Level up! " + level()); if (level() >= 5) unlock("champ"); };
-const tut = ["Walk with W A S D", "Click to lock the mouse, click again to shoot", "Find a car and press E", "Drive to the yellow beacon", "Press Tab to switch to Alexandre", "Missions: follow the beacon"]
+// ?demo=1: embedded on the landing page, no welcome card, never touches the real save
+const DEMO = new URLSearchParams(location.search).has("demo");
+const TOUCH = matchMedia("(pointer: coarse)").matches;
+const tut = TOUCH
+  ? ["Step 1/5: Walk. Push the stick on the left", "Step 2/5: Shoot. Drag the screen to aim, the crosshair turns red on a target. Tap Fire", "Step 3/5: Walk up to a car and tap Car", "Step 4/5: Drive to the yellow beacon", "Step 5/5: Tap Swap to switch to Alexandre", "Missions: follow the beacon"]
+  : ["Step 1/5: Walk. Hold W (A and D turn, Shift runs)", "Step 2/5: Shoot. Move the mouse to aim, the crosshair turns red on a target. Click to shoot your pistol", "Step 3/5: Walk up to a car and press E", "Step 4/5: Drive to the yellow beacon", "Step 5/5: Press Tab to switch to Alexandre", "Missions: follow the beacon"]
 // mission kinds after the tutorial
 const MISSIONS = ["deliver", "taxi", "evade"]; let mission = null;;
 const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) spots.push({ x: c * block + 40, y: r * block + 40 }); }));
@@ -116,7 +124,17 @@ function lane(c) {
   if (e) q.y = Math.floor(q.y / block) * block + (e > 0 ? 58 : 22); else q.x = Math.floor(q.x / block) * block + (n > 0 ? 22 : 58);
   if (!solid(q.x, q.y)) c.p = q;
 }
-function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx, ny)) { if (Math.abs(c.v) > 200) bang(.4); c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
+function damageCar(c, n) { c.dmg = (c.dmg || 0) + n; if (c.dmg >= 100 && !c.burnT) { c.burnT = 3; toast(c === G.cars[G.driving] ? "Your car's on fire! Get out!" : ""); } }
+const booms = [];
+function explode(c) {
+  bang(1); booms.push({ x: c.p.x, y: c.p.y, t: 0 });
+  G.peds.forEach((p, i) => { if (!p.dead && dist(p.p, c.p) < 70) killPed(i); });
+  if (dist(G.player, c.p) < 70) { G.hp -= 60; G.hurtT = .5; if (G.driving === G.cars.indexOf(c)) G.hp = 0; }
+  if (c.cop) { G.score += 100; addHeat(50, 3); gainXP(40); save.cops = (save.cops || 0) + 1; persist(); if (save.cops >= 5) unlock("copkill"); } else addHeat(10, 2);
+  const i = G.cars.indexOf(c); if (G.driving === i) G.driving = null; G.cars.splice(i, 1); if (G.driving !== null && G.driving > i) G.driving--;
+  if (G.hp <= 0) wasted();
+}
+function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx, ny)) { if (Math.abs(c.v) > 200) { bang(.4); damageCar(c, Math.abs(c.v) / 14); } c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
 function toggleCar() {
   if (G.driving !== null) { const c = G.cars[G.driving]; G.driving = null; G.player = { x: c.p.x - Math.sin(c.a) * 30, y: c.p.y + Math.cos(c.a) * 30 }; if (solid(G.player.x, G.player.y)) G.player = { ...c.p }; return; }
   let best = null; G.cars.forEach((c, i) => { if (!c.cop && dist(c.p, G.player) < 45 && (best === null || dist(c.p, G.player) < dist(G.cars[best].p, G.player))) best = i; });
@@ -149,22 +167,44 @@ function punch() {
 function shoot() {
   if (G.driving !== null || G.paused) return;
   if (G.weapon === 0) { punch(); return; }
-  if (G.ammo <= 0) { G.msg = "Out of ammo, Q for fists"; msgT = 2; return; }
-  G.ammo--; G.flash = .08; bang(.8);
-  const t = findTarget(600); if (!t) return;
-  if (t.kind === "ped") killPed(t.i);
-  else { const c = G.cars[t.i]; c.hitT = .15; if (--c.hp <= 0) { if (c.cop) { G.score += 100; addHeat(50, 3); gainXP(40); save.cops = (save.cops || 0) + 1; persist(); if (save.cops >= 5) unlock("copkill"); } else addHeat(15, 2); bang(1); G.cars.splice(t.i, 1); if (G.driving !== null && G.driving > t.i) G.driving--; } else addHeat(c.cop ? 20 : 4, c.cop ? 2 : 1); }
+  const W = WEAPONS[G.weapon], now = performance.now(); if (now - G.shotAt < W.rate) return;
+  if (G.ammoW[G.weapon] <= 0) { G.msg = `Out of ${W.name} ammo, Q to switch`; msgT = 2; return; }
+  G.shotAt = now; G.ammoW[G.weapon]--; G.ammo = G.ammoW[1]; G.flash = .08; bang(G.weapon === 2 ? 1 : .7);
+  const hits = new Set(); for (let k = 0; k < (W.pellets || 1); k++) { const pa = G.pa; G.pa += (k - ((W.pellets || 1) - 1) / 2) * .12; const t = findTarget(W.range); G.pa = pa; if (t) hits.add(t.kind + t.i); }
+  [...hits].map(h => ({ kind: h.startsWith("ped") ? "ped" : "car", i: +h.replace(/\D/g, "") })).sort((a, b) => b.i - a.i).forEach(t => {
+    if (t.kind === "ped") return killPed(t.i);
+    const c = G.cars[t.i]; if (!c) return; damageCar(c, W.dmg * 12); addHeat(c.cop ? 20 : 4, c.cop ? 2 : 1);
+  });
 }
 function swapHero() {
-  G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo };
-  G.cur ^= 1; const h = G.heroes[G.cur]; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo;
+  G.heroes[G.cur] = { ...G.heroes[G.cur], p: { ...G.player }, a: G.pa, driving: G.driving, ammo: G.ammo, ammoW: [...G.ammoW] };
+  G.cur ^= 1; const h = G.heroes[G.cur]; G.player = { ...h.p }; G.pa = h.a; G.ammo = h.ammo; if (h.ammoW) G.ammoW = h.ammoW;
   G.driving = h.driving !== null && h.driving < G.cars.length && !G.cars[h.driving].cop ? h.driving : null;
   G.msg = "Now playing " + h.name; msgT = 3;
 }
 function wasted() { G.msg = "WASTED"; msgT = 3; G.hp = 100; G.score = Math.max(0, G.score - 100); G.heat = 0; G.wanted = 0; G.cars = G.cars.filter(c => !c.cop); G.driving = null; G.player = { x: 6 * block + 40, y: 6 * block + 40 }; }
-function busted() { G.heat = 0; G.hp = 100; G.msg = "BUSTED"; msgT = 3; G.ammo = 60; G.cars = G.cars.filter(c => !c.cop); G.wanted = 0; G.score = Math.max(0, G.score - 50); G.driving = null; G.player = { x: 8 * block + 40, y: 5 * block + 40 }; }
+function busted() { G.heat = 0; G.hp = 100; G.msg = "BUSTED"; msgT = 3; G.ammo = 60; G.ammoW = [0, 60, 16, 120]; G.cars = G.cars.filter(c => !c.cop); G.wanted = 0; G.score = Math.max(0, G.score - 50); G.driving = null; G.player = { x: 8 * block + 40, y: 5 * block + 40 }; }
 function newTarget() { const s = spots.filter(p => dist(p, G.player) > 600); G.target = s[Math.floor(Math.random() * s.length)] || G.target; }
 let msgT = 0;
+const STATIONS = [{ name: "Off" }, { name: "Kits Beach FM", bpm: 104, root: 55, beat: [1, 0, 0, 0, 1, 0, 0, 0], hat: true }, { name: "Hastings Hardcore", bpm: 150, root: 41, beat: [1, 0, 1, 0, 1, 0, 1, 1], hat: true }, { name: "CBC Rain Radio", bpm: 70, root: 48, beat: [1, 0, 0, 0, 0, 0, 0, 0], pad: true }];
+const RADIO = { st: 1, step: 0, next: 0 };
+function radioTick() {
+  if (!ac || G.driving === null || G.paused || !RADIO.st) return;
+  const S = STATIONS[RADIO.st], spb = 60 / S.bpm / 2; if (RADIO.next < ac.currentTime) RADIO.next = ac.currentTime + .05;
+  while (RADIO.next < ac.currentTime + .2) {
+    const t = RADIO.next, st = RADIO.step++ % 8, note = (m, d, v, type = "sine") => { const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = 440 * 2 ** ((m - 69) / 12); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + d); };
+    if (S.beat[st]) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(40, t + .12); g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .15); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + .16); }
+    if (S.hat && st % 2) note(100, .03, .02, "square");
+    const prog = [0, 0, 5, 7][Math.floor(RADIO.step / 8) % 4];
+    if (st % 2 === 0) note(S.root + prog + (st === 4 ? 12 : 0), spb * 1.6, .09, "sawtooth");
+    if (S.pad && st === 0) [0, 4, 7].forEach(i => note(S.root + 24 + prog + i, spb * 8, .03, "triangle"));
+    RADIO.next += spb;
+  }
+}
+// --- save: autosave progress every few seconds
+function saveGame() { if (DEMO) return; save.game = { score: G.score, step: G.step, mission: mission ? mission.n : 0, heroes: G.heroes.map((h, i) => i === G.cur ? { ...h, p: G.player, a: G.pa, driving: null } : { ...h, driving: null }), cur: G.cur, ammoW: G.ammoW }; persist(); }
+function loadGame() { const g = save.game; if (!g || !Array.isArray(g.heroes) || g.heroes.length !== 2 || !g.heroes.every(h => h?.p && isFinite(h.p.x) && isFinite(h.p.y)) || solid(g.heroes[g.cur ?? 0].p.x, g.heroes[g.cur ?? 0].p.y)) { if (g) { delete save.game; persist(); } return false; } Object.assign(G, { score: g.score, step: g.step, cur: g.cur, ammoW: g.ammoW }); G.heroes = g.heroes; G.player = { ...g.heroes[g.cur].p }; G.pa = g.heroes[g.cur].a; if (G.step >= 5) { restoring = true; startMission(g.mission); restoring = false; } return true; }
+setInterval(() => { if (!G.paused) saveGame(); }, 5000);
 const AMB = { on: false };
 function ambientStart() {
   if (AMB.on) return; ac ??= new AudioContext(); AMB.on = true;
@@ -177,12 +217,23 @@ function ambient(dt, day) {
   if (!AMB.on) return;
   let t = 0, closest = 1e9; for (const c of G.cars) { if (G.cars.indexOf(c) === G.driving) continue; const d = dist(c.p, G.player); if (d < 300) { t += Math.abs(c.v) / 300 * (1 - d / 300); closest = Math.min(closest, d); } }
   AMB.traffic.g.gain.setTargetAtTime(Math.min(.35, t * .25), ac.currentTime, .15); AMB.traffic.f.frequency.setTargetAtTime(300 + 400 / (1 + closest / 60), ac.currentTime, .1);
-  AMB.rain.g.gain.setTargetAtTime(RAIN.on ? .09 : 0, ac.currentTime, .8);
+  AMB.rain.g.gain.setTargetAtTime(RAIN.on && !RAIN.snow ? (RAIN.live?.code >= 63 ? .2 : .13) : 0, ac.currentTime, .8);
+  if (RAIN.storm && Math.random() < dt * .05) { bang(.9); document.body.style.background = "#fff"; setTimeout(() => document.body.style.background = "", 90); }
   if (day > .4 && !RAIN.on && Math.random() < dt * .5) { const f = 2600 + Math.random() * 1600; chirp(f, f * 1.3, .08, .03); setTimeout(() => chirp(f * 1.1, f * .9, .07, .025), 110); }
   if (Math.random() < dt * .06) chirp(1400, 700, .35, .04, "sawtooth"); // gulls, it's Vancouver
 }
 // rain: comes and goes, like home
-const RAIN = { on: false, t: 40 };
+const RAIN = { on: false, t: 1e9, snow: false, storm: false, live: null };
+const WX = { 0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Fog", 51: "Drizzle", 53: "Drizzle", 55: "Drizzle", 61: "Rain", 63: "Rain", 65: "Heavy rain", 71: "Snow", 73: "Snow", 75: "Heavy snow", 80: "Showers", 81: "Showers", 82: "Downpour", 95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm" };
+async function liveWeather() {
+  try {
+    const j = await fetch("https://api.open-meteo.com/v1/forecast?latitude=49.2827&longitude=-123.1207&current=temperature_2m,precipitation,weather_code&timezone=America%2FVancouver").then(r => r.json());
+    const c = j.current, code = c.weather_code; RAIN.live = { temp: Math.round(c.temperature_2m), text: WX[code] || "Weather", code };
+    RAIN.on = c.precipitation > 0 || (code >= 51 && code <= 99 && !(code >= 71 && code <= 77)) || (code >= 71 && code <= 77);
+    RAIN.snow = code >= 71 && code <= 77; RAIN.storm = code >= 95; RAIN.fog = code === 45 || code === 48;
+  } catch { RAIN.t = 40; } // offline: fall back to random showers
+}
+liveWeather(); setInterval(liveWeather, 600000);
 const LINES = ["Sorry!", "Canucks are gonna choke again, eh", "Rent's thirty-four hundred for a one bedroom, man", "You been to Granville Island? The market's sick", "It's gonna rain. It's always gonna rain", "Spare some change for the SkyTrain?", "Nice day for the seawall", "Have you seen my dog? Off leash at English Bay", "Go Whitecaps!", "Where's the nearest Tim's?", "Bro, the Expo line is down again", "You look like you could use a JapaDog"];
 const BUMPS = ["Watch it, bud", "Hey! Eyes up", "Seriously?"], FIGHTS = ["You got a problem?", "Wanna go?", "Say that again"];
 let encounterT = 15;
@@ -205,20 +256,31 @@ function streetLife(dt) {
   }
   for (const p of G.peds) if (p.sayT > 0 && (p.sayT -= dt) <= 0) p.say = null;
 }
+const STORY = [
+  { title: "Joshua: Welcome to Vancouver", kind: "deliver", text: "A guy in Gastown needs a car. Bring one to the beacon", pay: 300 },
+  { title: "Joshua: Night Shift", kind: "taxi", text: "Cover a buddy's cab. Pick up the fare", pay: 350 },
+  { title: "Alexandre: Island Business", kind: "hit", text: "Someone's been talking. Find the marked man and deal with him", pay: 500 },
+  { title: "Joshua: Heat on Hastings", kind: "evade", text: "Get the cops' attention, three stars, then lose them", pay: 600 },
+  { title: "Joshua: The Granville Job", kind: "deliver", text: "Last one. Bring a fast car to the beacon. Don't scratch it", pay: 1000 },
+];
+let restoring = false;
 function startMission(n) {
-  const kind = MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
+  const story = STORY[n], kind = story ? story.kind : MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
   if (kind === "deliver") { newTarget(); mission.text = "Deliver a car to the beacon"; }
   if (kind === "taxi") { G.target = roadPoint(); while (dist(G.target, G.player) < 500) G.target = roadPoint(); mission.text = "Taxi: pick up the fare at the beacon (in a car)"; }
   if (kind === "evade") { mission.text = "Get 3 stars, then lose the cops"; }
-  toast("Mission: " + mission.text);
+  if (kind === "hit") { const p = sidewalkPed(roadPoint()); p.mark = true; p.angry = false; G.peds.push(p); mission.victim = p; mission.text = "Take out the marked man (red ring on the map)"; }
+  if (story) { mission.text = story.text; mission.pay = story.pay; if (!restoring) card(story.title, story.text + `\n\nPays $${story.pay}. Follow the ${story.kind === "hit" ? "red dot on the map" : story.kind === "evade" ? "sirens" : "yellow beacon"}.`); } else toast("Mission: " + mission.text);
+  if (n === STORY.length) toast("Story complete. Vancouver is yours. Side jobs keep coming.");
 }
 function runMission(dt) {
-  const m = mission, at = dist(G.player, G.target) < 120, done = pay => { G.score += pay; gainXP(pay / 2); G.msg = `Mission passed! +$${pay}`; msgT = 3; bang(.3); startMission(m.n + 1); };
+  const m = mission, at = dist(G.player, G.target) < 120, done = pay => { pay = m.pay || pay; G.score += pay; gainXP(pay / 2); G.msg = `Mission passed! +$${pay}`; msgT = 3; bang(.3); startMission(m.n + 1); };
   if (m.kind === "deliver" && G.driving !== null && at) { save.deliveries++; persist(); if (save.deliveries >= 5) unlock("courier"); done(250); }
   if (m.kind === "taxi") {
     if (m.stage === 0 && G.driving !== null && at) { m.stage = 1; newTarget(); m.text = "Taxi: drop the fare at the beacon"; toast(m.text); }
     else if (m.stage === 1 && G.driving !== null && at) { unlock("taxi"); done(300); }
   }
+  if (m.kind === "hit") { if (m.victim.dead) done(m.pay || 400); else G.target = m.victim.p; }
   if (m.kind === "evade") { if (m.stage === 0 && G.wanted >= 3) { m.stage = 1; m.text = "Lose the cops"; toast(m.text); } else if (m.stage === 1 && G.wanted === 0) done(500); }
 }
 function tick(dt) {
@@ -272,20 +334,22 @@ function tick(dt) {
   spots.forEach((p, i) => { if (dist(p, G.player) < 150 && !save.seen[i]) { save.seen[i] = 1; persist(); if (Object.keys(save.seen).length >= spots.length) unlock("tourist"); } });
   if (G.hp < 100 && G.wanted === 0) G.hp = Math.min(100, G.hp + dt * 5);
   G.aimT = G.driving === null ? findTarget(G.weapon ? 600 : 28) : null; G.hurtT -= dt; toastT -= dt; if (toastT <= 0) document.getElementById("toast").style.display = "none";
+  for (const c of [...G.cars]) if (c.burnT && (c.burnT -= dt) <= 0) explode(c);
   streetLife(dt);
   // tutorial then missions
   const s = G.step;
   if (s === 0 && dist(G.player, walkFrom) > 100) G.step = 1;
-  else if (s === 1 && G.ammo < 60) G.step = 2;
+  else if (s === 1 && G.ammoW[1] < 60) G.step = 2;
   else if (s === 2 && G.driving !== null) G.step = 3;
   else if (s === 3 && dist(G.player, G.target) < 120) { G.step = 4; G.score += 100; }
   else if (s === 4 && G.cur === 1) { G.step = 5; startMission(0); }
   else if (s >= 5 && mission) runMission(dt);
+  if (!isFinite(G.player.x) || !isFinite(G.player.y) || solid(G.player.x, G.player.y) && G.driving === null && G.z === 0) { const safe = G.heroes[G.cur]?.p; G.player = safe && !solid(safe.x, safe.y) ? { ...safe } : { x: 8 * block + 40, y: 5 * block + 40 }; }
   G.flash = Math.max(0, G.flash - dt); msgT -= dt; if (msgT <= 0) G.msg = "";
 }
 
 // ---- renderer
-const R = new THREE.WebGLRenderer({ antialias: true }); R.setPixelRatio(devicePixelRatio); R.setSize(innerWidth, innerHeight); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.outputColorSpace = THREE.SRGBColorSpace; document.body.prepend(R.domElement);
+let R; try { R = new THREE.WebGLRenderer({ antialias: true }); } catch (e) { document.body.innerHTML = '<div style="padding:40px;font:600 18px Helvetica">Grand Swift needs WebGL. Try Chrome, Safari or Firefox with hardware acceleration on.</div>'; throw e; } R.setPixelRatio(devicePixelRatio); R.setSize(innerWidth, innerHeight); R.shadowMap.enabled = true; R.toneMapping = THREE.ACESFilmicToneMapping; R.outputColorSpace = THREE.SRGBColorSpace; document.body.prepend(R.domElement);
 const scene = new THREE.Scene(), sky = new THREE.Color(0x9ebddb); scene.background = sky; scene.fog = new THREE.Fog(sky, 900, 3200);
 const cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 1, 6000);
 scene.environment = new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(), .04).texture;
@@ -366,6 +430,8 @@ function carMesh(c) {
   scene.add(n); return n;
 }
 let carM = [], pedM = [];
+const puffMat = new THREE.SpriteMaterial({ color: 0x555555, transparent: true, opacity: .55, depthWrite: false }), fireMat = new THREE.SpriteMaterial({ color: 0xff7a1a, transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending });
+const boomMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true })); boomMesh.visible = false; scene.add(boomMesh);
 function sync(now) {
   if (carM.length !== G.cars.length) { carM.forEach(m => scene.remove(m)); carM = G.cars.map(carMesh); }
   const live = new Set(G.peds); pedM = pedM.filter(m => { if (live.has(m.ped)) return true; scene.remove(m); return false; });
@@ -374,7 +440,11 @@ function sync(now) {
       if (p.dog) { const dog = new THREE.Group(), bd = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 4, 12, 24), mat(0xc8a070)); bd.rotation.z = Math.PI / 2; bd.position.y = 3; const hd = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 12), mat(0xc8a070)); hd.position.set(3.6, 4.4, 0); dog.add(bd, hd); dog.position.set(4, 0, 6); p.m.add(dog); }
       if (p.camera) { const cm = boxM(2.4, 1.6, 1.2, 0x111111); cm.position.set(2.2, 14, 0); p.m.add(cm); } } });
   const flash = Math.floor(now / 160) % 2;
-  G.cars.forEach((c, i) => { const m = carM[i]; m.position.set(c.p.x, c.kind === 2 ? 16 : 8, c.p.y); m.rotation.y = -c.a; m.visible = true; if (m.bar) m.bar.material.color.setHex(flash ? 0xff0000 : 0x0044ff); });
+  G.cars.forEach((c, i) => { const m = carM[i]; m.position.set(c.p.x, c.kind === 2 ? 16 : 8, c.p.y); m.rotation.y = -c.a; m.visible = true; if (m.bar) m.bar.material.color.setHex(flash ? 0xff0000 : 0x0044ff);
+    if ((c.dmg || 0) >= 50 && !m.smoke) { m.smoke = new THREE.Sprite(puffMat); m.smoke.scale.set(18, 18, 1); m.smoke.position.set(12, 14, 0); m.add(m.smoke); }
+    if (c.burnT && !m.fire) { m.fire = new THREE.Sprite(fireMat); m.fire.scale.set(16, 20, 1); m.fire.position.set(12, 12, 0); m.add(m.fire); }
+    if (m.smoke) m.smoke.position.y = 14 + (now / 90 % 8); if (m.fire) m.fire.scale.y = 18 + Math.sin(now / 50) * 4; });
+  const bm = booms[booms.length - 1]; if (bm && (bm.t += 1 / 60) < .6) { boomMesh.visible = true; boomMesh.position.set(bm.x, 20, bm.y); boomMesh.scale.setScalar(10 + bm.t * 140); boomMesh.material.opacity = 1 - bm.t / .6; } else boomMesh.visible = false;
   G.peds.forEach(p => { const m = p.m; m.position.set(p.p.x, 0, p.p.y);
     if (p.dead) { const f = Math.min(1, p.dead * 3); m.rotation.set(f * Math.PI / 2, -p.a, 0, "YXZ"); m.position.y = f * 3; return; }
     m.rotation.set(0, -p.a, 0); m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); m.arms[1].rotation.z = p.punching > 0 ? 1.5 : 0; });
@@ -387,11 +457,11 @@ function sync(now) {
   const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60);
   const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
   sun.position.set(G.player.x - 400, 900, G.player.y + 300); sun.target.position.set(G.player.x, 0, G.player.y);
-  beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade");
+  beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade") && !(mission?.kind === "hit");
   const day = (Math.sin(now / 1000 * 2 * Math.PI / 240) + 1) / 2;
-  if ((RAIN.t -= 1 / 60) <= 0) { RAIN.on = !RAIN.on; RAIN.t = RAIN.on ? 45 + Math.random() * 45 : 60 + Math.random() * 90; if (RAIN.on) toast("It's raining. Of course it is."); }
-  rain.visible = RAIN.on; if (RAIN.on) { rain.position.set(G.player.x, 0, G.player.y); const a = rainGeo.attributes.position.array; for (let i = 1; i < a.length; i += 3) { a[i] -= 9; if (a[i] < 0) a[i] += 400; } rainGeo.attributes.position.needsUpdate = true; }
-  ambient(1 / 60, day); sky.setRGB((.08 + .54 * day) * (RAIN.on ? .75 : 1), (.1 + .64 * day) * (RAIN.on ? .78 : 1), (.2 + .66 * day) * (RAIN.on ? .8 : 1)); scene.fog.far = RAIN.on ? 1600 : 3200; scene.fog.color = sky; sun.intensity = .4 + day;
+  if (!RAIN.live && (RAIN.t -= 1 / 60) <= 0) { RAIN.on = !RAIN.on; RAIN.t = RAIN.on ? 45 + Math.random() * 45 : 60 + Math.random() * 90; if (RAIN.on) toast("It's raining. Of course it is."); }
+  rain.visible = RAIN.on; rain.material.color.setHex(RAIN.snow ? 0xffffff : 0xaabbcc); rain.material.size = RAIN.snow ? 3 : 1.6; if (RAIN.on) { rain.position.set(G.player.x, 0, G.player.y); const a = rainGeo.attributes.position.array; for (let i = 1; i < a.length; i += 3) { a[i] -= RAIN.snow ? 2 : 9; if (a[i] < 0) a[i] += 400; } rainGeo.attributes.position.needsUpdate = true; }
+  ambient(1 / 60, day); sky.setRGB((.08 + .54 * day) * (RAIN.on ? .75 : 1), (.1 + .64 * day) * (RAIN.on ? .78 : 1), (.2 + .66 * day) * (RAIN.on ? .8 : 1)); scene.fog.far = RAIN.fog ? 700 : RAIN.on ? 1600 : 3200; scene.fog.color = sky; sun.intensity = .4 + day;
 }
 const hpBar = document.querySelector("#hp i"), cross = document.getElementById("cross"), hud = document.getElementById("hud"), mc = document.getElementById("map"), mx = mc.getContext("2d"); mc.width = cols * 10; mc.height = rows * 10;
 const bubbleEl = document.getElementById("bubbles"), v3 = new THREE.Vector3();
@@ -402,13 +472,13 @@ function drawBubbles() {
   bubbleEl.innerHTML = html;
 }
 function drawHud() {
-  drawBubbles();
+  drawBubbles(); const tipEl = document.getElementById("tip"); tipEl.style.display = G.step < 5 && !G.paused ? "block" : "none"; tipEl.textContent = tut[G.step] || "";
   const street = streetName(G.player.x, G.player.y);
-  hud.textContent = `${hood(G.player.x, G.player.y).name}\n` + (G.step < tut.length ? "▶ " + tut[G.step] + "\n" : "") + `${G.heroes[G.cur].name}   $${G.score}   ${"★".repeat(G.wanted)}\n${street}\n` + (G.driving !== null ? `${Math.round(Math.abs(G.cars[G.driving].v) / 4)} km/h` : G.weapon ? `Pistol ${G.ammo}` : "Fists") + `   Lv ${level()}  ${G.xp} XP` + (mission && G.step >= 5 ? "\n" + mission.text : "") + (G.msg ? "\n" + G.msg : "");
+  hud.textContent = `${hood(G.player.x, G.player.y).name}` + (RAIN.live ? `   ${RAIN.live.temp}°C ${RAIN.live.text} (live)` : "") + "\n" + (G.step < tut.length ? "▶ " + tut[G.step] + "\n" : "") + `${G.heroes[G.cur].name}   $${G.score}   ${"★".repeat(G.wanted)}\n${street}\n` + (G.driving !== null ? `${Math.round(Math.abs(G.cars[G.driving].v) / 4)} km/h` : (G.weapon ? `${WEAPONS[G.weapon].name} ${G.ammoW[G.weapon]}` : "Fists")) + (G.driving !== null ? `   Radio: ${STATIONS[RADIO.st].name}` : "") + `   Lv ${level()}  ${G.xp} XP` + (mission && G.step >= 5 ? "\n" + mission.text : "") + (G.msg ? "\n" + G.msg : "");
   hpBar.style.width = Math.max(0, G.hp) + "%"; cross.style.color = G.aimT ? "#ff4040" : "#fff"; document.body.style.boxShadow = G.hurtT > 0 ? "inset 0 0 80px #c00" : "none";
   vanMap.forEach((row, r) => [...row].forEach((k, c) => { mx.fillStyle = k === "W" ? "#2255aa" : k === "P" ? "#2e8b3a" : k === "Y" ? "#d8c79a" : NAMES[k] ? "#ddd" : "#888"; mx.fillRect(c * 10, r * 10, 10, 10); }));
   mx.fillStyle = "#f33"; G.cars.filter(c => c.cop).forEach(c => mx.fillRect(c.p.x / block * 10 - 2, c.p.y / block * 10 - 2, 4, 4));
-  mx.fillStyle = "#ffd23f"; mx.fillRect(G.target.x / block * 10 - 2, G.target.y / block * 10 - 2, 4, 4);
+  mx.fillStyle = mission?.kind === "hit" ? "#ff3030" : "#ffd23f"; mx.fillRect(G.target.x / block * 10 - 2, G.target.y / block * 10 - 2, 4, 4);
   mx.fillStyle = "#fff"; mx.beginPath(); mx.arc(G.player.x / block * 10, G.player.y / block * 10, 3, 0, 7); mx.fill();
 }
 // ponytail: post stack off on phones (GPU), MSAA alone there
@@ -422,25 +492,43 @@ if (post) {
   composer.addPass(new SMAAPass(innerWidth * devicePixelRatio, innerHeight * devicePixelRatio));
 }
 let last = performance.now();
-function frame(now) { const dt = Math.min((now - last) / 1000, .05); last = now; if (!G.paused) tick(dt); sync(now); drawHud(); composer ? composer.render() : R.render(scene, cam); requestAnimationFrame(frame); }
+let lastErr = 0;
+function frame(now) {
+  try { step(now); } catch (e) { console.error(e); if (now - lastErr > 5000) { lastErr = now; toast("Something glitched, still running: " + (e.message || e)); } }
+  requestAnimationFrame(frame);
+}
+function step(now) {
+  if (G.weapon === 3 && (G.keys.has("Enter") || G.mouseHeld)) shoot(); radioTick(); const dt = Math.min((now - last) / 1000, .05); last = now; if (!G.paused) tick(dt); sync(now); drawHud(); composer ? composer.render() : R.render(scene, cam); }
+if (DEMO && innerWidth < 700) { // tiny frame on a phone: clean view, one tap opens the full game
+  ["hud", "map", "tip", "touch", "hp", "cross"].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  const go = document.createElement("a"); go.href = "play.html"; go.target = "_top"; go.textContent = "Tap to play"; go.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#c0392b;color:#fff;padding:12px 26px;border-radius:24px;font:700 17px Helvetica,sans-serif;text-decoration:none;z-index:9"; document.body.append(go);
+  const tipEl = document.getElementById("tip"); Object.defineProperty(tipEl.style, "display", { set() {}, get() { return "none"; } });
+} else if (DEMO) toast("Live demo. Click in and play.");
+else if (loadGame()) toast("Welcome back. Game loaded.");
+else card("Welcome to Vancouver", "You're Joshua, fresh off the SkyTrain at Granville and Georgia. You've got a pistol and sixty rounds. Make a name for yourself.\n\nW A S D move, Shift run, Space jump\nMouse to aim (the crosshair goes red on a target), click to shoot, F to punch\nQ or 1-4 to switch weapons\nE to get in or out of a car, R for the radio\nTab to switch to Alexandre in Victoria\nEsc to pause\n\nFollow the tips at the top left. They'll walk you through it.");
 requestAnimationFrame(frame);
 
 // ---- input
 const pauseEl = document.getElementById("pause");
 const setPause = p => { G.paused = p; pauseEl.style.display = p ? "flex" : "none"; G.keys.clear(); if (p && document.pointerLockElement) document.exitPointerLock(); };
 addEventListener("keydown", e => {
+  if (document.getElementById("card").style.display === "flex") { if (e.code === "Enter" || e.code === "Escape" || e.code === "Space") document.getElementById("cardGo").click(); return; }
   if (e.code === "Escape") { setPause(!G.paused); return; }
   if (G.paused) return;
-  if (!e.repeat) { if (e.code === "KeyE") toggleCar(); if (e.code === "KeyQ") { G.weapon ^= 1; toast(G.weapon ? "Pistol" : "Fists"); } if (e.code === "Tab") swapHero(); if (e.code === "Space" && G.driving === null && G.z === 0) G.vz = 180; if (e.code === "Enter" || e.code === "Fire") shoot(); if (e.code === "KeyF") punch(); }
+  if (!e.repeat) { if (e.code === "KeyE") toggleCar(); if (e.code === "KeyQ") { G.weapon = (G.weapon + 1) % 4; toast(WEAPONS[G.weapon].name); } if (/^Digit[1-4]$/.test(e.code)) { G.weapon = +e.code[5] - 1; toast(WEAPONS[G.weapon].name); } if (e.code === "KeyR" && G.driving !== null) { RADIO.st = (RADIO.st + 1) % STATIONS.length; toast("Radio: " + STATIONS[RADIO.st].name); } if (e.code === "Tab") swapHero(); if (e.code === "Space" && G.driving === null && G.z === 0) G.vz = 180; if (e.code === "Enter" || e.code === "Fire") shoot(); if (e.code === "KeyF") punch(); }
   if (["Tab", "Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
   G.keys.add(e.code);
 });
 addEventListener("keyup", e => G.keys.delete(e.code));
 ["keydown", "mousedown", "touchstart"].forEach(t => addEventListener(t, ambientStart, { once: true }));
-R.domElement.addEventListener("mousedown", () => { if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
+addEventListener("mouseup", () => G.mouseHeld = false);
+R.domElement.addEventListener("mousedown", () => { G.mouseHeld = !!document.pointerLockElement; if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
 // mouse always steers the camera; click locks it for endless turning
 addEventListener("mousemove", e => { if (G.paused) return; G.mouseDX += e.movementX; G.pitch = Math.max(-.6, Math.min(.5, (G.pitch || 0) + e.movementY * .003)); });
 document.addEventListener("pointerlockchange", () => { if (!document.pointerLockElement && !G.paused && G.step > 0) setPause(true); });
+document.getElementById("cardGo").onclick = () => { document.getElementById("card").style.display = "none"; G.paused = false; G.keys.clear(); };
+document.getElementById("savebtn").onclick = () => { saveGame(); document.getElementById("savebtn").textContent = "Saved"; setTimeout(() => document.getElementById("savebtn").textContent = "Save game", 1200); };
+document.getElementById("exitbtn").onclick = () => { saveGame(); if (window.close && window.opener === null && history.length <= 1) window.close(); location.href = "./"; };
 document.getElementById("resume").onclick = () => setPause(false);
 document.getElementById("fs").onclick = () => document.documentElement.requestFullscreen?.();
 addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); composer?.setSize(innerWidth, innerHeight); });
@@ -457,5 +545,5 @@ R.domElement.addEventListener("touchstart", e => { const t = e.changedTouches[0]
 document.querySelectorAll("#btns button").forEach(b => { b.addEventListener("touchstart", e => { e.preventDefault(); const k = b.dataset.k;
   if (k === "Brake") { G.keys.add("KeyS"); return; } if (k === "ShiftLeft") { G.keys.add(k); return; } dispatchEvent(new KeyboardEvent("keydown", { code: k })); }, { passive: false });
   b.addEventListener("touchend", () => { if (b.dataset.k === "Brake") G.keys.delete("KeyS"); if (b.dataset.k === "ShiftLeft") G.keys.delete("ShiftLeft"); dispatchEvent(new KeyboardEvent("keyup", { code: b.dataset.k })); }); });
-window.G = G; window.GS = { say, streetLife, RAIN, punch, startMission, addHeat, shoot, findTarget, killPed, unlock, save };
+window.G = G; window.GS = { hood, solid, cell, streetName, lane, sidewalkPed, living, roadPoint, tick, frame: null, STARS, explode, damageCar, saveGame, loadGame, STORY, RADIO, WEAPONS, say, streetLife, RAIN, punch, startMission, addHeat, shoot, findTarget, killPed, unlock, save };
 </script></body></html>

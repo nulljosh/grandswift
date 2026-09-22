@@ -17,6 +17,9 @@ Fists that land: people fight back or run, and they fall over when they go down.
 ## A living city
 Each neighbourhood has its own people and its own lines: the Downtown Eastside, Gastown, the West End and Coal Harbour, Yaletown, Kitsilano and Victoria. Strangers walk up to bump you, chat, or pick a fight. Traffic keeps to the right lane. You hear cars go by, birds, gulls, and rain, and the rain comes and goes.
 
+## Weather and story
+The weather is live. The game asks Open-Meteo about downtown Vancouver every ten minutes, so if it's raining there, it's raining in the game. Five story missions come first, then side jobs forever. Your game saves itself.
+
 ## Platforms
 Web, plus apps for iOS and Mac (`apps/apple`), Windows and Linux (`apps/desktop`), and Android (`apps/android`). Tagging a release builds all of them in CI.
 
@@ -44,6 +47,6 @@ Two resources make that possible, and neither is set up yet:
 That's a separate project. Unreal needs a large download and disk space, and Epic has to be signed into by hand.
 
 ## QA
-`GS_QA=1 ./grandswift` plays the Mac game with no window and checks 23 things. The web build is tested headless with Playwright. CI runs the Mac checks on every push.
+`GS_QA=1 ./grandswift` plays the Mac game with no window and checks 23 things. The web build has a 31-check headless suite (`node tests/web.mjs`) covering the menu, saves, combat, explosions, neighbourhoods, corrupt saves, blocked storage, offline mode and phones. CI runs the Mac checks on every push.
 
 See roadmap.md for what's next.
