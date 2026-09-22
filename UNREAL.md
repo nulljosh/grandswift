@@ -48,3 +48,7 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Real places in Unreal coords (from the georeference): Apple (814, 1614), Art Gallery (-14005, 5010), Waterfront Station (51118, -26606), 7-Eleven 1294 Granville (-63876, 80134). Tile heights change with LOD, so trust the proven street z near spawn.
 - `unreal/qa.py '<python>'` runs full Unreal Python in the editor through Content/Python/init_unreal.py (copy in unreal/Python). It can save the level: `unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)`.
 - Tile cache: MaxCacheItems=100000 under CesiumRuntimeSettings in Config/DefaultEngine.ini (default 4096), so revisited streets load from disk. Baking the tiles into the project is off the table: Google 3D Tiles terms only allow caching.
+
+## Face scan and packs (2026-09-22)
+- Face scan: Live Link Face take unzipped to /Volumes/LaCie/Unreal/Captures. Import with `unreal.CaptureManagerIngestBlueprintLibrary.ingest_live_link_face(dir, CaptureManagerConversionParams(), on_success, on_failure)` (async, callbacks take 3 args). Never call the _sync or MetaHumanCaptureSourceSync versions from the bridge: they block the game thread and deadlock the editor.
+- Gun and car Blueprints copied from Templates/TP_FirstPersonBP and TP_VehicleAdvBP into Content; ChaosVehiclesPlugin enabled in the .uproject. The car and gun meshes live in the Add Feature pack flow, not in those folders, so the pack dialog may still be needed once.
