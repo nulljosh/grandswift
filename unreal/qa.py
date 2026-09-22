@@ -1,5 +1,6 @@
 """Auto player / QA for the Unreal build. Needs the editor open with Content/Python/init_unreal.py (the QA bridge).
 Usage: python3 qa.py            -> starts Play, runs the walk test, prints PASS/FAIL, stops Play
+       python3 qa.py drive      -> same, but jacks the getaway car and drives it (qa_drive.py)
        python3 qa.py 'print(1)' -> runs one Python snippet inside the editor
 """
 import os, sys, time, json, subprocess
@@ -21,13 +22,14 @@ def mcp(toolset, tool, args):
     return subprocess.run([sys.executable, os.path.join(HERE, "mcp.py"), "tools/call", json.dumps(call)], capture_output=True, text=True, timeout=400).stdout
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    test = "qa_drive.py" if sys.argv[1:] == ["drive"] else "qa_walk.py"
+    if len(sys.argv) > 1 and test == "qa_walk.py":
         print(run(sys.argv[1])); sys.exit()
 
     A = "EditorToolset.EditorAppToolset"
     mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
     print("waiting for Vancouver to stream in"); time.sleep(90)
-    print(run(open(os.path.join(HERE, "qa_walk.py")).read()))
+    print(run(open(os.path.join(HERE, test)).read()))
     for _ in range(60):  # up to 2 minutes, polls until the walk reports
         time.sleep(2); res = run("print(QA_RESULT)")
         if not res.startswith("RUNNING"): break
