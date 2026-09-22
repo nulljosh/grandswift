@@ -8,7 +8,7 @@ let gameURL = URL(string: "https://rainjack.heyitsmejosh.com/play.html")!
 #if os(macOS)
 // WKWebView on macOS has no Pointer Lock, so the app locks the mouse itself and feeds raw deltas to the page.
 final class GameWebView: WKWebView {
-    var locked = false
+    var locked = false, dx: CGFloat = 0, dy: CGFloat = 0
     func setLock(_ on: Bool) { guard on != locked else { return }; locked = on; CGAssociateMouseAndMouseCursorPosition(on ? 0 : 1); on ? NSCursor.hide() : NSCursor.unhide() }
     override var acceptsFirstResponder: Bool { true }
 }
@@ -19,9 +19,14 @@ struct Web: NSViewRepresentable {
             switch e.type {
             case .leftMouseDown: if !v.locked { v.setLock(true) }
             case .keyDown: if e.keyCode == 53 { v.setLock(false) }
-            default: if v.locked { v.evaluateJavaScript("window.GS_mouse && GS_mouse(\(e.deltaX), \(e.deltaY))") }
+            default: if v.locked { v.dx += e.deltaX; v.dy += e.deltaY }
             }
             return e
+        }
+        // one JS call per frame with the summed deltas, instead of one per mouse event
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 120, repeats: true) { _ in
+            guard v.dx != 0 || v.dy != 0 else { return }
+            v.evaluateJavaScript("window.GS_mouse && GS_mouse(\(v.dx), \(v.dy))"); v.dx = 0; v.dy = 0
         }
         NSApp.windows.forEach { $0.acceptsMouseMovedEvents = true }
         return v

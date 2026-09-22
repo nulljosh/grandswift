@@ -456,7 +456,7 @@ const gltf = new GLTFLoader(); gltf.setDRACOLoader(new DRACOLoader().setDecoderP
 function rigFor(n, color, c) {
   const s = SkeletonUtils.clone(c.src.scene); s.updateMatrixWorld(true);
   const h = new THREE.Box3().setFromObject(s).getSize(new THREE.Vector3()).y || 1; s.scale.multiplyScalar(24 / h); s.rotation.y = c.turn;
-  s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (c.shirt && o.material.color && c.shirt.test(o.material.name)) o.material.color.lerp(new THREE.Color(color), .7); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
+  s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (c.shirt && o.material.color && c.shirt.test(o.material.name)) o.material.color.lerp(new THREE.Color(color), c.src.scene === undefined ? .7 : .45); o.castShadow = true; o.frustumCulled = false; n.body ??= o; } });
   const mixer = new THREE.AnimationMixer(s), acts = {}; for (const [k, name] of Object.entries(c.map)) { const clip = c.src.animations.find(a => a.name === name) || c.src.animations[0]; if (clip) acts[k] = mixer.clipAction(clip); }
   n.mix = { mixer, acts, cur: "walk" }; acts.walk?.play(); mixer.setTime(Math.random() * 2); n.add(s); n.gl = s;
 }
@@ -509,9 +509,14 @@ function carMesh(c) {
 let carM = [], pedM = [];
 gltf.load(MODELS + "Soldier.glb", g => {
   SOLDIER = g;
-  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); hero.body = null; soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13.5, 3);
+  if (!hero.gl) hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (!hero.gl) hero.body = null; if (!hero.gl) soldierFor(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); if (hero.mix?.acts.run === undefined) tint(hero, HERO_LOOK[G.heroes[G.cur].name] ?? 0xe8b21a); gun.position.set(6, 13.5, 3);
 }, undefined, e => console.warn("character model failed, keeping shapes", e));
 const reCrowd = () => { pedM.forEach(m => scene.remove(m)); pedM = []; G.peds.forEach(p => p.m = null); };
+gltf.load("models/remy.glb", g => {
+  const remy = { src: g, turn: Math.PI / 2, shirt: /shirt|top|Body/i, map: { walk: g.animations[0]?.name, run: g.animations[0]?.name, idle: g.animations[0]?.name } };
+  CROWD.push(remy); reCrowd();
+  hero.children.forEach(ch => { if (ch !== gun) ch.visible = false; }); if (hero.gl) hero.remove(hero.gl); hero.body = null; hero.mix = null; rigFor(hero, 0xffffff, { ...remy, shirt: null }); hero.mix.acts.idle = hero.mix.acts.walk; gun.position.set(6, 13.5, 3);
+}, undefined, e => console.warn("Remy failed", e));
 gltf.load("https://assets.babylonjs.com/meshes/HVGirl.glb", g => {
   const names = [...new Set(g.scene.getObjectsByProperty("isMesh", true).map(m => m.material.name))]; console.log("HVGirl materials", names.join(","));
   CROWD.push({ src: g, turn: Math.PI / 2, shirt: /T-shirt|short/i, map: { walk: "Walking", run: "Walking", idle: "Idle" } }); reCrowd();
@@ -539,7 +544,7 @@ function sync(now) {
   const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
   hero.visible = G.driving === null; hero.position.set(G.player.x, G.z, G.player.y); hero.rotation.y = -a;
   hero.arms[1].rotation.z = performance.now() - (G.punchAt || 0) < 200 ? 1.6 : 0; hero.arms[0].rotation.z = G.weapon ? .9 : 0; gun.visible = !!G.weapon;
-  const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); if (hero.mix) { setAnim(hero, moving ? "run" : "idle"); const a = hero.mix.acts.run; if (a) a.timeScale = (fast ? 270 : 140) * perk("run") / 50; hero.mix.mixer.update(1 / 60); } // run cycle covers ~50 units/s at 1x, match it to real speed
+  const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); if (hero.mix) { const w = hero.mix.acts.walk || hero.mix.acts.run; if (hero.mix.acts.run !== w) { setAnim(hero, moving ? "run" : "idle"); const a = hero.mix.acts.run; if (a) a.timeScale = (fast ? 270 : 140) * perk("run") / 50; } else if (w) { w.timeScale = moving ? (fast ? 270 : 140) * perk("run") / 19 : 0; } hero.mix.mixer.update(1 / 60); } // run cycle covers ~50 units/s at 1x, match it to real speed
   hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
   const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
   while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;

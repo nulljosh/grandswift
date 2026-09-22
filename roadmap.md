@@ -46,6 +46,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.18.0 no more key beeps in the Mac app, native mouse lock in the Mac app (WKWebView has no Pointer Lock), walk and run cycles matched to real speed so feet stop sliding; Blender MCP hooked up
 
+- v1.19.0 Remy is the hero and part of the crowd in the main game too; Mac app mouse deltas batched per frame for smooth look
+
 ## Next
 - [ ] Move missions, cops, crowds and stars onto the real-streets map
 - [ ] Coastline and water from OSM, Kits and Victoria
