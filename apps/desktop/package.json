@@ -1,18 +1,38 @@
 {
   "name": "grandswift",
   "productName": "Grand Swift",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A crime game set in Vancouver",
   "main": "main.js",
-  "author": "Joshua Trommel",
+  "author": {
+    "name": "Joshua Trommel",
+    "email": "trommatic@icloud.com"
+  },
   "license": "MIT",
-  "scripts": { "dist": "electron-builder --publish never" },
-  "devDependencies": { "electron": "^33.0.0", "electron-builder": "^25.1.8" },
+  "scripts": {
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
   "build": {
     "appId": "com.jaybulb.grandswift",
     "icon": "../../site/icon.png",
-    "win": { "target": "nsis" },
-    "linux": { "target": ["AppImage", "deb"], "category": "Game" },
-    "mac": { "target": "dmg" }
-  }
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game",
+      "maintainer": "Joshua Trommel <trommatic@icloud.com>"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  },
+  "homepage": "https://grandswift.heyitsmejosh.com"
 }
