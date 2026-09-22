@@ -9,7 +9,7 @@
       (else
         (Input|AddMappingContext (LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem) "/Game/Input/IMC_MouseLook.IMC_MouseLook" 0 "(bIgnoreAllPressedKeysUntilRelease=True,bForceImmediately=False,bNotifyUserSettings=False)")))))
 
-(event EnhancedInputActionIA_EnterCar (ActionValue ElapsedSeconds TriggeredSeconds InputAction)
+(event Custom|EnterOrExitCar
   (bind car (Actor|GetActorOfClass :ActorClass "/Game/VehicleTemplate/Blueprints/SportsCar/BP_VehicleAdvSportsCar.BP_VehicleAdvSportsCar_C"))
   (bind walker (Actor|GetActorOfClass :ActorClass "/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.BP_ThirdPersonCharacter_C"))
   (if (== (Pawn|GetControlledPawn) car)
@@ -18,10 +18,10 @@
     (Rendering|SetActorHiddenInGame walker false)
     (Collision|SetActorEnableCollision walker true)
     (Input|RemoveMappingContext (LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem) "/Game/VehicleTemplate/Input/IMC_Vehicle_Default.IMC_Vehicle_Default")
-    (Pawn|Possess walker)
+    (Pawn|Possess :InPawn walker)
     (elif (< (Transformation|GetDistanceTo walker car) 600.0)
       (Rendering|SetActorHiddenInGame walker true)
       (Collision|SetActorEnableCollision walker false)
       (Transformation|AttachActorToActor walker car)
       (Input|AddMappingContext (LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem) "/Game/VehicleTemplate/Input/IMC_Vehicle_Default.IMC_Vehicle_Default" 1 "(bIgnoreAllPressedKeysUntilRelease=True,bForceImmediately=False,bNotifyUserSettings=False)")
-      (Pawn|Possess car))))
+      (Pawn|Possess :InPawn car))))
