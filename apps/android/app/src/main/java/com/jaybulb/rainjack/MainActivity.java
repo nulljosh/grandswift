@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
         splash.setBackgroundColor(Color.rgb(17, 17, 17));
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.brand);
-        icon.setContentDescription("Rainjack");
+        icon.setContentDescription("Vancouver Vice");
         int size = Math.round(96 * getResources().getDisplayMetrics().density);
         splash.addView(icon, new LinearLayout.LayoutParams(size, size));
         TextView status = new TextView(this);
@@ -57,7 +57,7 @@ public class MainActivity extends Activity {
                 splash.setOnClickListener(v -> {
                     status.setText(R.string.loading);
                     splash.setOnClickListener(null);
-                    web.loadUrl("https://rainjack.heyitsmejosh.com/play.html");
+                    web.loadUrl("https://vancouvervice.heyitsmejosh.com/play.html");
                 });
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
@@ -70,6 +70,6 @@ public class MainActivity extends Activity {
                 if (!failed) splash.setVisibility(View.GONE);
             }
         });
-        web.loadUrl("https://rainjack.heyitsmejosh.com/play.html");
+        web.loadUrl("https://vancouvervice.heyitsmejosh.com/play.html");
     }
 }

@@ -1,7 +1,7 @@
 # Native shells
 
-Both apps load `https://rainjack.heyitsmejosh.com/play.html` and show a local
-Rainjack splash while connecting. Android offers a retry on load failure;
+Both apps load `https://vancouvervice.heyitsmejosh.com/play.html` and show a local
+Vancouver Vice splash while connecting. Android offers a retry on load failure;
 desktop shows a connection error. Launcher and installer icons come from
 `site/icon.png` (256 px source, resized for platform packaging).
 

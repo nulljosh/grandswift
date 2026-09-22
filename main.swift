@@ -495,11 +495,11 @@ func runQA() -> Never {
     print(fails.isEmpty ? "QA OK" : "QA FAILED: \(fails.count)"); exit(fails.isEmpty ? 0 : 1)
 }
 
-@main struct Rainjack: App {
+@main struct Vancouver Vice: App {
     init() { if ProcessInfo.processInfo.environment["GS_QA"] != nil { runQA() }; NSApplication.shared.setActivationPolicy(.regular); // one copy at a time: newest launch kills any older instance
         let me = ProcessInfo.processInfo.processIdentifier
         NSWorkspace.shared.runningApplications.filter { $0.executableURL?.lastPathComponent == "rainjack" && $0.processIdentifier != me }.forEach { $0.forceTerminate() }
         NSApp.applicationIconImage = appIcon(); Sound.start()
         if let out = ProcessInfo.processInfo.environment["GS_ICON"] { let rep = NSBitmapImageRep(data: appIcon().tiffRepresentation!)!; try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out)); exit(0) }; DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) } }
-    var body: some Scene { WindowGroup("Rainjack") { GameView().frame(minWidth: 900, minHeight: 600) } }
+    var body: some Scene { WindowGroup("Vancouver Vice") { GameView().frame(minWidth: 900, minHeight: 600) } }
 }

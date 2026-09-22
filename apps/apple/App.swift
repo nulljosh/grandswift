@@ -3,7 +3,7 @@ import WebKit
 
 // iOS + macOS shell: the full game is the web build, so every platform plays the same thing.
 // ponytail: loads the live site, needs a connection (the 3D tiles do anyway). Bundle site/ for offline if it matters.
-let gameURL = URL(string: "https://rainjack.heyitsmejosh.com/play.html")!
+let gameURL = URL(string: "https://vancouvervice.heyitsmejosh.com/play.html")!
 
 #if os(macOS)
 // WKWebView on macOS has no Pointer Lock, so the app locks the mouse itself and feeds raw deltas to the page.
@@ -14,7 +14,7 @@ final class GameWebView: WKWebView {
 }
 struct Web: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
-        let v = GameWebView(); v.customUserAgent = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) RainjackApp"; v.load(URLRequest(url: gameURL))
+        let v = GameWebView(); v.customUserAgent = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Vancouver ViceApp"; v.load(URLRequest(url: gameURL))
         NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseDown, .keyDown]) { e in
             switch e.type {
             case .leftMouseDown: if !v.locked { v.setLock(true) }
@@ -44,7 +44,7 @@ struct Web: UIViewRepresentable {
 }
 #endif
 
-@main struct RainjackApp: App {
+@main struct Vancouver ViceApp: App {
     var body: some Scene {
         WindowGroup { Web().ignoresSafeArea().background(Color.black)
             #if os(iOS)

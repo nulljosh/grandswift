@@ -1,4 +1,4 @@
-// Rainjack: static site plus one shared online world (/ws), a single Durable Object everyone joins.
+// Vancouver Vice: static site plus one shared online world (/ws), a single Durable Object everyone joins.
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);

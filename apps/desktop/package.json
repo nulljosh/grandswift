@@ -1,6 +1,6 @@
 {
   "name": "rainjack",
-  "productName": "Rainjack",
+  "productName": "Vancouver Vice",
   "version": "1.9.0",
   "description": "A crime game set in Vancouver",
   "main": "main.js",
@@ -49,5 +49,5 @@
       "assets/icon.png"
     ]
   },
-  "homepage": "https://rainjack.heyitsmejosh.com"
+  "homepage": "https://vancouvervice.heyitsmejosh.com"
 }

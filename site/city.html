@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rainjack: Real Streets</title><link rel="icon" href="icon.png">
+<title>Vancouver Vice: Real Streets</title><link rel="icon" href="icon.png">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#9ebddb;font:600 15px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#fff}
 #hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
@@ -311,7 +311,7 @@ const toggle = () => {
 addEventListener("keydown", e => { if (e.code === "KeyE" && !e.repeat) toggle(); if (e.code === "KeyF" && !e.repeat) punch(); if (e.code === "KeyG" && !e.repeat) rob(); if (e.code === "Escape") location.href = "play.html"; S.keys.add(e.code); });
 addEventListener("keyup", e => S.keys.delete(e.code));
 // the Mac app (WKWebView, no "Safari/" in its UA) sends raw deltas through GS_mouse instead
-const IN_MAC_APP = /RainjackApp/.test(navigator.userAgent);
+const IN_MAC_APP = /Vancouver ViceApp/.test(navigator.userAgent);
 window.GS_mouse = (dx) => { S.dx += dx; };
 addEventListener("mousemove", e => { if (IN_MAC_APP) return; S.dx += e.movementX; });
 R.domElement.addEventListener("click", () => R.domElement.requestPointerLock?.());

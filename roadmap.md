@@ -1,4 +1,4 @@
-# Rainjack roadmap
+# Vancouver Vice roadmap
 
 A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully fledged.
 
@@ -26,7 +26,7 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.8.0 real ocean (reflective animated water), physical sky with a moving sun, Kits Beach with textured and wet sand, foam, driftwood logs, lifeguard towers, volleyball nets, towels and umbrellas; CI web test no longer flaky
 
-- v1.9.0 renamed to Rainjack: repo nulljosh/rainjack, rainjack.heyitsmejosh.com (old domain redirects), apps and docs; Android activity was never committed (gitignore matched it), fixed
+- v1.9.0 renamed to Vancouver Vice: repo nulljosh/vancouvervice, vancouvervice.heyitsmejosh.com (old domain redirects), apps and docs; Android activity was never committed (gitignore matched it), fixed
 
 - v1.10.0 Real streets (site/city.html): downtown Vancouver built from OpenStreetMap, 3,359 real buildings at real heights, 8,378 streets with names, parks; walk and drive with collision against the real footprints (tools/osm.py)
 
