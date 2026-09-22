@@ -344,6 +344,16 @@ struct GameView: View {
     @StateObject var g = Game()
     @State var w = World()
     let timer = Timer.publish(every: 1 / 60, on: .main, in: .common).autoconnect()
+    var hud: String {
+        let street = streetName(g.player)
+        var t = g.step < g.tut.count ? "▶ " + g.tut[g.step] + "\n" : ""
+        t += "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted)
+        t += "\n" + street + (street.contains("Victoria") ? "" : ", Vancouver")
+        if let d = g.driving { t += "\n\(Int(abs(g.cars[d].v) / 4)) km/h" } else { t += "\nAmmo \(g.ammo)" }
+        t += "\nWASD move, E car, Space shoot, Tab swap, Esc pause"
+        if !g.msg.isEmpty { t += "\n" + g.msg }
+        return t
+    }
     func resume() { g.paused = false; g.keys = [] }
     var body: some View {
         SceneBox(w: w)
@@ -366,7 +376,7 @@ struct GameView: View {
             }
         }
         .overlay(alignment: .topLeading) {
-            Text((g.step < g.tut.count ? "▶ " + g.tut[g.step] + "\n" : "") + "\(g.heroes[g.cur].name)   $\(g.score)   " + String(repeating: "★", count: g.wanted) + "\n\(streetName(g.player))" + (streetName(g.player).contains("Victoria") ? "" : ", Vancouver") + (g.driving.map { "\n\(Int(abs(g.cars[$0].v) / 4)) km/h" } ?? "") + (g.driving == nil ? "\nAmmo \(g.ammo)" : "") + "\nWASD move, E car, Space shoot, Tab swap, Esc pause" + (g.msg.isEmpty ? "" : "\n\(g.msg)"))
+            Text(hud)
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white).padding(12).shadow(radius: 2)
         }
         .overlay(alignment: .topTrailing) {
