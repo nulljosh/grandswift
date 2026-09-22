@@ -281,7 +281,7 @@ function sync(now) {
   const moving = G.keys.has("KeyW") || G.keys.has("KeyS"), fast = G.keys.has("ShiftLeft") || G.keys.has("ShiftRight"); hero.legs.forEach((l, j) => l.rotation.z = moving ? Math.sin(now / (fast ? 55 : 100) + j * Math.PI) * (fast ? .9 : .6) : 0);
   const back = G.driving === null ? 70 : 110, up = G.driving === null ? 38 : 48; let d = back;
   while (d > 12 && solid(G.player.x - Math.cos(a) * d, G.player.y - Math.sin(a) * d)) d -= 6;
-  const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); cam.rotation.set(-.28, -a - Math.PI / 2, 0, "YXZ");
+  const side = G.driving === null ? 14 : 0; cam.position.set(G.player.x - Math.cos(a) * d - Math.sin(a) * side, up, G.player.y - Math.sin(a) * d + Math.cos(a) * side); const pt = -.28 - (G.pitch || 0); cam.rotation.set(pt, -a - Math.PI / 2, 0, "YXZ"); cam.position.y = Math.max(8, up + (G.pitch || 0) * 60);
   const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
   sun.position.set(G.player.x - 400, 900, G.player.y + 300); sun.target.position.set(G.player.x, 0, G.player.y);
   beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade");
@@ -313,7 +313,8 @@ addEventListener("keydown", e => {
 });
 addEventListener("keyup", e => G.keys.delete(e.code));
 R.domElement.addEventListener("mousedown", () => { if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
-addEventListener("mousemove", e => { if (document.pointerLockElement) G.mouseDX += e.movementX; });
+// mouse always steers the camera; click locks it for endless turning
+addEventListener("mousemove", e => { if (G.paused) return; G.mouseDX += e.movementX; G.pitch = Math.max(-.6, Math.min(.5, (G.pitch || 0) + e.movementY * .003)); });
 document.addEventListener("pointerlockchange", () => { if (!document.pointerLockElement && !G.paused && G.step > 0) setPause(true); });
 document.getElementById("resume").onclick = () => setPause(false);
 document.getElementById("fs").onclick = () => document.documentElement.requestFullscreen?.();
