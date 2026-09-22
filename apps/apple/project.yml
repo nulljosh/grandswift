@@ -1,14 +1,14 @@
-name: Vancouver Vice
+name: VancouverVice
 options: { bundleIdPrefix: com.jaybulb, deploymentTarget: { iOS: "17.0", macOS: "14.0" } }
 targets:
-  Vancouver Vice:
+  VancouverVice:
     type: application
     supportedDestinations: [iOS, macOS]
     sources: [App.swift, Assets.xcassets]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jaybulb.rainjack.app
-        MARKETING_VERSION: 1.9.0
+        MARKETING_VERSION: 1.24.0
         CURRENT_PROJECT_VERSION: 1
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

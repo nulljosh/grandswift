@@ -65,7 +65,7 @@ jobs:
       - run: brew install xcodegen
       - run: xcodegen generate
         working-directory: apps/apple
-      - run: xcodebuild -project Rainjack.xcodeproj -scheme Rainjack -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build -quiet
+      - run: xcodebuild -project VancouverVice.xcodeproj -scheme VancouverVice -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build -quiet
         working-directory: apps/apple
-      - run: xcodebuild -project Rainjack.xcodeproj -scheme Rainjack -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet
+      - run: xcodebuild -project VancouverVice.xcodeproj -scheme VancouverVice -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build -quiet
         working-directory: apps/apple
