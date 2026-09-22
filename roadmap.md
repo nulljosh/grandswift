@@ -16,6 +16,8 @@ A first person Vancouver GTA, measured against GTA 3/4, not trying to be fully f
 
 - v1.3.x all platforms (iOS, Mac, Windows, Linux, Android shells), Real Vancouver beta on Google 3D Tiles, AO + SMAA sharpness pass, mouse camera, punching with fight back or flee, bodies fall over
 
+- v1.4.0 smooth people (shaped torso, hands, shoes, varied skin and hair), 100 walkers and 44 cars in lanes, neighbourhoods with their own crowds and lines, strangers who bump, chat or fight, speech bubbles, traffic, bird, gull and rain sound, rain that comes and goes
+
 ## Next (gap vs GTA 3/4)
 - [x] Mouse look
 - [ ] Hood/dashboard view in cars, car damage and smoke

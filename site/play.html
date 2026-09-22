@@ -7,6 +7,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 #hud{position:fixed;left:14px;top:12px;white-space:pre;text-shadow:0 1px 3px #000;pointer-events:none}
 #map{position:fixed;right:14px;top:14px;border:1px solid #fff4}
 #cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
+.bub{position:fixed;transform:translate(-50%,-100%);background:#fff;color:#111;padding:5px 10px;border-radius:12px;font:600 13px Helvetica,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px #0005}
 #toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#000c;padding:10px 18px;border-radius:10px;display:none;text-align:center}
 #hp{position:fixed;left:14px;bottom:14px;width:180px;height:10px;background:#0008;border-radius:5px;overflow:hidden}#hp i{display:block;height:100%;background:#c0392b}
 #touch{display:none}.touch #touch{display:block}.touch #hud{font-size:13px}
@@ -18,7 +19,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font:600 15px/1.4
 #pause{position:fixed;inset:0;background:#000a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #pause h1{font-size:44px;margin:0}#pause button{font:600 17px Helvetica,sans-serif;padding:10px 26px;border-radius:9px;border:0;background:#c0392b;color:#fff;cursor:pointer}
 </style></head><body>
-<div id="hud"></div><div id="toast"></div><div id="hp"><i></i></div>
+<div id="hud"></div><div id="bubbles"></div><div id="toast"></div><div id="hp"><i></i></div>
 <div id="touch"><div id="stick"><div id="knob"></div></div><div id="btns"><button data-k="KeyF">Punch</button><button data-k="Tab">Swap</button><button data-k="KeyQ">Gun</button><button data-k="Escape">II</button><button data-k="KeyE">Car</button><button data-k="Brake">Back</button><button data-k="Space">Jump</button><button data-k="ShiftLeft">Run</button><button class="fire" data-k="Fire">Fire</button></div></div><canvas id="map"></canvas><div id="cross">+</div>
 <div id="pause"><h1>PAUSED</h1><button id="resume">Resume</button><button id="fs">Full screen</button><button onclick="location.href='real.html'">Real Vancouver (beta)</button><a href="./" style="color:#fff">Back to site</a>
 <p style="opacity:.8">W A S D move, mouse look (click to lock), click or Enter attack, Shift run, Space jump, F punch, Q fists/pistol, E car, Tab swap, Esc pause. On phones: stick, drag to look, buttons.</p></div>
@@ -53,6 +54,23 @@ function streetName(x, y) {
 }
 const NAMES = { C: "Canada Place", S: "BC Place", E: "Science World", L: "BC Legislature", H: "Harbour Centre", G: "Gastown Steam Clock", A: "Vancouver Art Gallery", O: "Rogers Arena", I: "Granville Island" };
 const LANDMARKS = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) LANDMARKS.push({ x: (c + .65) * block, y: (r + .65) * block, name: NAMES[k] }); }));
+// neighbourhoods: who you meet and what they say depends on where you are
+const HOODS = {
+  dtes: { name: "Downtown Eastside", shirts: [0x5a5048, 0x3d3d3d, 0x6b5b4a, 0x4a4f3a], cart: .35, slow: .6, lines: ["Got a smoke?", "Shelter's full again tonight", "Stay safe out here, alright", "Housing first, that's all I'm saying", "Spare a toonie?", "I used to work the docks, you know"] },
+  gastown: { name: "Gastown", shirts: [0xc0392b, 0xe0a526, 0x2a6fdb, 0xeeeeee], camera: .5, lines: ["Where's the steam clock?", "Is this where they film everything?", "Cobblestones, so charming", "Twelve dollar coffee, wow"] },
+  westend: { name: "West End / Coal Harbour", shirts: [0x1f2a44, 0x111111, 0xdddddd, 0x5a1f2a], dog: .35, lines: ["My Tesla's double parked", "The condo went up again, love it", "Seawall run at six, then the yacht club", "Have you tried the new omakase?"] },
+  yaletown: { name: "Yaletown", shirts: [0x222222, 0x6b7f8f, 0xeeeeee, 0x2e5e4e], lines: ["Brunch was forty bucks each, worth it", "Startup's pivoting again", "Did you see the Canucks game?"] },
+  kits: { name: "Kitsilano", shirts: [0x8fb8a8, 0xe8d8c8, 0x1c1c1c, 0xd98b8b], dog: .25, lines: ["Namaste", "Just did the Grouse Grind", "Kits Beach later?", "Oat milk, obviously"] },
+  victoria: { name: "Victoria", shirts: [0x7a6a8a, 0x8a9a7a, 0xc8b89a, 0x2a4a6a], lines: ["Tea at the Empress?", "Ferry was late again", "Lovely day for the harbour", "Are you from the mainland, dear?"] },
+  downtown: { name: "Downtown", shirts: [0x8b5a2b, 0xc0392b, 0x2a6fdb, 0x222222, 0x2e9e4f, 0xe0a526], lines: [] },
+};
+function hood(x, y) {
+  const c = Math.floor(x / block), r = Math.floor(y / block);
+  if (r >= 14) return HOODS.victoria; if (r >= 10) return HOODS.kits;
+  if (r <= 4 && c >= 13) return HOODS.dtes; if (r <= 4 && c >= 11) return HOODS.gastown;
+  if (r <= 5 && c <= 7) return HOODS.westend; if (r >= 7 && c >= 9 && c <= 12) return HOODS.yaletown;
+  return HOODS.downtown;
+}
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const rnd = (a, b) => a + Math.random() * (b - a);
 function roadPoint() { for (;;) { const p = { x: rnd(10, W - 10), y: rnd(10, H - 10) }; if (!solid(p.x, p.y)) return p; } }
@@ -60,7 +78,8 @@ function sidewalkPed(p) {
   const vert = Math.random() < .5, a = vert ? (Math.random() < .5 ? Math.PI / 2 : -Math.PI / 2) : (Math.random() < .5 ? 0 : Math.PI);
   const q = { ...p }, e = Math.random() < .5 ? 6 : road - 6;
   if (vert) q.x = Math.floor(q.x / block) * block + e; else q.y = Math.floor(q.y / block) * block + e;
-  return { p: solid(q.x, q.y) ? p : q, a, t: rnd(0, 6) };
+  const P = solid(q.x, q.y) ? p : q, h = hood(P.x, P.y);
+  return { p: P, a, t: rnd(0, 6), hood: h, cart: Math.random() < (h.cart || 0), dog: Math.random() < (h.dog || 0), camera: Math.random() < (h.camera || 0) };
 }
 const kinds = [[40, 20, 420], [40, 20, 400], [80, 24, 260], [38, 18, 600]];
 const colors = [0xd33, 0xeec21b, 0xe67e22, 0x2e9e4f, 0xeeeeee, 0xe86aa6];
@@ -85,12 +104,18 @@ const tut = ["Walk with W A S D", "Click to lock the mouse, click again to shoot
 const MISSIONS = ["deliver", "taxi", "evade"]; let mission = null;;
 const spots = []; vanMap.forEach((row, r) => [...row].forEach((k, c) => { if (NAMES[k]) spots.push({ x: c * block + 40, y: r * block + 40 }); }));
 G.target = { x: 9 * block + 170, y: 2 * block + 40 }; const walkFrom = { ...G.player };
-for (let i = 0; i < 25; i++) { const p = roadPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 3 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
-for (let i = 0; i < 60; i++) G.peds.push(sidewalkPed(roadPoint()));
+for (let i = 0; i < 55; i++) { const p = roadPoint(); G.cars.push({ p, a: (i % 4) * Math.PI / 2, v: 0, color: i % 5 === 1 ? 0xeec21b : colors[i % colors.length], ai: i % 5 !== 0, kind: i % 7 === 0 ? 2 : i % 5 === 1 ? 1 : i % 6 === 0 ? 3 : 0, hp: 3, cop: false }); }
+for (let i = 0; i < 100; i++) G.peds.push(sidewalkPed(roadPoint()));
+G.cars.forEach(c => c.ai && lane(c));
 
 // ---- sound
 let ac; const bang = v => { ac ??= new AudioContext(); const n = ac.sampleRate * .25, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4) * v; const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(); };
 
+function lane(c) {
+  const e = Math.round(Math.cos(c.a)), n = Math.round(Math.sin(c.a)), q = { ...c.p };
+  if (e) q.y = Math.floor(q.y / block) * block + (e > 0 ? 58 : 22); else q.x = Math.floor(q.x / block) * block + (n > 0 ? 22 : 58);
+  if (!solid(q.x, q.y)) c.p = q;
+}
 function move(c, dt) { const nx = c.p.x + Math.cos(c.a) * c.v * dt, ny = c.p.y + Math.sin(c.a) * c.v * dt; if (solid(nx, ny)) { if (Math.abs(c.v) > 200) bang(.4); c.v *= -.3; } else { c.p.x = nx; c.p.y = ny; } }
 function toggleCar() {
   if (G.driving !== null) { const c = G.cars[G.driving]; G.driving = null; G.player = { x: c.p.x - Math.sin(c.a) * 30, y: c.p.y + Math.cos(c.a) * 30 }; if (solid(G.player.x, G.player.y)) G.player = { ...c.p }; return; }
@@ -140,6 +165,46 @@ function wasted() { G.msg = "WASTED"; msgT = 3; G.hp = 100; G.score = Math.max(0
 function busted() { G.heat = 0; G.hp = 100; G.msg = "BUSTED"; msgT = 3; G.ammo = 60; G.cars = G.cars.filter(c => !c.cop); G.wanted = 0; G.score = Math.max(0, G.score - 50); G.driving = null; G.player = { x: 8 * block + 40, y: 5 * block + 40 }; }
 function newTarget() { const s = spots.filter(p => dist(p, G.player) > 600); G.target = s[Math.floor(Math.random() * s.length)] || G.target; }
 let msgT = 0;
+const AMB = { on: false };
+function ambientStart() {
+  if (AMB.on) return; ac ??= new AudioContext(); AMB.on = true;
+  const n = ac.sampleRate * 2, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const loop = (freq, q) => { const s = ac.createBufferSource(); s.buffer = b; s.loop = true; const f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = q; const g = ac.createGain(); g.gain.value = 0; s.connect(f).connect(g).connect(ac.destination); s.start(); return { g, f }; };
+  AMB.traffic = loop(420, .7); AMB.rain = loop(3200, .4); AMB.city = loop(250, .3); AMB.city.g.gain.value = .02;
+}
+function chirp(f0, f1, dur, vol, type = "sine") { const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f0, ac.currentTime); o.frequency.exponentialRampToValueAtTime(f1, ac.currentTime + dur); g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + dur); }
+function ambient(dt, day) {
+  if (!AMB.on) return;
+  let t = 0, closest = 1e9; for (const c of G.cars) { if (G.cars.indexOf(c) === G.driving) continue; const d = dist(c.p, G.player); if (d < 300) { t += Math.abs(c.v) / 300 * (1 - d / 300); closest = Math.min(closest, d); } }
+  AMB.traffic.g.gain.setTargetAtTime(Math.min(.35, t * .25), ac.currentTime, .15); AMB.traffic.f.frequency.setTargetAtTime(300 + 400 / (1 + closest / 60), ac.currentTime, .1);
+  AMB.rain.g.gain.setTargetAtTime(RAIN.on ? .09 : 0, ac.currentTime, .8);
+  if (day > .4 && !RAIN.on && Math.random() < dt * .5) { const f = 2600 + Math.random() * 1600; chirp(f, f * 1.3, .08, .03); setTimeout(() => chirp(f * 1.1, f * .9, .07, .025), 110); }
+  if (Math.random() < dt * .06) chirp(1400, 700, .35, .04, "sawtooth"); // gulls, it's Vancouver
+}
+// rain: comes and goes, like home
+const RAIN = { on: false, t: 40 };
+const LINES = ["Sorry!", "Canucks are gonna choke again, eh", "Rent's thirty-four hundred for a one bedroom, man", "You been to Granville Island? The market's sick", "It's gonna rain. It's always gonna rain", "Spare some change for the SkyTrain?", "Nice day for the seawall", "Have you seen my dog? Off leash at English Bay", "Go Whitecaps!", "Where's the nearest Tim's?", "Bro, the Expo line is down again", "You look like you could use a JapaDog"];
+const BUMPS = ["Watch it, bud", "Hey! Eyes up", "Seriously?"], FIGHTS = ["You got a problem?", "Wanna go?", "Say that again"];
+let encounterT = 15;
+function say(p, text) { p.say = text; p.sayT = 3.5; }
+function streetLife(dt) {
+  if (G.driving !== null || G.step < 2) return;
+  if ((encounterT -= dt) <= 0) {
+    encounterT = 18 + Math.random() * 22;
+    const near = living().filter(p => !p.angry && !p.walkUp && dist(p.p, G.player) < 260 && dist(p.p, G.player) > 40);
+    const p = near[Math.floor(Math.random() * near.length)]; if (p) p.walkUp = ["bump", "talk", "talk", "fight"][Math.floor(Math.random() * 4)];
+  }
+  for (const p of G.peds) {
+    if (!p.walkUp || p.dead) continue;
+    p.a = Math.atan2(G.player.y - p.p.y, G.player.x - p.p.x);
+    if (dist(p.p, G.player) > 16) { const nx = p.p.x + Math.cos(p.a) * 45 * dt, ny = p.p.y + Math.sin(p.a) * 45 * dt; if (!solid(nx, ny)) p.p = { x: nx, y: ny }; p.t += dt * 10; continue; }
+    const kind = p.walkUp; p.walkUp = null;
+    if (kind === "bump") { say(p, BUMPS[Math.floor(Math.random() * BUMPS.length)]); bang(.2); const nx = G.player.x - Math.cos(p.a) * -6, ny = G.player.y - Math.sin(p.a) * -6; if (!solid(nx, ny)) G.player = { x: nx, y: ny }; p.a += Math.PI; }
+    if (kind === "talk") { const pool = p.hood?.lines?.length ? p.hood.lines.concat(LINES.slice(0, 3)) : LINES; say(p, pool[Math.floor(Math.random() * pool.length)]); p.a += Math.PI; }
+    if (kind === "fight") { say(p, FIGHTS[Math.floor(Math.random() * FIGHTS.length)]); p.angry = true; }
+  }
+  for (const p of G.peds) if (p.sayT > 0 && (p.sayT -= dt) <= 0) p.say = null;
+}
 function startMission(n) {
   const kind = MISSIONS[n % MISSIONS.length]; mission = { n, kind, stage: 0 };
   if (kind === "deliver") { newTarget(); mission.text = "Deliver a car to the beacon"; }
@@ -170,13 +235,13 @@ function tick(dt) {
     if (G.z > 0 || G.vz > 0) { G.vz -= 600 * dt; G.z = Math.max(0, G.z + G.vz * dt); if (G.z === 0) G.vz = 0; }
   }
   for (const p of G.peds) {
-    if (p.dead) { p.dead += 0; continue; }
+    if (p.dead || p.walkUp) continue;
     if (p.angry && G.driving === null && dist(p.p, G.player) < 300) {
       p.a = Math.atan2(G.player.y - p.p.y, G.player.x - p.p.x); p.swingT = (p.swingT || 0) - dt;
       if (dist(p.p, G.player) < 16) { if (p.swingT <= 0) { p.swingT = 1; p.punching = .3; bang(.3); G.hp -= 7; G.hurtT = .25; if (G.hp <= 0) { wasted(); return; } } p.punching = Math.max(0, (p.punching || 0) - dt); continue; }
       const nx = p.p.x + Math.cos(p.a) * 80 * dt, ny = p.p.y + Math.sin(p.a) * 80 * dt; if (!solid(nx, ny)) p.p = { x: nx, y: ny }; p.t += dt * 20; continue;
     }
-    const sp = p.scared > 0 ? 90 : 30; p.scared = (p.scared || 0) - dt; p.t += dt * sp / 4; const nx = p.p.x + Math.cos(p.a) * sp * dt, ny = p.p.y + Math.sin(p.a) * sp * dt;
+    const sp = p.scared > 0 ? 90 : 30 * (p.hood?.slow || 1); p.scared = (p.scared || 0) - dt; p.t += dt * sp / 4; const nx = p.p.x + Math.cos(p.a) * sp * dt, ny = p.p.y + Math.sin(p.a) * sp * dt;
     if (solid(nx, ny)) { const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(p.p.x + Math.cos(a) * 8, p.p.y + Math.sin(a) * 8)); p.a = d.length ? d[Math.floor(Math.random() * d.length)] : p.a + Math.PI; } else { p.p.x = nx; p.p.y = ny; }
   }
   G.cars.forEach((c, i) => {
@@ -184,12 +249,12 @@ function tick(dt) {
     const ax = c.p.x + Math.cos(c.a) * 45, ay = c.p.y + Math.sin(c.a) * 45;
     if (solid(ax, ay) || G.cars.some((o, j) => j !== i && Math.hypot(o.p.x - ax, o.p.y - ay) < 25)) {
       const d = [0, 1, 2, 3].map(i => i * Math.PI / 2).filter(a => !solid(c.p.x + Math.cos(a) * 45, c.p.y + Math.sin(a) * 45));
-      c.a = d.length ? d[Math.floor(Math.random() * d.length)] : c.a + Math.PI; c.v = 0;
+      c.a = d.length ? d[Math.floor(Math.random() * d.length)] : c.a + Math.PI; c.v = 0; lane(c);
     }
     move(c, dt);
   });
   if (G.driving !== null) { const c = G.cars[G.driving]; if (Math.abs(c.v) > 120) G.peds.forEach((p, i) => { if (!p.dead && dist(p.p, c.p) < 20) { killPed(i); G.score -= 10; } }); }
-  if (living().length < 50) G.peds.push(sidewalkPed(roadPoint()));
+  if (living().length < 90) G.peds.push(sidewalkPed(roadPoint()));
   G.peds = G.peds.filter(p => !p.dead || (p.dead += dt) < 30);
   if (G.cars.filter(c => c.cop).length < [0, 1, 2, 4, 6, 8][G.wanted]) { let p = roadPoint(); while (dist(p, G.player) < 500) p = roadPoint(); G.cars.push({ p, a: 0, v: 0, color: 0x2244cc, cop: true, ai: false, kind: 0, hp: 3 }); }
   for (const c of G.cars) {
@@ -207,6 +272,7 @@ function tick(dt) {
   spots.forEach((p, i) => { if (dist(p, G.player) < 150 && !save.seen[i]) { save.seen[i] = 1; persist(); if (Object.keys(save.seen).length >= spots.length) unlock("tourist"); } });
   if (G.hp < 100 && G.wanted === 0) G.hp = Math.min(100, G.hp + dt * 5);
   G.aimT = G.driving === null ? findTarget(G.weapon ? 600 : 28) : null; G.hurtT -= dt; toastT -= dt; if (toastT <= 0) document.getElementById("toast").style.display = "none";
+  streetLife(dt);
   // tutorial then missions
   const s = G.step;
   if (s === 0 && dist(G.player, walkFrom) > 100) G.step = 1;
@@ -267,18 +333,26 @@ vanMap.forEach((row, by) => [...row].forEach((k, bx) => {
   }
   n.position.x = lx; n.position.z = lz; scene.add(n);
 }));
+const rainGeo = new THREE.BufferGeometry(), rainN = 2500, rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN * 3; i++) rp[i] = (Math.random() - .5) * 800; rainGeo.setAttribute("position", new THREE.BufferAttribute(rp, 3));
+const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0xaabbcc, size: 1.6, transparent: true, opacity: .6 })); rain.visible = false; scene.add(rain);
 const ring = new THREE.Mesh(new THREE.RingGeometry(10, 13, 64), new THREE.MeshBasicMaterial({ color: 0xff3030, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
 for (const l of LANDMARKS) { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const x = c.getContext("2d"); x.font = "bold 44px Helvetica"; x.textAlign = "center"; x.fillStyle = "#000a"; x.fillRect(0, 10, 512, 76); x.fillStyle = "#fff"; x.fillText(l.name, 256, 64);
   const t = new THREE.CanvasTexture(c); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, fog: false })); sp.scale.set(160, 30, 1); sp.position.set(l.x, l.name === "Harbour Centre" ? 540 : 150, l.y); scene.add(sp); }
 const beacon = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 600, 48), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: .4 })); scene.add(beacon);
+// smooth torso from a lathe profile: hips, waist, chest, shoulders
+const TORSO = new THREE.LatheGeometry([[0, 0], [2.6, 0], [2.9, 1.2], [2.5, 3.8], [2.9, 6.2], [3.3, 8.4], [3.1, 9.4], [1.2, 10.2], [0, 10.3]].map(([x, y]) => new THREE.Vector2(x, y)), 48);
+const SKIN = [0xf1c9a5, 0xd9a680, 0xb67b53, 0x8d5a3b, 0x5c3a24], HAIR = [0x1c140f, 0x3b2616, 0x6b4a2b, 0xb58a4c, 0x8f8f8f], PANTS = [0x2b3440, 0x1f1f24, 0x4a3b2a, 0x3b4f6b, 0x5a5a5a];
 function person(color) {
   const cap = (r, l, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 8, 20), typeof c === "number" ? mat(c) : c); m.castShadow = true; return m; };
-  const n = new THREE.Group(), body = cap(3.4, 6, color); body.position.y = 13; body.scale.z = .7;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(2.8, 32, 16), mat(0xd9a680)); head.position.y = 21.5; head.castShadow = true;
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(2.95, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x2a1d14)); hair.position.y = 21.8;
-  n.legs = [-1.7, 1.7].map(s => { const pivot = new THREE.Group(), leg = cap(1.3, 5, 0x2b3440); leg.position.y = -3.5; pivot.add(leg); pivot.position.set(0, 8, s); n.add(pivot); return pivot; });
-  n.arms = [-3.8, 3.8].map(s => { const pv = new THREE.Group(), arm = cap(1, 5, color); arm.position.y = -3; pv.add(arm); pv.position.set(0, 17, s); n.add(pv); return pv; });
-  n.add(hair);
+  const skin = SKIN[Math.floor(Math.random() * SKIN.length)], hairC = HAIR[Math.floor(Math.random() * HAIR.length)], pants = PANTS[Math.floor(Math.random() * PANTS.length)];
+  const n = new THREE.Group(), body = new THREE.Mesh(TORSO, mat(color)); body.position.y = 8.2; body.scale.z = .62; body.castShadow = true;
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1, 1.4, 24), mat(skin)); neck.position.y = 18.6;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(2.5, 48, 24), mat(skin)); head.position.y = 21.2; head.scale.set(.92, 1.08, .88); head.castShadow = true;
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(2.65, 48, 24, 0, Math.PI * 2, 0, Math.PI * .55), mat(hairC)); hair.position.set(-.15, 21.6, 0); hair.scale.set(.95, 1.05, .92);
+  const limb = (r1, r2, l, c) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry((r1 + r2) / 2, l, 12, 24), mat(c)); m.castShadow = true; return m; };
+  n.legs = [-1.35, 1.35].map(s => { const pivot = new THREE.Group(), leg = limb(1.25, 1, 6, pants); leg.position.y = -3.8; const shoe = new THREE.Mesh(new THREE.SphereGeometry(1.1, 24, 12), mat(0x1b1b1b)); shoe.scale.set(1.7, .6, 1); shoe.position.set(.7, -7.6, 0); pivot.add(leg, shoe); pivot.position.set(0, 8.3, s); n.add(pivot); return pivot; });
+  n.arms = [-3.4, 3.4].map(s => { const pv = new THREE.Group(), arm = limb(.95, .8, 5.2, color), hand = new THREE.Mesh(new THREE.SphereGeometry(.85, 24, 12), mat(skin)); arm.position.y = -3.2; hand.position.y = -6.4; pv.add(arm, hand); pv.position.set(0, 16.6, s); n.add(pv); return pv; });
+  n.add(neck, hair); n.scale.setScalar(.92 + Math.random() * .16);
   n.add(body, head); scene.add(n); return n;
 }
 const hero = person(0xbf1f1a); const gun = boxM(8, 2, 2, 0x111111); gun.position.set(7, 14, 4); hero.add(gun);
@@ -294,10 +368,14 @@ function carMesh(c) {
 let carM = [], pedM = [];
 function sync(now) {
   if (carM.length !== G.cars.length) { carM.forEach(m => scene.remove(m)); carM = G.cars.map(carMesh); }
-  if (pedM.length !== G.peds.length) { pedM.forEach(m => scene.remove(m)); pedM = G.peds.map((_, i) => person([0x8b5a2b, 0xd33, 0x2a6fdb, 0x111, 0x2e9e4f][i % 5])); }
+  const live = new Set(G.peds); pedM = pedM.filter(m => { if (live.has(m.ped)) return true; scene.remove(m); return false; });
+  G.peds.forEach(p => { if (!p.m) { const sh = (p.hood || HOODS.downtown).shirts; p.m = person(sh[Math.floor(Math.random() * sh.length)]); p.m.ped = p; pedM.push(p.m);
+      if (p.cart) { const cart = new THREE.Group(), basket = boxM(12, 8, 8, new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: .8, roughness: .35, wireframe: true })); basket.position.set(9, 10, 0); cart.add(basket); for (const [x, z] of [[4, 3], [4, -3], [14, 3], [14, -3]]) { const w = new THREE.Mesh(new THREE.TorusGeometry(1.2, .4, 12, 24), mat(0x222222)); w.position.set(x, 1.4, z); cart.add(w); } p.m.add(cart); }
+      if (p.dog) { const dog = new THREE.Group(), bd = new THREE.Mesh(new THREE.CapsuleGeometry(1.6, 4, 12, 24), mat(0xc8a070)); bd.rotation.z = Math.PI / 2; bd.position.y = 3; const hd = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 12), mat(0xc8a070)); hd.position.set(3.6, 4.4, 0); dog.add(bd, hd); dog.position.set(4, 0, 6); p.m.add(dog); }
+      if (p.camera) { const cm = boxM(2.4, 1.6, 1.2, 0x111111); cm.position.set(2.2, 14, 0); p.m.add(cm); } } });
   const flash = Math.floor(now / 160) % 2;
   G.cars.forEach((c, i) => { const m = carM[i]; m.position.set(c.p.x, c.kind === 2 ? 16 : 8, c.p.y); m.rotation.y = -c.a; m.visible = true; if (m.bar) m.bar.material.color.setHex(flash ? 0xff0000 : 0x0044ff); });
-  G.peds.forEach((p, i) => { const m = pedM[i]; m.position.set(p.p.x, 0, p.p.y);
+  G.peds.forEach(p => { const m = p.m; m.position.set(p.p.x, 0, p.p.y);
     if (p.dead) { const f = Math.min(1, p.dead * 3); m.rotation.set(f * Math.PI / 2, -p.a, 0, "YXZ"); m.position.y = f * 3; return; }
     m.rotation.set(0, -p.a, 0); m.legs.forEach((l, j) => l.rotation.z = Math.sin(p.t + j * Math.PI) * .5); m.arms[1].rotation.z = p.punching > 0 ? 1.5 : 0; });
   const a = G.driving !== null ? G.cars[G.driving].a : G.pa;
@@ -310,12 +388,23 @@ function sync(now) {
   const tg = G.aimT && (G.aimT.kind === "ped" ? G.peds[G.aimT.i]?.p : G.cars[G.aimT.i]?.p); ring.visible = !!tg; if (tg) ring.position.set(tg.x, 1, tg.y);
   sun.position.set(G.player.x - 400, 900, G.player.y + 300); sun.target.position.set(G.player.x, 0, G.player.y);
   beacon.position.set(G.target.x, 300, G.target.y); beacon.visible = G.step >= 2 && G.step !== 4 && !(mission?.kind === "evade");
-  const day = (Math.sin(now / 1000 * 2 * Math.PI / 240) + 1) / 2; sky.setRGB(.08 + .54 * day, .1 + .64 * day, .2 + .66 * day); scene.fog.color = sky; sun.intensity = .4 + day;
+  const day = (Math.sin(now / 1000 * 2 * Math.PI / 240) + 1) / 2;
+  if ((RAIN.t -= 1 / 60) <= 0) { RAIN.on = !RAIN.on; RAIN.t = RAIN.on ? 45 + Math.random() * 45 : 60 + Math.random() * 90; if (RAIN.on) toast("It's raining. Of course it is."); }
+  rain.visible = RAIN.on; if (RAIN.on) { rain.position.set(G.player.x, 0, G.player.y); const a = rainGeo.attributes.position.array; for (let i = 1; i < a.length; i += 3) { a[i] -= 9; if (a[i] < 0) a[i] += 400; } rainGeo.attributes.position.needsUpdate = true; }
+  ambient(1 / 60, day); sky.setRGB((.08 + .54 * day) * (RAIN.on ? .75 : 1), (.1 + .64 * day) * (RAIN.on ? .78 : 1), (.2 + .66 * day) * (RAIN.on ? .8 : 1)); scene.fog.far = RAIN.on ? 1600 : 3200; scene.fog.color = sky; sun.intensity = .4 + day;
 }
 const hpBar = document.querySelector("#hp i"), cross = document.getElementById("cross"), hud = document.getElementById("hud"), mc = document.getElementById("map"), mx = mc.getContext("2d"); mc.width = cols * 10; mc.height = rows * 10;
+const bubbleEl = document.getElementById("bubbles"), v3 = new THREE.Vector3();
+function drawBubbles() {
+  let html = "";
+  for (const p of G.peds) { if (!p.say || dist(p.p, G.player) > 250) continue; v3.set(p.p.x, 30, p.p.y).project(cam); if (v3.z > 1) continue;
+    html += `<div class="bub" style="left:${(v3.x + 1) / 2 * innerWidth}px;top:${(1 - v3.y) / 2 * innerHeight}px">${p.say}</div>`; }
+  bubbleEl.innerHTML = html;
+}
 function drawHud() {
+  drawBubbles();
   const street = streetName(G.player.x, G.player.y);
-  hud.textContent = (G.step < tut.length ? "▶ " + tut[G.step] + "\n" : "") + `${G.heroes[G.cur].name}   $${G.score}   ${"★".repeat(G.wanted)}\n${street}\n` + (G.driving !== null ? `${Math.round(Math.abs(G.cars[G.driving].v) / 4)} km/h` : G.weapon ? `Pistol ${G.ammo}` : "Fists") + `   Lv ${level()}  ${G.xp} XP` + (mission && G.step >= 5 ? "\n" + mission.text : "") + (G.msg ? "\n" + G.msg : "");
+  hud.textContent = `${hood(G.player.x, G.player.y).name}\n` + (G.step < tut.length ? "▶ " + tut[G.step] + "\n" : "") + `${G.heroes[G.cur].name}   $${G.score}   ${"★".repeat(G.wanted)}\n${street}\n` + (G.driving !== null ? `${Math.round(Math.abs(G.cars[G.driving].v) / 4)} km/h` : G.weapon ? `Pistol ${G.ammo}` : "Fists") + `   Lv ${level()}  ${G.xp} XP` + (mission && G.step >= 5 ? "\n" + mission.text : "") + (G.msg ? "\n" + G.msg : "");
   hpBar.style.width = Math.max(0, G.hp) + "%"; cross.style.color = G.aimT ? "#ff4040" : "#fff"; document.body.style.boxShadow = G.hurtT > 0 ? "inset 0 0 80px #c00" : "none";
   vanMap.forEach((row, r) => [...row].forEach((k, c) => { mx.fillStyle = k === "W" ? "#2255aa" : k === "P" ? "#2e8b3a" : k === "Y" ? "#d8c79a" : NAMES[k] ? "#ddd" : "#888"; mx.fillRect(c * 10, r * 10, 10, 10); }));
   mx.fillStyle = "#f33"; G.cars.filter(c => c.cop).forEach(c => mx.fillRect(c.p.x / block * 10 - 2, c.p.y / block * 10 - 2, 4, 4));
@@ -347,6 +436,7 @@ addEventListener("keydown", e => {
   G.keys.add(e.code);
 });
 addEventListener("keyup", e => G.keys.delete(e.code));
+["keydown", "mousedown", "touchstart"].forEach(t => addEventListener(t, ambientStart, { once: true }));
 R.domElement.addEventListener("mousedown", () => { if (G.paused) return; if (!document.pointerLockElement) R.domElement.requestPointerLock(); else shoot(); });
 // mouse always steers the camera; click locks it for endless turning
 addEventListener("mousemove", e => { if (G.paused) return; G.mouseDX += e.movementX; G.pitch = Math.max(-.6, Math.min(.5, (G.pitch || 0) + e.movementY * .003)); });
@@ -367,5 +457,5 @@ R.domElement.addEventListener("touchstart", e => { const t = e.changedTouches[0]
 document.querySelectorAll("#btns button").forEach(b => { b.addEventListener("touchstart", e => { e.preventDefault(); const k = b.dataset.k;
   if (k === "Brake") { G.keys.add("KeyS"); return; } if (k === "ShiftLeft") { G.keys.add(k); return; } dispatchEvent(new KeyboardEvent("keydown", { code: k })); }, { passive: false });
   b.addEventListener("touchend", () => { if (b.dataset.k === "Brake") G.keys.delete("KeyS"); if (b.dataset.k === "ShiftLeft") G.keys.delete("ShiftLeft"); dispatchEvent(new KeyboardEvent("keyup", { code: b.dataset.k })); }); });
-window.G = G; window.GS = { punch, startMission, addHeat, shoot, findTarget, killPed, unlock, save };
+window.G = G; window.GS = { say, streetLife, RAIN, punch, startMission, addHeat, shoot, findTarget, killPed, unlock, save };
 </script></body></html>
