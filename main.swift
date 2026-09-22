@@ -495,7 +495,7 @@ func runQA() -> Never {
     print(fails.isEmpty ? "QA OK" : "QA FAILED: \(fails.count)"); exit(fails.isEmpty ? 0 : 1)
 }
 
-@main struct Vancouver Vice: App {
+@main struct VancouverVice: App {
     init() { if ProcessInfo.processInfo.environment["GS_QA"] != nil { runQA() }; NSApplication.shared.setActivationPolicy(.regular); // one copy at a time: newest launch kills any older instance
         let me = ProcessInfo.processInfo.processIdentifier
         NSWorkspace.shared.runningApplications.filter { $0.executableURL?.lastPathComponent == "rainjack" && $0.processIdentifier != me }.forEach { $0.forceTerminate() }

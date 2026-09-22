@@ -14,7 +14,7 @@ final class GameWebView: WKWebView {
 }
 struct Web: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
-        let v = GameWebView(); v.customUserAgent = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Vancouver ViceApp"; v.load(URLRequest(url: gameURL))
+        let v = GameWebView(); v.customUserAgent = "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) VancouverViceApp"; v.load(URLRequest(url: gameURL))
         NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseDown, .keyDown]) { e in
             switch e.type {
             case .leftMouseDown: if !v.locked { v.setLock(true) }
@@ -44,7 +44,7 @@ struct Web: UIViewRepresentable {
 }
 #endif
 
-@main struct Vancouver ViceApp: App {
+@main struct VancouverViceApp: App {
     var body: some Scene {
         WindowGroup { Web().ignoresSafeArea().background(Color.black)
             #if os(iOS)
