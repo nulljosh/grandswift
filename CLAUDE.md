@@ -19,4 +19,4 @@ A GTA-style game in the real Vancouver. Live at vancouvervice.heyitsmejosh.com, 
 - Update CHANGELOG, roadmap and the landing page with every user-facing release.
 
 ## The loop
-Restart prompt is at the bottom of `roadmap.md`.
+See `docs/LOOP-HANDOFF.md` for where the loop stands and the restart prompt.
