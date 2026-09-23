@@ -57,3 +57,10 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Launcher gotcha: never edit ~/Library/Application Support/Epic/EpicGamesLauncher/Data/Manifests/*.item. Flipping bIsIncompleteInstall made the launcher forget the whole 5.8.2 install (files stayed on disk; restoring the .item from a backup fixed it). The launcher will not install anything while Unreal or its helpers (UnrealTraceServer, UnrealEditorServices) are running.
 - Smooth walk (next, after the editor restarts on the Core Data engine): BP_ThirdPersonCharacter has a hidden Body component (Joshua body). Swap Mesh back to SKM_Quinn_Simple (hidden, AlwaysTickPoseAndRefreshBones), show Body, and in UserConstructionScript add (Components|SkinnedMesh|SetLeaderPoseComponent :self (Variables|Default|GetBody) :NewLeaderBoneComponent (Variables|Character|GetMesh)). New components only get a Get node after an editor restart.
 - Glasses: unreal/glasses.py (Blender, headless) makes unreal/assets/glasses.fbx; attached to the Mesh head socket by the construction script (Python cannot set a socket on a Blueprint component).
+
+## Running it unattended (phone-friendly)
+- `sh unreal/doctor.sh` prints health: editor, control port, RAM and swap, crash leftovers, recent errors.
+- `sh unreal/doctor.sh heal` clears the crash report window and orphaned helpers, relaunches the editor if it died (refuses when RAM is too tight), and restarts the MCP server when a crashed editor left port 18000 stuck. Run it before any session from Claude mobile.
+- Long operations (MetaHuman builds) outlast the bridge's 60 s default: `QA_TIMEOUT=900 python3 unreal/qa.py '...'`.
+- Crash on 2026-09-22: the MetaHuman build succeeded, then asserted in MakeUniqueObjectName while unpacking. Most likely cause: Core Data cloned from the 5.8.3 install into the 5.8.2 engine. If it repeats, finish the 5.8.3 install at /Volumes/LaCie/Epic/UE_5.8 and point open.sh at it.
+- Close the Epic launcher when Unreal is building: 16 GB of RAM cannot hold both plus MetaHuman texture synthesis.

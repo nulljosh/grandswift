@@ -6,7 +6,7 @@ Usage: python3 qa.py            -> starts Play, runs the walk test, prints PASS/
 import os, sys, time, json, subprocess
 D = "/tmp/vv_qa"; HERE = os.path.dirname(os.path.abspath(__file__))
 
-def run(src, timeout=60):
+def run(src, timeout=int(os.environ.get("QA_TIMEOUT", 60))):  # long builds: QA_TIMEOUT=600
     os.makedirs(D, exist_ok=True)
     out = os.path.join(D, "out.txt")
     if os.path.exists(out): os.remove(out)
