@@ -59,6 +59,7 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 - [ ] Brian (Dad), Christine (Mom) and Sarah (sister) as MetaHumans from iPhone face scans (/face-scan), for the garage, dinner and dock scenes.
 - [ ] Missions 5 to 14 from docs/STORY.md.
 - [ ] Mac .app release, splash and loading screen while the city streams in.
+- [ ] Windows .exe: package on a Windows PC or a rented cloud Windows GPU box (Unreal only packages Windows on Windows).
 
 ## Gaps against GTA 5
 
