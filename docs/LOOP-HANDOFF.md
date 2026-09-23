@@ -24,5 +24,5 @@ Epic launcher patching Unreal to 5.8.3 with Core Data (initial install stuck, no
 ## Restart prompt
 
 ```
-/loop Vancouver Vice Unreal build (~/Documents/Code/vancouvervice, UNREAL.md has the MCP recipe via unreal/mcp.py). FIRST check usage via the hook line / ~/.claude/scripts/usage.sh: if weekly_all >= 98%, commit, update docs/LOOP-HANDOFF.md, and stop the loop. Otherwise do ONE small item per round, in order: drivable car; three heroes (Joshua, Ben, Alexandre); a 7-Eleven to rob; cops and wanted stars; then more real Vancouver landmarks and missions. Verify each with a CaptureViewport screenshot, commit+push, then tell Joshua in under 8 words. No subagents.
+/loop Keep building out Vancouver Vice against GTA V: work the "Unreal build: gaps against GTA 5" list in roadmap.md top to bottom. Main session plans; one subagent per task, max 3 at once (2 if one is Opus or Fable), only one agent drives the Unreal editor. QA each item (python3 unreal/qa.py, python3 unreal/qa.py drive), commit, push, check it off. Every round, keep the landing page (site/index.html roadmap and shots) and README in step with what actually shipped, deploy with npx wrangler deploy, and verify it live. Report install or build progress in one line.
 ```
