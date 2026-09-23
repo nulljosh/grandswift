@@ -107,3 +107,4 @@ Open Claude Code in `~/Documents/Code/vancouvervice` and paste:
 
 - [ ] Apple Store heist opener: Apple employees chase the player out the door (AI pawns that run at the player during mission one, no navmesh needed, AddMovementInput toward player), Mac mini props to grab
 - [ ] Glasses on Joshua (attach a glasses mesh to the head socket)
+- [ ] In-game graphics setting: a Low/Medium/High key that sets the tileset MaximumScreenSpaceError (12/6/3) at runtime, so nearby streets are sharp and far tiles stay cheap on 16 GB
