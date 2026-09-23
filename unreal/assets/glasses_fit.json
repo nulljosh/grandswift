@@ -1,0 +1,42 @@
+{
+  "note": "Offset of glasses origin relative to the 'head' bone's bind-pose transform, in the head bone's local axes (cm). Rotation is zero: the glasses were modeled axis-aligned to the same frame as joshua_face.fbx, so no additional pitch/yaw/roll is needed when attaching to the head socket.",
+  "location_cm": {
+    "x": -0.109,
+    "y": -11.925,
+    "z": 6.087
+  },
+  "rotation_deg": {
+    "pitch": 0.0,
+    "yaw": 0.0,
+    "roll": 0.0
+  },
+  "landmarks_m": {
+    "eyeL_center": [
+      0.0332,
+      -0.09271,
+      1.60753
+    ],
+    "eyeR_center": [
+      -0.03539,
+      -0.09287,
+      1.60751
+    ],
+    "eye_surface_y": -0.11777,
+    "nose_bridge": [
+      -0.00564,
+      -0.1179,
+      1.61333
+    ],
+    "head_bone": [
+      -0.0,
+      -0.00853,
+      1.54665
+    ],
+    "glasses_origin": [
+      -0.00109,
+      -0.12777,
+      1.60752
+    ],
+    "head_width_half_at_eye_level": 0.06895
+  }
+}
