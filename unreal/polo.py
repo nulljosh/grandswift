@@ -6,6 +6,7 @@ source FBX bone rest positions -- object world matrices carry the cm->m scale, s
 vertex coords and armature bone head_local/tail_local numbers are directly comparable.
 """
 import bpy, bmesh, math, os
+import numpy as np
 from mathutils import Vector, kdtree
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +14,10 @@ BODY_FBX = os.path.join(REPO, "unreal/assets/joshua_body.fbx")
 POLO_FBX = os.path.join(REPO, "unreal/assets/polo.fbx")
 OUT_FRONT = os.path.join(REPO, "unreal/assets/polo_front.png")
 OUT_SIDE = os.path.join(REPO, "unreal/assets/polo_side.png")
-OUT_POSED = os.path.join(REPO, "unreal/assets/polo_posed.png")
+OUT_POSED_45 = os.path.join(REPO, "unreal/assets/polo_posed_45.png")
+OUT_POSED_90 = os.path.join(REPO, "unreal/assets/polo_posed_90.png")
+OUT_POSED_R45 = os.path.join(REPO, "unreal/assets/polo_posed_r45.png")
+OUT_TWIST = os.path.join(REPO, "unreal/assets/polo_twist.png")
 
 # ---- tunables (cm, body local space) --------------------------------------------------
 HEM_Z = 79.0                 # hip-length hem
@@ -21,7 +25,7 @@ NECK_CUT_Z = 137.5           # torso mesh stops here, collar geometry added abov
 TORSO_RADIUS = 27.0          # max horizontal dist from spine axis kept as "torso"
 SLEEVE_T_MAX = 0.55          # fraction of shoulder->elbow kept as sleeve (short sleeve)
 SLEEVE_RADIUS = 13.0         # max dist from upperarm bone axis kept as "sleeve"
-CLOTH_OFFSET = 1.0           # cm, offset outward along normal for cloth thickness
+CLOTH_OFFSET = 4.5           # cm, offset outward along normal for cloth ease/thickness
 FRONT_SIGN = -1.0            # -Y is front (checked against renders below)
 
 # ---------------------------------------------------------------------------------------
@@ -217,91 +221,167 @@ bpy.context.view_layer.objects.active = polo
 bpy.ops.object.modifier_apply(modifier=subsurf.name)
 bpy.ops.object.shade_smooth()
 
-# ---- skin to the SAME armature: Data Transfer weights from the body, then Armature ----
-dt = polo.modifiers.new("WeightTransfer", type="DATA_TRANSFER")
-dt.object = body
-dt.use_vert_data = True
-dt.data_types_verts = {"VGROUP_WEIGHTS"}
-dt.vert_mapping = "POLYINTERP_NEAREST"
-dt.layers_vgroup_select_src = "ALL"
-dt.layers_vgroup_select_dst = "NAME"
-dt.mix_mode = "REPLACE"
-bpy.context.view_layer.objects.active = polo
-bpy.ops.object.datalayout_transfer(modifier=dt.name)
-bpy.ops.object.modifier_apply(modifier=dt.name)
+# ---- skin to the SAME armature: bake weights from the REAL posed surface --------------
+# Copying, or even barycentric-interpolating, the body's own rest-pose weights still let
+# the cloth diverge from the body under a pose right at the shoulder saddle: the body's
+# weight painting has a genuinely sharp transition there that its own dense mesh blends
+# smoothly, but the polo's coarser topology can't reproduce from a static weight copy --
+# any nearest-surface weight transfer, however precise at rest, inherits that same sharp
+# edge and tears the same way. Fix: don't copy weights, copy TRACKED SURFACE MOTION.
+# Bind the polo to the body with a Surface Deform modifier (glues every polo vertex to a
+# barycentric point on the body and follows the body's true evaluated deformation), record
+# where that pins each vertex across several real test poses, then solve per-vertex bone
+# weights by least squares so a normal Armature modifier reproduces those tracked
+# positions. That bakes the body's actual posed shape into skin weights instead of
+# guessing them from its rest-pose paint job.
 
-# nearest-face weight transfer is unreliable for vertices that sit far from the source
-# body surface -- mainly the collar stand/fold and the placket/buttons, which are 1.5-4cm
-# proud of the skin. Those can pick up a wrong (or zero) nearest-face weight, so they sit
-# frozen in bind pose while their neighbors deform under a pose, reading as a torn seam.
-# Fix: any polo vertex farther than 1.3cm from the nearest body vertex, or with no weight
-# at all, clones the full weight set from its nearest *good* polo vertex instead.
-verts = polo.data.vertices
-totals = [0.0] * len(verts)
-for vg in polo.vertex_groups:
-    for i in range(len(verts)):
-        try:
-            totals[i] += vg.weight(i)
-        except RuntimeError:
-            pass
+# per-body-vertex bone weights, read once straight off MeshVertex.groups (already
+# per-vertex, far cheaper than looping every vertex group for every vertex)
+body_vertex_weights = [{g.group: g.weight for g in v.groups} for v in body.data.vertices]
+body_group_names = [vg.name for vg in body.vertex_groups]
+for name in body_group_names:
+    polo.vertex_groups.new(name=name)
 
+# candidate bones per polo vertex, with a distance-weighted prior. Using only the single
+# nearest body triangle's own bones under-covers the shoulder saddle: right at that
+# region the body's own weight paint is a sharp transition (a vertex can be ~100% one
+# bone right next to one that's ~100% another), so a polo vertex can land on a body
+# triangle that happens to carry zero weight for the very bone (upperarm_l) it actually
+# needs to follow -- no least-squares solve can reach a moving target with a candidate
+# set that never included the bone doing the moving. Pooling the K nearest body vertices
+# (not just the one nearest triangle) guarantees any bone influencing that neighborhood
+# is at least offered as a candidate; the fit below still decides how much of it to use.
 body_kd = kdtree.KDTree(len(body.data.vertices))
-for i, v in enumerate(body.data.vertices):
-    body_kd.insert(v.co, i)
+for idx, v in enumerate(body.data.vertices):
+    body_kd.insert(v.co, idx)
 body_kd.balance()
 
-FAR_THRESHOLD = 1.3
-good, bad = [], []
-for i, v in enumerate(verts):
-    _, _, dist = body_kd.find(v.co)
-    (bad if (dist > FAR_THRESHOLD or totals[i] <= 1e-6) else good).append(i)
-print("verts needing weight fix (far from skin or zero weight):", len(bad), "/", len(verts))
-
-if bad and good:
-    kd = kdtree.KDTree(len(good))
-    for j, i in enumerate(good):
-        kd.insert(verts[i].co, j)
-    kd.balance()
-    for i in bad:
-        _, j, _ = kd.find(verts[i].co)
-        src = good[j]
-        for vg in polo.vertex_groups:
-            try:
-                w = vg.weight(src)
-            except RuntimeError:
-                continue
-            vg.add([i], w, "REPLACE")
-
-# nearest-face transfer is also rigid right at region boundaries (e.g. the shoulder
-# seam between torso and sleeve): a vertex can end up ~100% clavicle right next to one
-# that's ~100% upperarm. Smooth all vertex groups across the surface to blend those
-# hard edges before skinning.
-bpy.ops.object.mode_set(mode="EDIT")
-bpy.ops.mesh.select_all(action="SELECT")
-bpy.ops.object.vertex_group_smooth(group_select_mode="ALL", factor=0.5, repeat=4)
-bpy.ops.object.mode_set(mode="OBJECT")
-bpy.ops.object.vertex_group_normalize_all(lock_active=False)
+K_NEIGHBORS = 16
+candidates = []  # list of {group_idx: prior_weight}
+for v in polo.data.vertices:
+    prior = {}
+    wsum = 0.0
+    for co, idx, dist in body_kd.find_n(v.co, K_NEIGHBORS):
+        w = 1.0 / (dist + 0.1)
+        wsum += w
+        for gidx, gw in body_vertex_weights[idx].items():
+            prior[gidx] = prior.get(gidx, 0.0) + w * gw
+    if wsum > 1e-8:
+        prior = {g: w / wsum for g, w in prior.items()}
+    candidates.append(prior)
 
 polo.parent = body.parent
 polo.matrix_parent_inverse = body.matrix_parent_inverse.copy()
 
+def set_pose(bone_rotations):
+    """Zero every pose bone, then apply the given {bone_name: (x,y,z) degrees} on top."""
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="POSE")
+    for pb in arm.pose.bones:
+        pb.rotation_mode = "XYZ"
+        pb.rotation_euler = (0.0, 0.0, 0.0)
+    for name, deg in bone_rotations.items():
+        pb = arm.pose.bones[name]
+        pb.rotation_mode = "XYZ"
+        pb.rotation_euler = tuple(math.radians(d) for d in deg)
+    bpy.context.view_layer.update()
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+# sample poses to fit against: rest plus a spread across the left arm (to constrain the
+# fit, not just the two verification angles), the right arm, and a spine twist
+SAMPLE_POSES = [
+    ("rest", {}),
+    ("l30", {"upperarm_l": (30.0, 0.0, 0.0)}),
+    ("l45", {"upperarm_l": (45.0, 0.0, 0.0)}),
+    ("l60", {"upperarm_l": (60.0, 0.0, 0.0)}),
+    ("l90", {"upperarm_l": (90.0, 0.0, 0.0)}),
+    ("r45", {"upperarm_r": (45.0, 0.0, 0.0)}),
+    ("twist", {"spine_03": (30.0, 0.0, 0.0)}),
+]
+
+sdmod = polo.modifiers.new("SurfaceBind", type="SURFACE_DEFORM")
+sdmod.target = body
+set_pose({})
+bpy.ops.object.select_all(action="DESELECT")
+polo.select_set(True)
+bpy.context.view_layer.objects.active = polo
+bpy.ops.object.surfacedeform_bind(modifier=sdmod.name)
+print("surface deform bound:", sdmod.is_bound)
+
+target_positions = {}  # pose_name -> [Vector, ...] (surface-deform-tracked polo verts)
+bone_matrices = {}      # pose_name -> {group_idx: (3x3 R, 3 T) numpy}
+for pose_name, rot in SAMPLE_POSES:
+    set_pose(rot)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    polo_eval = polo.evaluated_get(depsgraph)
+    mesh_eval = polo_eval.to_mesh()
+    target_positions[pose_name] = [v.co.copy() for v in mesh_eval.vertices]
+    polo_eval.to_mesh_clear()
+
+    mats = {}
+    for gidx, name in enumerate(body_group_names):
+        pb = arm.pose.bones.get(name)
+        b = arm.data.bones.get(name)
+        if pb is None or b is None:
+            continue
+        M = np.array(pb.matrix @ b.matrix_local.inverted())
+        mats[gidx] = (M[:3, :3], M[:3, 3])
+    bone_matrices[pose_name] = mats
+
+set_pose({})
+polo.modifiers.remove(sdmod)
+
+# solve each vertex's bone weights: find w minimizing how far a normal LBS blend of the
+# candidate bones lands from the surface-deform-tracked target across every sample pose
+# at once, ridge-regularized toward the rest-pose barycentric prior so a near-singular
+# fit (common with 3+ overlapping candidate bones) can't send neighboring vertices to
+# wildly different solutions -- that instability is what "solve it exactly, per vertex,
+# with no prior" produced: a correct-on-average but visually noisy, flickering surface.
+LAMBDA = 0.3
+fit_errors = []
+for i in range(len(polo.data.vertices)):
+    prior = candidates[i]
+    cand = sorted(g for g in prior if any(g in bone_matrices[p] for p, _ in SAMPLE_POSES))
+    if not cand:
+        continue
+    v0 = np.array(polo.data.vertices[i].co)
+    w0 = np.array([prior[g] for g in cand])
+    rows, targets = [], []
+    for pose_name, _ in SAMPLE_POSES:
+        mats = bone_matrices[pose_name]
+        cols = []
+        for g in cand:
+            R, T = mats.get(g, (np.eye(3), np.zeros(3)))
+            cols.append(R @ v0 + T)
+        rows.append(np.stack(cols, axis=1))  # 3 x K
+        targets.append(np.array(target_positions[pose_name][i]))
+    A = np.vstack(rows)          # (3*P) x K
+    t = np.concatenate(targets)  # (3*P,)
+    K = len(cand)
+    AtA = A.T @ A + LAMBDA * np.eye(K)
+    Atb = A.T @ t + LAMBDA * w0
+    w = np.linalg.solve(AtA, Atb)
+    w = np.clip(w, 0.0, None)
+    total = w.sum()
+    if total <= 1e-8:
+        continue
+    w = w / total
+    fit_errors.append(float(np.abs(A @ w - t).mean()))
+    for g, wg in zip(cand, w):
+        if wg > 1e-4:
+            polo.vertex_groups[body_group_names[g]].add([i], float(wg), "REPLACE")
+
+print("weight-fit mean residual (cm):", sum(fit_errors) / max(1, len(fit_errors)))
+
 armmod = polo.modifiers.new("root", type="ARMATURE")
 armmod.object = arm
 armmod.use_vertex_groups = True
-armmod.use_deform_preserve_volume = True  # dual quaternion skinning: far less joint collapse/tear than linear blend
-
-# approximated cloth weights (copied/smoothed from the body's own weights, which were
-# hand-sculpted for a much harder region -- the shoulder saddle) still diverge from the
-# body's real deformation enough, at a full 45 degree rotation, to let skin show through
-# right at that saddle. Corrective Smooth relaxes the POSED mesh back toward its bound
-# rest shape, which is the standard fix for this class of skinning artifact.
-csmod = polo.modifiers.new("CorrectiveSmooth", type="CORRECTIVE_SMOOTH")
-csmod.factor = 1.0
-csmod.iterations = 12
-csmod.smooth_type = "LENGTH_WEIGHTED"
-csmod.rest_source = "BIND"
-bpy.context.view_layer.objects.active = polo
-bpy.ops.object.correctivesmooth_bind(modifier=csmod.name)
+# plain linear blend skinning, NOT dual quaternion: the weights above were solved by
+# fitting a linear (R@v0+T) blend model to the surface-deform-tracked targets, so the
+# runtime deform mode has to match that model exactly or the reconstruction breaks
+armmod.use_deform_preserve_volume = False
 
 print("polo verts:", len(polo.data.vertices), "vgroups:", len(polo.vertex_groups))
 
@@ -368,19 +448,26 @@ render(OUT_FRONT)
 point_camera(Vector((1.7, 0, 1.05)))
 render(OUT_SIDE)
 
-# ---- posed check: rotate upperarm_l 45deg, confirm sleeve follows ----------------------
-bpy.ops.object.select_all(action="DESELECT")
-arm.select_set(True)
-bpy.context.view_layer.objects.active = arm
-bpy.ops.object.mode_set(mode="POSE")
-pb = arm.pose.bones["upperarm_l"]
-pb.rotation_mode = "XYZ"
-pb.rotation_euler = (math.radians(45.0), 0.0, 0.0)
-bpy.context.view_layer.update()
-bpy.ops.object.mode_set(mode="OBJECT")
-
+# ---- posed checks: rotate each test bone, confirm the shirt follows with no gap --------
+# reuses the same set_pose(...) used above for weight-fit sampling (zeroes every bone,
+# then applies the given rotations), so what's rendered here matches what was fit
+set_pose({"upperarm_l": (45.0, 0.0, 0.0)})
 point_camera(Vector((0, FRONT_SIGN * 1.7, 1.05)))
-render(OUT_POSED)
+render(OUT_POSED_45)
+
+set_pose({"upperarm_l": (90.0, 0.0, 0.0)})
+point_camera(Vector((0, FRONT_SIGN * 1.7, 1.05)))
+render(OUT_POSED_90)
+
+set_pose({"upperarm_r": (45.0, 0.0, 0.0)})
+point_camera(Vector((0, FRONT_SIGN * 1.7, 1.05)))
+render(OUT_POSED_R45)
+
+set_pose({"spine_03": (30.0, 0.0, 0.0)})
+point_camera(Vector((1.7, 0, 1.05)))
+render(OUT_TWIST)
+
+set_pose({})
 
 # ---- export skeletal mesh (armature + polo, deform bones only, no leaf bones) ---------
 bpy.ops.object.mode_set(mode="OBJECT")
