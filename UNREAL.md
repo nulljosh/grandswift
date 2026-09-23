@@ -64,3 +64,11 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Long operations (MetaHuman builds) outlast the bridge's 60 s default: `QA_TIMEOUT=900 python3 unreal/qa.py '...'`.
 - Crash on 2026-09-22: the MetaHuman build succeeded, then asserted in MakeUniqueObjectName while unpacking. Most likely cause: Core Data cloned from the 5.8.3 install into the 5.8.2 engine. If it repeats, finish the 5.8.3 install at /Volumes/LaCie/Epic/UE_5.8 and point open.sh at it.
 - Close the Epic launcher when Unreal is building: 16 GB of RAM cannot hold both plus MetaHuman texture synthesis.
+
+## Blocky city in Play (2026-09-23)
+- Symptom: at the Apple Store spawn the Google tiles stay as coarse grey/blue blocks in Play and never sharpen.
+- What the evidence showed: not a Cesium error (no failed loads in the log, network fine). The editor was starved of memory. `footprint -p <editor pid>` read 20 GB (11 GB of it GPU, "IOAccelerator") on a 16 GB Mac, later 46 GB after a Play session was left running for hours. Frames took 3 to 27 s ("Ignoring very large delta" and audio underruns all through the log), and Cesium only refines tiles as frames tick, so load progress crawled (45% after 2.5 min). When other apps freed RAM the same Play hit 35 fps and progress climbed normally; a Play left running reached 100% (3977 tile components).
+- Turned back: tileset maximum_cached_bytes 4 GB to 256 MB (the default; 4 GB per tileset, and the editor world and the Play world each keep one), maximum_simultaneous_tile_loads 64 to 20, enable_double_sided_collisions off. Saved in the level.
+- GPU memory Unreal has grabbed is not handed back when Play stops. Only an editor restart clears it, so restart before a long test session if `footprint` shows the editor well past 10 GB.
+- House rules for tests on this Mac: t.MaxFPS 30 and r.ScreenPercentage 60 while testing, Lumen off, never raise tile detail or cache sizes, and never leave Play running. Start, wait for tiles, check, stop.
+- Joshua accepts a slow, polygonal city for now. Do not chase photoreal until the Mac has more headroom.
