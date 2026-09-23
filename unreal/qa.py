@@ -22,7 +22,7 @@ def mcp(toolset, tool, args):
     return subprocess.run([sys.executable, os.path.join(HERE, "mcp.py"), "tools/call", json.dumps(call)], capture_output=True, text=True, timeout=400).stdout
 
 if __name__ == "__main__":
-    test = "qa_drive.py" if sys.argv[1:] == ["drive"] else "qa_walk.py"
+    test = {"drive": "qa_drive.py", "shot": "qa_shot.py"}.get(sys.argv[1] if len(sys.argv) > 1 else "", "qa_walk.py")
     if len(sys.argv) > 1 and test == "qa_walk.py":
         print(run(sys.argv[1])); sys.exit()
 
