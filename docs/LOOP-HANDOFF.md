@@ -6,7 +6,7 @@ Driving Unreal 5.8 headless to build Vancouver Vice Act Two as a vertical slice:
 
 ## Where things stand
 
-Editor runs 8-10 GB with near-player tile loading fixed (was 54 GB due to abandoned Play session). Black polo is fitted to Joshua but needs male body refit to fit right. Fitted glasses placed from face head bone. Mission two (car jack and escape) wired and working. doctor.sh monitors editor health. Leaner city rendering via SSE 12. Act two missions live in browser. Package.sh and autoplay.dsl drafted for vertical-slice milestone. Loop handoff written. Landing simplified, roadmap caught up. Docs at 100%, Apache 2.0. CI green.
+Editor runs 8-10 GB with near-player tile loading fixed (was 54 GB due to abandoned Play session). Black polo is fitted to Joshua but needs male body refit to fit right. Fitted glasses placed from face head bone. Mission two (car jack and escape) wired and working. doctor.sh monitors editor health. Leaner city rendering via SSE 12. Act two missions live in browser. Package.sh and autoplay.dsl drafted for vertical-slice milestone. Loop handoff written. Landing simplified, roadmap caught up. Docs at 100%, Apache 2.0. CI green. 2026-09-23: Character fix pass in progress (red skin tone, male body foundation committed, polo shoulder seams pending, city detail SSE 8 pass running headless). Subagent halted at 90% usage; restart at male body refit (next in queue).
 
 ## Next, in order
 
