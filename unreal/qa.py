@@ -29,7 +29,7 @@ if __name__ == "__main__":
     A = "EditorToolset.EditorAppToolset"
     mcp(A, "StartPIE", {"options": {"bSimulate": False, "playMode": "PlayMode_InViewPort", "warmupSeconds": 5}})
     print("waiting for Vancouver to stream in"); time.sleep(90)
-    print(run(open(os.path.join(HERE, test)).read()))
+    print(run("QA_RESULT = 'FAIL test script crashed before it started'\n" + open(os.path.join(HERE, test)).read()))  # no stale PASS from an earlier run
     for _ in range(60):  # up to 2 minutes, polls until the walk reports
         time.sleep(2); res = run("print(QA_RESULT)")
         if not res.startswith("RUNNING"): break
