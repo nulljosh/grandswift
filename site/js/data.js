@@ -37,6 +37,10 @@ export const STORY = [
   { title: "Alexandre: Island Business", kind: "hit", text: "Someone's been talking. Find the marked man and deal with him", pay: 500 },
   { title: "Joshua: Heat on Hastings", kind: "evade", text: "Get the cops' attention, three stars, then lose them", pay: 600 },
   { title: "Joshua: The Granville Job", kind: "deliver", text: "Last one. Bring a fast car to the beacon. Don't scratch it", pay: 1000 },
+  { title: "Ben: Kits Beach", kind: "taxi", text: "Dad's got a boat and the heist needs it. Go to Kits Beach and ask him. Joshua won't face him right now", pay: 700 },
+  { title: "Ben: The Lululemon Sale", kind: "deliver", text: "Rich people stampeding for Lululemon on 4th Avenue. Grab the delivery van in the chaos and get out", pay: 750 },
+  { title: "Alexandre: The Ferry", kind: "taxi", text: "That's Dmitri's truck on the Swartz Bay ferry to Victoria. Follow him when you dock and find out where he really lives", pay: 850 },
+  { title: "Alexandre: Government Street", kind: "evade", text: "Coal Harbour, Government Street. That presale centre is where Dmitri moves the money on Saturday. Get inside and scope it out", pay: 950 },
 ];
 export const SKIN = [0xf1c9a5, 0xd9a680, 0xb67b53, 0x8d5a3b, 0x5c3a24];
 export const HAIR = [0x1c140f, 0x3b2616, 0x6b4a2b, 0xb58a4c, 0x8f8f8f];
