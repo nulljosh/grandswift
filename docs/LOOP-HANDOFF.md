@@ -6,21 +6,22 @@ Driving Unreal 5.8 headless to build Vancouver Vice Act Two as a vertical slice:
 
 ## Where things stand
 
-Editor runs 8-10 GB with near-player tile loading fixed (was 54 GB due to abandoned Play session). Black polo is fitted to Joshua but needs male body refit to fit right. Fitted glasses placed from face head bone. Mission two (car jack and escape) wired and working. doctor.sh monitors editor health. Leaner city rendering via SSE 12. Act two missions live in browser. Package.sh and autoplay.dsl drafted for vertical-slice milestone. Loop handoff written. Landing simplified, roadmap caught up. Docs at 100%, Apache 2.0. CI green. 2026-09-23: Character fix pass in progress (red skin tone, male body foundation committed, polo shoulder seams pending, city detail SSE 8 pass running headless). Subagent halted at 90% usage; restart at male body refit (next in queue).
+Editor 8-10 GB (near-player tile loading fixed the 54 GB hog). Skin fixed (textures synthesized, tone 0.10 from 0.85). Male body built and repointed to saved Joshua assets; Body/Face/glasses applied. Camera bugs fixed but run stalled: player is SpectatorPawn_0 instead of character, photo booth fails. doctor.sh monitors health (footprint, lean mode). Leaner city via SSE 12. Mission two on car jack. Act two live in browser. 5 hours yesterday burned on usage lockout, cold boots, Ollama hog, camera stack. Next session starts with pawn fix. 2026-09-23: Character fix pass in progress (red skin tone, male body foundation committed, polo shoulder seams pending, city detail SSE 8 pass running headless). Subagent halted at 90% usage; restart at male body refit (next in queue).
 
 ## Next, in order
 
-1. Male body refit — polo fits badly on female model; swap to male body, adjust weights, refit polo shoulder-seam
-2. Walls and camera collision — walk through buildings (currently inside-out camera), fix third-person view clipping
-3. Map detail SSE 6 and daylight — reduce day/night flashing, bump shader settings, test Gastown performance
-4. Splash preload screen — loading spinner while city tile data streams
-5. Apple Store launcher with chasers — press Tab or mouse to jack car, cops start pursuit
-6. Drive PASS and video — playtest car handling, record vertical slice demo
-7. BP_Heat stars and system — three stars, wanted level meter, heat from crimes
-8. Guns and firing — hold Shift, aim mouse, click to fire; shell casings and sound
-9. NPCs and dynamic crowd — non-player characters, dialogue, mission feedback
-10. Headless QA mode — run autoplay.dsl unattended, crash log reporting, fail fast
-11. Package the .app — build macOS release binary, sign, notarize, ship
+0. Fix the pawn — check GameMode default pawn and PlayerStart in Lvl_ThirdPerson, run qa.py shot to get street photo, swap into README
+1. Male body polish — polo fits badly (refit), check weight painting and bone hierarchy
+2. Walls and camera collision — walk through interiors (inside-out camera fix), third-person clip check
+3. Map detail SSE 6 and daylight — day/night flashing, shader bump, Gastown perf test
+4. Splash preload screen — loading spinner while tiles stream
+5. Apple Store launcher with chasers — press Tab/mouse to jack car, cops start pursuit
+6. Drive PASS and video — playtest car physics, record slice demo
+7. BP_Heat stars and system — three stars, wanted meter, crime heat
+8. Guns and firing — Shift aim, mouse click fire, casings and audio
+9. NPCs and dynamic crowd — NPCs, dialogue, mission feedback
+10. Headless QA mode — autoplay.dsl unattended, crash logs, fail fast
+11. Package the .app — build macOS binary, sign, notarize, ship
 
 ## Restart prompt
 
