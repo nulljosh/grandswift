@@ -83,3 +83,11 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Before any public release, swap the Cesium ion token baked into the build for a restricted one (locked to this app), the same way `CLAUDE.md` already locks the web build's token to the game's domains. `unreal/package.sh` prints a reminder every run; it does not enforce this.
 - QA now happens on the packaged `.app`, not in the editor's Play mode: `unreal/qa.py` drives Play inside the editor, which is fine for iteration, but the milestone's real gate is the packaged build launched with `-autoplay` (see `unreal/autoplay.dsl`, still a draft, not yet applied to `BP_ThirdPersonCharacter` via `apply_missions.py`). Once applied, run the `.app` with `-autoplay`, then check `Saved/Autoplay/result.txt` for a `PASS`/`FAIL` line and a timestamp, and `Saved/Screenshots/` for the `HighResShot`.
 - `unreal/autoplay.dsl` flags a few node names as uncertain in its own comments (command-line param check, writing the result file from a packaged build with no editor-only plugins, and the console-command node for `HighResShot`); confirm those in the node picker before applying.
+
+## Lean settings (2026-09-23)
+- Tileset MaximumScreenSpaceError 12 (BP_Missions BeginPlay and Tick, and the actor). Coarser city, but the tile textures fit the streaming pool instead of wanting three times it.
+- maximum_simultaneous_tile_loads 20. Fewer tiles decoding at once, less memory spike, slower first load.
+- DefaultEngine.ini [SystemSettings]: r.Streaming.PoolSize 1500 (up from 1000, a small bump, not a fix), r.Shadow.Virtual.Enable 0, r.Shadow.MaxResolution and r.Shadow.MaxCSMResolution 1024 (softer, blurrier shadows, much cheaper).
+- Tests only, set per session: t.MaxFPS 30, r.ScreenPercentage 60. Lumen stays off. Editor viewport Realtime off outside Play. Auto reimport and content folder monitoring off, so Blender rewriting an FBX no longer pops an import dialog; import new FBX versions by hand.
+- "PROFILING WITH AI LOGGING ON" shows only while stats collect. stat none (and stat stopfile) clears it. Do not use DisableAllScreenMessages: the mission line is a PrintString.
+- Drive QA passed its real checks (mission two index 2, drove 8.8 m, back out) with frames taking up to 99 s. The editor had grown to a 54 GB footprint. Restart the editor before the next long session.

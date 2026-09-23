@@ -1,14 +1,14 @@
-; BP_Missions. BeginPlay: city starts medium so the streets under the player appear fast.
-; Tick: sharpen to max once the first load finishes, then run the mission list.
+; BP_Missions. BeginPlay: city at SSE 12 (coarser, but under the texture budget on a 16 GB Mac).
+; Tick: re-apply SSE 12 once the first load finishes, then run the mission list.
 ; Mission two (index 1) completes when the player is driving the getaway car; the rest complete by reaching the target.
 (event EventBeginPlay
   (bind tiles (Utilities|Casting|CastToCesium3DTileset :Object (Actor|GetActorOfClass :ActorClass "/Script/CesiumRuntime.Cesium3DTileset")))
-  (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 6.0))
+  (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 12.0))
 
 (event EventTick (DeltaSeconds)
   (bind tiles (Utilities|Casting|CastToCesium3DTileset :Object (Actor|GetActorOfClass :ActorClass "/Script/CesiumRuntime.Cesium3DTileset")))
   (if (and (not (Variables|Default|GetSharpened)) (>= (Class|Cesium3DTileset|GetLoadProgress :self tiles) 60.0))
-    (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 6.0)
+    (Class|Cesium3DTileset|SetMaximumScreenSpaceError :self tiles :MaximumScreenSpaceError 12.0)
     (Variables|Default|SetSharpened true))
   (bind targets (Variables|Default|GetTargets))
   (bind names (Variables|Default|GetMissionNames))
