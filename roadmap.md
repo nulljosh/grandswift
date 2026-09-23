@@ -44,6 +44,16 @@ Honest grade today: GTA 1/2 A-, GTA 3 C, GTA 4 D, GTA 5 and 6 F.
 - Interiors that feel lived in (ours are generated rooms).
 - Lighting at night: headlights, neon, wet reflections.
 
+## Milestone: vertical slice (the first five minutes), then package it
+
+Converge here first, then fan out. Joshua as himself (real skin, fitted glasses, black polo) bursts out of the Apple Store on Georgia, employees chase him out, he jacks the car at the curb, the cops come, he loses them, he pawns the Mac minis on Granville. Package it as a Mac .app, QA the real app, ship it as 1.27.
+
+- [ ] unreal/package.sh: RunUAT BuildCookRun, Development, Mac, editor closed so it gets the RAM; restricted Cesium token in the build.
+- [ ] In-game autoplayer behind a launch flag (-autoplay) so the packaged app tests itself, writes a PASS/FAIL file and a screenshot.
+- [ ] Build in the editor without Play; QA on the packaged app at each milestone.
+
+After the slice: fan out across graphics (street-level tile detail, lighting), story (missions 5 to 14), systems (guns, minimap, radio), people (Ben, Alexandre, family scans), audio, more cities.
+
 ## Unreal build: gaps against GTA 5, in build order
 
 - [ ] Driving QA passes: E in, W drives, E out (python3 unreal/qa.py drive).
