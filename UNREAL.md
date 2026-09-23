@@ -91,3 +91,8 @@ Boot to playable takes a minute or two while tiles stream. Expected.
 - Tests only, set per session: t.MaxFPS 30, r.ScreenPercentage 60. Lumen stays off. Editor viewport Realtime off outside Play. Auto reimport and content folder monitoring off, so Blender rewriting an FBX no longer pops an import dialog; import new FBX versions by hand.
 - "PROFILING WITH AI LOGGING ON" shows only while stats collect. stat none (and stat stopfile) clears it. Do not use DisableAllScreenMessages: the mission line is a PrintString.
 - Drive QA passed its real checks (mission two index 2, drove 8.8 m, back out) with frames taking up to 99 s. The editor had grown to a 54 GB footprint. Restart the editor before the next long session.
+
+## Only load what's near the player (2026-09-23)
+- Tileset: frustum and fog culling on, preload ancestors and siblings off, forbid holes off, enforce culled SSE on at 64 (tiles off screen drop to coarse), cache 256 MB, 20 loads at once, SSE 12. No distance cap yet: CesiumTileExcluder exists but needs a Blueprint subclass with ShouldExclude, not done.
+- Measured on a freshly restarted editor, 5 minutes of Play at the Apple Store spawn: footprint 8.2 GB before, 9.2 GB at 60 s, 9.6 GB at 300 s, 9.0 GB after stopping. Swap 4.5 GB before, 4.1 to 6.7 GB during. Tiles hit 100% within 60 s at about 28 fps (capped at 30).
+- Compare the old editor session: 20 GB, then 54 GB, with frames taking seconds. The restart plus these settings is the fix. Restart when doctor.sh says RESTART DUE.
