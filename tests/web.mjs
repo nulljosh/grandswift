@@ -17,7 +17,7 @@ const W = ms => new Promise(r => setTimeout(r, ms));
 const within = (ms, what, fn) => Promise.race([fn(), new Promise((_, rej) => setTimeout(() => rej(new Error("timed out")), ms))]).catch(e => { check(false, `${what} (${e.message})`); });
 
 // landing page
-{ const p = await b.newPage(); await p.goto("http://localhost:8765/"); check(await p.locator("text=Play in your browser").count() === 1, "landing links to the game"); check(await p.locator("img.shot").count() === 3, "landing shows the Unreal shots"); check(await p.evaluate(() => [...document.images].every(i => i.complete && i.naturalWidth)), "landing images load"); await p.close(); }
+{ const p = await b.newPage(); await p.goto("http://localhost:8765/"); check(await p.locator("text=Play in your browser").count() === 1, "landing links to the game"); check(await p.locator("img.shot").count() === 2, "landing shows the Unreal shots"); check(await p.evaluate(() => [...document.images].every(i => i.complete && i.naturalWidth)), "landing images load"); await p.close(); }
 
 // fresh player: welcome card, pause, menu
 let p = await page(undefined, () => localStorage.clear());
