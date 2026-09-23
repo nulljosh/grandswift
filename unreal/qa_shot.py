@@ -31,7 +31,9 @@ def _place():
     for fx, rx in [(1, 0.6), (1, -0.6), (1, 0), (-1, 0.6), (0, 1), (0, -1)]:  # front three-quarter first, then anything clear
         cam_loc = loc + f * (320 * fx) + r * (320 * rx) + unreal.Vector(0, 0, 140)
         if _clear(cam_loc, eye):
-            cam = world.spawn_actor_from_class(unreal.CameraActor, cam_loc, unreal.MathLibrary.find_look_at_rotation(cam_loc, eye))
+            tf = unreal.Transform(cam_loc, unreal.MathLibrary.find_look_at_rotation(cam_loc, eye), unreal.Vector(1, 1, 1))
+            cam = unreal.GameplayStatics.begin_deferred_actor_spawn_from_class(world, unreal.CameraActor, tf)  # spawns in the Play world, not the editor one
+            unreal.GameplayStatics.finish_spawning_actor(cam, tf)
             cam.get_camera_component().set_editor_property("field_of_view", 55.0)
             pc.set_view_target_with_blend(cam, 0.0)
             return cam
@@ -42,7 +44,7 @@ def _step(dt):
         return _finish("FAIL play stopped mid-shot")
     QA["t"] += dt
     if QA["phase"] == "load":
-        prog = tiles.get_load_progress() if tiles else 100.0
+        prog = tiles.load_progress if tiles else 100.0
         if prog >= 95 or QA["t"] > 45:
             QA["cam"] = _place()
             if not QA["cam"]:
@@ -52,7 +54,7 @@ def _step(dt):
         unreal.SystemLibrary.execute_console_command(world, f"HighResShot 1920x1080 filename={NAME}")
         QA["phase"] = "done"; QA["t"] = 0.0
     elif QA["phase"] == "done" and QA["t"] > 2:
-        return _finish(f"PASS shot {NAME} (tiles {tiles.get_load_progress() if tiles else 0:.0f}%)")
+        return _finish(f"PASS shot {NAME} (tiles {tiles.load_progress if tiles else 0:.0f}%)")
 
 QA["h"] = unreal.register_slate_post_tick_callback(_step)
 print("photo booth armed")
