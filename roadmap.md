@@ -58,6 +58,7 @@ After the slice: fan out across graphics (street-level tile detail, lighting), s
 
 - [ ] Driving QA passes: E in, W drives, E out (python3 unreal/qa.py drive).
 - [ ] Core Data look: fair freckled skin, curly ginger hair, male body, black crewneck over a white collar.
+- [ ] Wardrobe on the male body: black polo (rebuild, straight hem, clean shoulder) and a grey hoodie with a parody "Gastown Polo" bear logo top left (bear in a blue-and-green toque holding a coffee, no real brand marks).
 - [ ] Smooth walk: hidden mannequin drives, Joshua's body follows (leader pose, wired, needs a PIE check).
 - [ ] Fast travel on Tab between Vancouver, Victoria, Seattle, Toronto, New York (unreal/fasttravel.dsl).
 - [ ] Cops and stars (docs/COPS.md): BP_Heat, pursuit cars, search circle.
